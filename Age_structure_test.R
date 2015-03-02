@@ -60,7 +60,10 @@ aging[row(aging)-col(aging)==1] <- 1/head(da,-1) # This is movement into next cl
 ja.multistage.model <- function (t, x, ...) {
 
   s <- x[sindex] # susceptibles
-
+  
+  
+  
+  
   # create a vector of survial at time t
   surv <- c(s5(t),s10(t),s15(t),s20(t),s25(t),s30(t),s35(t),s40(t),s45(t),s50(t),s55(t),s60(t),s65(t),s70(t),s75(t),s80(t))
   aging_temp <- aging
