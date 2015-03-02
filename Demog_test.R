@@ -9,7 +9,7 @@ library(ggplot2)
 ## Set working directory
 setwd("C:/Users/TOM SUMMER/Documents/TIME_research/TeaTime")
 
-ages <- seq(0,100,by=1) # upper end of age classes: 1 year age bins to 100
+ages <- c(4,9,14,19,24,29,34,39,44,49,54,59,64,69,74,79,84,89,94,99) # upper end of age classes
 num_ages <- length(ages) # calculates the number of age classes
 
 ## Load UN_pop data
