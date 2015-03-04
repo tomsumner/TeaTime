@@ -73,37 +73,35 @@ aging[row(aging)-col(aging)==1] <- 1/head(da,-1) # This is movement into next cl
 
 # Parameter values
 
+# Core natural history
 beta = 10       # Contact rate
-
 a = 0.115       # Proportion developing primary TB
 p = 0.65        # Protection due to previous infection
-v = 0.0001       # Reactivation rate
+v = 0.0001      # Reactivation rate
 sig = 0.62      # Proportion smear positive
 rel_inf = 0.22  # relative infectiousness of smear negative TB
 theta = 0.015   # smear conversion rate
+r = 0.2         # selfcure rate
+mu_N = 0.2      # smear negative mortality
+mu_I = 0.3      # smear positive mortality
 
-fit_cost = 0           # fitness cost for MDR
-e = 0                 # MDR acquistion rate
+# MDR
+fit_cost = 0.7            # fitness cost for MDR
+e = 0.014                 # MDR acquistion rate
 g = fit_cost/(1+fit_cost) # superinfections 
 
-r = 0.2   # selfcure rate
+# Care and control parameters - set up as functions to allow time variation
 
-mu_N = 0.2
-mu_I = 0.3
-
-# These are all the care and control parameters - currently set to zero
-k=0
-l_s=0.7
-l_m=0
-d=0.8
-tau_s=0.8
-tau_m=0
-
-eff_p=0
-eff_n=0
-dst_n=0
-dst_p = 0
-
+k_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)       # diagnositic rate (assummed to be the same for DS and MDR cases)         
+ls_fun <- approxfun(x=c(1920,2200),y=c(0.7,0.7),rule=2)  # linkage to care (DS TB)
+lm_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)      # linkage to care (MDR TB)
+d_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)       # relative detection of smear negative cases
+taus_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)    # treatment success for DS TB
+taum_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)    # treatment success for MDR TB
+effn_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)    # efficacy of first line treatment in new MDR cases
+effp_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)    # efficacy of first line treatment in retreatment MDR cases
+dstn_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)    # DST coverage in new TB cases
+dstp_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)    # DST coverage in retreatment TB cases
 
 ## Now we can put the pieces together to write a simulator TB
 ja.multistage.model <- function (t, x, ...) {
@@ -113,21 +111,9 @@ ja.multistage.model <- function (t, x, ...) {
   # s: drug, susceptible, m: drug resistant, n: treatment naive, p: previoulsy treated
   
   S <- x[s_index]
-  
-  Lsn <- x[Lsn_index]
-  Lsp <- x[Lsp_index]
-  Lmn <- x[Lmn_index]
-  Lmp <- x[Lmp_index]
-
-  Nsn <- x[Nsn_index]
-  Nsp <- x[Nsp_index]
-  Nmn <- x[Nmn_index]
-  Nmp <- x[Nmp_index]
-
-  Isn <- x[Isn_index]
-  Isp <- x[Isp_index]
-  Imn <- x[Imn_index]
-  Imp <- x[Imp_index]
+  Lsn <- x[Lsn_index]; Lsp <- x[Lsp_index]; Lmn <- x[Lmn_index]; Lmp <- x[Lmp_index]
+  Nsn <- x[Nsn_index]; Nsp <- x[Nsp_index]; Nmn <- x[Nmn_index]; Nmp <- x[Nmp_index]
+  Isn <- x[Isn_index]; Isp <- x[Isp_index]; Imn <- x[Imn_index]; Imp <- x[Imp_index]
   
   # create a vector of survial at time t
   surv <- c(s5(t),s10(t),s15(t),s20(t),s25(t),s30(t),s35(t),s40(t),s45(t),s50(t),s55(t),s60(t),s65(t),s70(t),s75(t),s80(t))
@@ -136,74 +122,85 @@ ja.multistage.model <- function (t, x, ...) {
   
   # Expressions for total populations - also want age group totals at some point
   Total_S <- sum(S)
-  Total_L <- sum(Lsn) + sum(Lsp) + sum(Lmn) + sum(Lmp)
-  Total_N <- sum(Nsn) + sum(Nsp) + sum(Nmn) + sum(Nmp)
-  Total_I <- sum(Isn) + sum(Isp) + sum(Imn) + sum(Imp)
-  Total_MDR <- sum(Imn) + sum(Imp) + sum(Nmn) + sum(Nmp)
-  Total_DS <- sum(Isn) + sum(Isp) + sum(Nsn) + sum(Nsp)
+  
+  Total_L_DS <- sum(Lsn) + sum(Lsp)
+  Total_L_MDR <- sum(Lmn) + sum(Lmp)
+  Total_L <- Total_L_DS + Total_L_MDR
+  
+  Total_N_DS <- sum(Nsn) + sum(Nsp)
+  Total_N_MDR <- sum(Nmn) + sum(Nmp)
+  Total_N <- Total_N_DS + Total_N_MDR
+  
+  Total_I_DS <- sum(Isn) + sum(Isp)
+  Total_I_MDR <- sum(Imn) + sum(Imp)
+  Total_I <- Total_I_DS + Total_I_MDR
+ 
+  Total_DS <- Total_N_DS + Total_I_DS
+  Total_MDR <- Total_N_MDR + Total_I_MDR
+
   Total <- Total_S + Total_L + Total_N + Total_I
   
   # Expressions for force of infection acounting for reduced infectiousness of smear negative cases
-  FS <- beta*(Total_N*rel_inf + Total_I)/Total # Susceptible
-  FM <- fit_cost*beta*(Total_N*rel_inf + Total_I)/Total # Resistant
+  FS <- beta*(Total_N_DS*rel_inf + Total_I_DS)/Total # Susceptible
+  FM <- fit_cost*beta*(Total_N_MDR*rel_inf + Total_I_MDR)/Total # Resistant
   
-  # Checked
+  # Get care and control values at time t
+  k <- k_fun(t); d <- d_fun(t); l_s <- ls_fun(t); tau_s <- taus_fun(t)
+  l_m <- lm_fun(t); tau_m <- taum_fun(t); eff_n <- effn_fun(t); eff_p <- effp_fun(t); dst_n <- dstn_fun(t); dst_p <- dstp_fun(t) 
+
+  # Differential equations
   dSdt <- aging_temp%*%S - (FS + FM)*S
-  
-  # Checked
+
   dLsndt <- aging_temp%*%Lsn + FS*((1-a)*S + (1-a)*(1-p)*(1-g)*Lmn) - 
                                (v + FS*a*(1-p) + FM*a*(1-p) + FM*(1-a)*(1-p)*g)*Lsn + 
                                r*(Isn + Nsn) 
-  
-  # Checked
+
   dLspdt <- aging_temp%*%Lsp + FS*(1-a)*(1-p)*(1-g)*Lmp - 
                                (v + FS*a*(1-p) + FM*a*(1-p) + FM*(1-a)*(1-p)*g)*Lsp + 
                                r*(Isp + Nsp) + k*l_s*(1-e)*tau_s*(Isn + Isp) + k*l_s*(1-e)*tau_s*d*(Nsn + Nsp) 
-  
-  
+
   dLmndt <- aging_temp%*%Lmn + FM*((1-a)*S + (1-a)*(1-p)*g*Lsn) - 
                                (v + FM*a*(1-p) + FS*a*(1-p) + FS*(1-a)*(1-p)*(1-g))*Lmn + 
                                r*(Imn + Nmn)
-  
-  
+
   dLmpdt <- aging_temp%*%Lmp + FM*(1-a)*(1-p)*g*Lsp - 
                                (v + FM*a*(1-p) + FS*a*(1-p) + FS*(1-a)*(1-p)*(1-g))*Lmp + 
-                               r*(Imp + Nmp) + k*(l_m*dst_n*tau_m + l_s*(1-dst_n)*tau_s*eff_n)*(Imn + d*Nmn) + 
+                               r*(Imp + Nmp) + 
+                               k*(l_m*dst_n*tau_m + l_s*(1-dst_n)*tau_s*eff_n)*(Imn + d*Nmn) + 
                                k*(l_m*dst_p*tau_m + l_s*(1-dst_p)*tau_s*eff_p)*(Imp + d*Nmp)
-  
-  # Checked
+
   dNsndt <- aging_temp%*%Nsn + (v*(1-sig) + FS*a*(1-p)*(1-sig))*Lsn + 
                                FS*a*(1-sig)*(S + (1-p)*Lmn) - 
                                (theta + r + k*l_s*d + mu_N)*Nsn
-  
+
   dNspdt <- aging_temp%*%Nsp + (v*(1-sig) + FS*a*(1-p)*(1-sig))*Lsp + 
                                FS*a*(1-sig)*(1-p)*Lmp - 
                                (theta + r + k*l_s*d*(1-e)*tau_s + k*l_s*d*e + mu_N)*Nsp + 
                                k*l_s*d*(1-e)*(1-tau_s)*Nsn
-  
+
   dNmndt <- aging_temp%*%Nmn + (v*(1-sig) + FM*a*(1-p)*(1-sig))*Lmn + 
                                FM*a*(1-sig)*(S + (1-p)*Lsn) - 
                                (theta + r + k*l_m*d*dst_n + k*l_s*d*(1-dst_n) + mu_N)*Nmn
   
-  
+
   dNmpdt <- aging_temp%*%Nmp + (v*(1-sig) + FM*a*(1-p)*(1-sig))*Lmp + 
                                FM*a*(1-sig)*(1-p)*Lsp - 
                                (theta + r + k*l_m*d*dst_p*tau_m + k*l_s*d*(1-dst_p)*tau_s*eff_p + mu_N)*Nmp + 
                                k*l_s*d*e*(Nsn + Nsp) + (k*l_m*d*dst_n*(1-tau_m) + k*l_s*d*(1-dst_n)*(1-(tau_s*eff_n)))*Nmn
-  
+
   dIsndt <- aging_temp%*%Isn + (v*sig + FS*a*sig*(1-p))*Lsn + 
                                FS*a*sig*S + FS*a*(1-p)*sig*Lmn + 
                                theta*Nsn - (r + k*l_s + mu_I)*Isn
-  
+
   dIspdt <- aging_temp%*%Isp + (v*sig + FS*a*sig*(1-p))*Lsp + 
                                FS*a*sig*(1-p)*Lmp + theta*Nsp + 
                                k*l_s*(1-e)*(1-tau_s)*Isn - 
                                (r + k*l_s*(1-e)*tau_s + k*l_s*e + mu_I)*Isp
-  
+
   dImndt <- aging_temp%*%Imn + (v*sig + FM*a*sig*(1-p))*Lmn + 
                                FM*a*sig*S + FM*a*(1-p)*sig*Lsn + 
                                theta*Nmn - (r + k*l_m*dst_n + k*l_s*(1-dst_n) + mu_I)*Imn
-  
+
   dImpdt <- aging_temp%*%Imp + (v*sig + FM*a*sig*(1-p))*Lmp + 
                                FM*a*sig*(1-p)*Lsp + theta*Nmp + 
                                (k*l_m*dst_n*(1-tau_m) + k*l_s*(1-dst_n)*(1-(tau_s*eff_n)))*Imn + 
@@ -224,7 +221,7 @@ ja.multistage.model <- function (t, x, ...) {
 }
 
 # And run it
-system.time(sol <- ode(y=yinit,times=seq(1950,2050,by=1),func=ja.multistage.model))
+system.time(sol <- ode(y=yinit,times=seq(1950,2250,by=1),func=ja.multistage.model))
 
 ## Plot populations in each age group over time
 
