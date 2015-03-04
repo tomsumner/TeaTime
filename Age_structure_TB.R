@@ -20,10 +20,10 @@ da [1] <- da[1]+1 # add one year to first age group as start of group is birth (
 UN_pop_age <- as.data.frame(read.table("SA_pop_age.txt",header=TRUE)) # Load UN Population data
 temp <- c()
 for (i in 1:num_ages){temp[i]<-UN_pop_age[1,i+1]}
-yinit <- c(S=c(0.74*temp),
-           L_s_n=c(0.25*temp),L_s_p=rep(0,num_ages),L_m_n=rep(0,num_ages),L_m_p=rep(0,num_ages),
+yinit <- c(S=c(0.9999*temp),
+           L_s_n=rep(0,num_ages),L_s_p=rep(0,num_ages),L_m_n=rep(0,num_ages),L_m_p=rep(0,num_ages),
            N_s_n=rep(0,num_ages),N_s_p=rep(0,num_ages),N_m_n=rep(0,num_ages),N_m_p=rep(0,num_ages),
-           I_s_n=c(0.01*temp),I_s_p=rep(0,num_ages),I_m_n=rep(0,num_ages),I_m_p=rep(0,num_ages))
+           I_s_n=c(0.0001*temp),I_s_p=rep(0,num_ages),I_m_n=rep(0,num_ages),I_m_p=rep(0,num_ages))
 s_index <- 1:num_ages
 Lsn_index <- (num_ages+1):(2*num_ages)
 Lsp_index <- (2*num_ages+1):(3*num_ages)
@@ -72,29 +72,40 @@ aging <- diag(-1/da) # This is aging out of class
 aging[row(aging)-col(aging)==1] <- 1/head(da,-1) # This is movement into next class assuming 100% survival
 
 # Parameter values
-rel_inf = 0.22
-beta = 10
-fit_cost = 0.7
-a=1
-x=1
-g=1
-v=1
-r=1
-sig=1
-e=1
-k=1
-l_s=1
-l_m=1
-d=1
-tau_s=1
-tau_m=1
-eff_p=1
-eff_n=1
-dst_n=1
-dst_p = 1
-theta = 1 
 
-## Now we can put the pieces together to write a simulator for the demogrpahics
+beta = 10       # Contact rate
+
+a = 0.115       # Proportion developing primary TB
+p = 0.65        # Protection due to previous infection
+v = 0.0001       # Reactivation rate
+sig = 0.62      # Proportion smear positive
+rel_inf = 0.22  # relative infectiousness of smear negative TB
+theta = 0.015   # smear conversion rate
+
+fit_cost = 0           # fitness cost for MDR
+e = 0                 # MDR acquistion rate
+g = fit_cost/(1+fit_cost) # superinfections 
+
+r = 0.2   # selfcure rate
+
+mu_N = 0.2
+mu_I = 0.3
+
+# These are all the care and control parameters - currently set to zero
+k=0
+l_s=0.7
+l_m=0
+d=0.8
+tau_s=0.8
+tau_m=0
+
+eff_p=0
+eff_n=0
+dst_n=0
+dst_p = 0
+
+
+## Now we can put the pieces together to write a simulator TB
 ja.multistage.model <- function (t, x, ...) {
 
   # Notation
@@ -128,38 +139,88 @@ ja.multistage.model <- function (t, x, ...) {
   Total_L <- sum(Lsn) + sum(Lsp) + sum(Lmn) + sum(Lmp)
   Total_N <- sum(Nsn) + sum(Nsp) + sum(Nmn) + sum(Nmp)
   Total_I <- sum(Isn) + sum(Isp) + sum(Imn) + sum(Imp)
+  Total_MDR <- sum(Imn) + sum(Imp) + sum(Nmn) + sum(Nmp)
+  Total_DS <- sum(Isn) + sum(Isp) + sum(Nsn) + sum(Nsp)
   Total <- Total_S + Total_L + Total_N + Total_I
   
   # Expressions for force of infection acounting for reduced infectiousness of smear negative cases
   FS <- beta*(Total_N*rel_inf + Total_I)/Total # Susceptible
-  FM <- beta*(Total_N*rel_inf + Total_I)/(fit_cost*Total) # Resistant
+  FM <- fit_cost*beta*(Total_N*rel_inf + Total_I)/Total # Resistant
   
+  # Checked
   dSdt <- aging_temp%*%S - (FS + FM)*S
   
-  dLsndt <- aging_temp%*%Lsn + FS*((1-a)*S + (1-a)*(1-x)*(1-g)*Lmn) - (v + FS*a*(1-x) + FM*a*(1-x) + FM*(1-a)*(1-x)*g)*Lsn + r*(Isn + Nsn) 
-  dLspdt <- aging_temp%*%Lsp + FS*(1-a)*(1-x)*(1-g)*Lmp - (v + FS*a*(1-x)*Lsp + FM*a*(1-x) + FM*(1-a)*(1-x)*g)*Lsp + r*(Isp + Nsp) + (k*l_s*(1-e)*tau_s)*((Isn + Isp)+d*(Nsn + Nsp)) 
-  dLmndt <- aging_temp%*%Lmn + FM*((1-a)*S + (1-a)*(1-x)*g*Lsn) - (v + FM*a*(1-x) + FS*a*(1-x) + FS*(1-a)*(1-x)*(1-g))*Lmn + r*(Imn + Nmn)
-  dLmpdt <- aging_temp%*%Lmp + FM*(1-a)*(1-x)*g*Lsp - (v + FM*a*(1-x) + FS*a*(1-x) + FS*(1-a)*(1-x)*(1-g))*Lmp + r*(Imp + Nmp) + k*(l_m*dst_n*tau_m + l_s*(1-dst_n)*tau_s*eff_n)*(Imn + d*Nmn) + k*(l_m*dst_p*tau_m + l_s*(1-dst_p)*tau_s*eff_p)*(Imp + d*Nmp)
+  # Checked
+  dLsndt <- aging_temp%*%Lsn + FS*((1-a)*S + (1-a)*(1-p)*(1-g)*Lmn) - 
+                               (v + FS*a*(1-p) + FM*a*(1-p) + FM*(1-a)*(1-p)*g)*Lsn + 
+                               r*(Isn + Nsn) 
   
-  dNsndt <- aging_temp%*%Nsn + (v*(1-sig) + FS*a*(1-x)*(1-sig))*Lsn + FS*a*(1-sig)*(S + (1-x)*Lmn) - (theta + r + k*l_s*d)*Nsn
-  dNspdt <- aging_temp%*%Nsp + (v*(1-sig) + FS*a*(1-x)*(1-sig))*Lsp + FS*a*(1-sig)*(1-x)*Lmp - (theta + r + k*l_s*d*(1-e)*tau_s + k*l_s*d*e)*Nsp + k*l_s*d*(1-e)*(1-tau_s)*Nsn
-  dNmndt <- aging_temp%*%Nmn + (v*(1-sig) + FM*a*(1-x)*(1-sig))*Lmn + FM*a*(1-sig)*(S + (1-x)*Lsn) - (theta + r + k*l_m*d*dst_n + k*l_s*d*(1-dst_n))*Nmn
-  dNmpdt <- aging_temp%*%Nmp + (v*(1-sig) + FM*a*(1-x)*(1-sig))*Lmp + FM*a*(1-sig)*(1-x)*Lsp - (theta + r + k*l_m*d*dst_p*tau_m + k*l_s*d*(1-dst_p)*tau_s*eff_p)*Nmp + k*l_s*d*e*(Nsn + Nsp) + (k*l_m*d*dst_n*(1-tau_m) + k*l_s*d*(1-dst_n)*(1-(tau_s*eff_n)))*Nmn
+  # Checked
+  dLspdt <- aging_temp%*%Lsp + FS*(1-a)*(1-p)*(1-g)*Lmp - 
+                               (v + FS*a*(1-p) + FM*a*(1-p) + FM*(1-a)*(1-p)*g)*Lsp + 
+                               r*(Isp + Nsp) + k*l_s*(1-e)*tau_s*(Isn + Isp) + k*l_s*(1-e)*tau_s*d*(Nsn + Nsp) 
   
-  dIsndt <- aging_temp%*%Isn + (v*sig + FS*a*sig*(1-x))*Lsn + FS*a*sig*S + FS*a*(1-x)*sig*Lmn + theta*Nsn - (r + k*l_s)*Isn
-  dIspdt <- aging_temp%*%Isp + (v*sig + FS*a*sig*(1-x))*Lsp + FS*a*sig*(1-x)*Lmp + theta*Nsp + k*l_s*(1-e)*(1-tau_s)*Isn - (r + k*l_s*(1-e)*tau_s + k*l_s*e)*Isp
-  dImndt <- aging_temp%*%Imn + (v*sig + FM*a*sig*(1-x))*Lmn + FM*a*sig*S + FM*a*(1-x)*sig*Lsn + theta*Nmn - (r + k*l_m*dst_n + k*l_s*(1-dst_n))*Imn
-  dImpdt <- aging_temp%*%Imp + (v*sig + FM*a*sig*(1-x))*Lmp + FM*a*sig*(1-x)*Lsp + theta*Nmp + (k*l_m*dst_n*(1-tau_m) + k*l_s*(1-dst_n)*(1-(tau_s*eff_n)))*Imn + k*l_s*e*(Isn + Isp) - (r + k*l_m*dst_p*tau_m + k*l_s*(1-dst_p)*tau_s*eff_p)*Imp                                                                   
+  
+  dLmndt <- aging_temp%*%Lmn + FM*((1-a)*S + (1-a)*(1-p)*g*Lsn) - 
+                               (v + FM*a*(1-p) + FS*a*(1-p) + FS*(1-a)*(1-p)*(1-g))*Lmn + 
+                               r*(Imn + Nmn)
+  
+  
+  dLmpdt <- aging_temp%*%Lmp + FM*(1-a)*(1-p)*g*Lsp - 
+                               (v + FM*a*(1-p) + FS*a*(1-p) + FS*(1-a)*(1-p)*(1-g))*Lmp + 
+                               r*(Imp + Nmp) + k*(l_m*dst_n*tau_m + l_s*(1-dst_n)*tau_s*eff_n)*(Imn + d*Nmn) + 
+                               k*(l_m*dst_p*tau_m + l_s*(1-dst_p)*tau_s*eff_p)*(Imp + d*Nmp)
+  
+  # Checked
+  dNsndt <- aging_temp%*%Nsn + (v*(1-sig) + FS*a*(1-p)*(1-sig))*Lsn + 
+                               FS*a*(1-sig)*(S + (1-p)*Lmn) - 
+                               (theta + r + k*l_s*d + mu_N)*Nsn
+  
+  dNspdt <- aging_temp%*%Nsp + (v*(1-sig) + FS*a*(1-p)*(1-sig))*Lsp + 
+                               FS*a*(1-sig)*(1-p)*Lmp - 
+                               (theta + r + k*l_s*d*(1-e)*tau_s + k*l_s*d*e + mu_N)*Nsp + 
+                               k*l_s*d*(1-e)*(1-tau_s)*Nsn
+  
+  dNmndt <- aging_temp%*%Nmn + (v*(1-sig) + FM*a*(1-p)*(1-sig))*Lmn + 
+                               FM*a*(1-sig)*(S + (1-p)*Lsn) - 
+                               (theta + r + k*l_m*d*dst_n + k*l_s*d*(1-dst_n) + mu_N)*Nmn
+  
+  
+  dNmpdt <- aging_temp%*%Nmp + (v*(1-sig) + FM*a*(1-p)*(1-sig))*Lmp + 
+                               FM*a*(1-sig)*(1-p)*Lsp - 
+                               (theta + r + k*l_m*d*dst_p*tau_m + k*l_s*d*(1-dst_p)*tau_s*eff_p + mu_N)*Nmp + 
+                               k*l_s*d*e*(Nsn + Nsp) + (k*l_m*d*dst_n*(1-tau_m) + k*l_s*d*(1-dst_n)*(1-(tau_s*eff_n)))*Nmn
+  
+  dIsndt <- aging_temp%*%Isn + (v*sig + FS*a*sig*(1-p))*Lsn + 
+                               FS*a*sig*S + FS*a*(1-p)*sig*Lmn + 
+                               theta*Nsn - (r + k*l_s + mu_I)*Isn
+  
+  dIspdt <- aging_temp%*%Isp + (v*sig + FS*a*sig*(1-p))*Lsp + 
+                               FS*a*sig*(1-p)*Lmp + theta*Nsp + 
+                               k*l_s*(1-e)*(1-tau_s)*Isn - 
+                               (r + k*l_s*(1-e)*tau_s + k*l_s*e + mu_I)*Isp
+  
+  dImndt <- aging_temp%*%Imn + (v*sig + FM*a*sig*(1-p))*Lmn + 
+                               FM*a*sig*S + FM*a*(1-p)*sig*Lsn + 
+                               theta*Nmn - (r + k*l_m*dst_n + k*l_s*(1-dst_n) + mu_I)*Imn
+  
+  dImpdt <- aging_temp%*%Imp + (v*sig + FM*a*sig*(1-p))*Lmp + 
+                               FM*a*sig*(1-p)*Lsp + theta*Nmp + 
+                               (k*l_m*dst_n*(1-tau_m) + k*l_s*(1-dst_n)*(1-(tau_s*eff_n)))*Imn + 
+                               k*l_s*e*(Isn + Isp) - 
+                               (r + k*l_m*dst_p*tau_m + k*l_s*(1-dst_p)*tau_s*eff_p + mu_I)*Imp                                                                   
   
   Births <- s_birth(t)*birth_rate(t)*Total/1000
   
   dSdt[1] <- dSdt[1]+s_birth(t)*birth_rate(t)*Total/1000
   
   list(c(dSdt,
-         dL_s_ndt,dL_s_pdt,dL_m_ndt,dL_m_pdt,
-         dN_s_ndt,dN_s_pdt,dN_m_ndt,dN_m_pdt,
-         dI_s_ndt,dI_s_pdt,dI_m_ndt,dI_m_pdt),
-         Total=Total,Births=Births)
+         dLsndt,dLspdt,dLmndt,dLmpdt,
+         dNsndt,dNspdt,dNmndt,dNmpdt,
+         dIsndt,dIspdt,dImndt,dImpdt),
+         FM=FM,FS=FS,Births=Births,
+         Total=Total,Total_S=Total_S,Total_L=Total_L,
+         Total_I=Total_I,Total_N=Total_N,Total_DS=Total_DS,Total_MDR=Total_MDR)
 }
 
 # And run it
