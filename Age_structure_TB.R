@@ -90,18 +90,18 @@ fit_cost = 0.7            # fitness cost for MDR
 e = 0.014                 # MDR acquistion rate
 g = fit_cost/(1+fit_cost) # superinfections 
 
-# Care and control parameters - set up as functions to allow time variation
+# Care and control parameters
 
-k_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)       # diagnositic rate (assummed to be the same for DS and MDR cases)         
-ls_fun <- approxfun(x=c(1920,2200),y=c(0.7,0.7),rule=2)  # linkage to care (DS TB)
-lm_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)      # linkage to care (MDR TB)
-d_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)       # relative detection of smear negative cases
-taus_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)    # treatment success for DS TB
-taum_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)    # treatment success for MDR TB
-effn_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)    # efficacy of first line treatment in new MDR cases
-effp_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)    # efficacy of first line treatment in retreatment MDR cases
-dstn_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)    # DST coverage in new TB cases
-dstp_fun <- approxfun(x=c(1920,2200),y=c(0,0),rule=2)    # DST coverage in retreatment TB cases
+k = 0     # diagnositic rate (assummed to be the same for DS and MDR cases)         
+l_s = 0   # linkage to care (DS TB)
+l_m = 0   # linkage to care (MDR TB)
+d = 0     # relative detection of smear negative cases
+tau_s = 0 # treatment success for DS TB
+tau_m = 0 # treatment success for MDR TB
+eff_n = 0 # efficacy of first line treatment in new MDR cases
+eff_p = 0 # efficacy of first line treatment in retreatment MDR cases
+dst_n = 0 # DST coverage in new TB cases
+dst_p = 0 # DST coverage in retreatment TB cases
 
 ## Now we can put the pieces together to write a simulator TB
 ja.multistage.model <- function (t, x, ...) {
@@ -144,10 +144,6 @@ ja.multistage.model <- function (t, x, ...) {
   FS <- beta*(Total_N_DS*rel_inf + Total_I_DS)/Total # Susceptible
   FM <- fit_cost*beta*(Total_N_MDR*rel_inf + Total_I_MDR)/Total # Resistant
   
-  # Get care and control values at time t
-  k <- k_fun(t); d <- d_fun(t); l_s <- ls_fun(t); tau_s <- taus_fun(t)
-  l_m <- lm_fun(t); tau_m <- taum_fun(t); eff_n <- effn_fun(t); eff_p <- effp_fun(t); dst_n <- dstn_fun(t); dst_p <- dstp_fun(t) 
-
   # Differential equations
   dSdt <- aging_temp%*%S - (FS + FM)*S
 
@@ -223,23 +219,6 @@ ja.multistage.model <- function (t, x, ...) {
 # And run it
 system.time(sol <- ode(y=yinit,times=seq(1950,2250,by=1),func=ja.multistage.model))
 
-## Plot populations in each age group over time
 
-# add total to data and convert to long format
-UN_pop_age_t <- cbind(UN_pop_age,rowSums(UN_pop_age[,2:18]))
-colnames(UN_pop_age_t) <- c(colnames(UN_pop_age),"Total")
-temp_data <- melt(UN_pop_age_t,id="Year")
-
-# then turn the model output into long format
-temp_model <- as.data.frame(sol[,1:19])
-colnames(temp_model) <- colnames(UN_pop_age_t)
-temp_model <- melt(temp_model,id="Year")
-
-# and plot
-plot_temp <- ggplot(temp_model,aes(x=Year,y=value))+
-                    geom_line(colour="red")+
-                    geom_point(data=temp_data,aes(x=Year,y=value))+
-                    facet_wrap(~variable,scales="free")+
-                    xlim(c(1950,2050))
 
 
