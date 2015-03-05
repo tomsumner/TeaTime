@@ -1,0 +1,165 @@
+## Code to test approach for age structured model as C code called from R
+
+## Based on http://kinglab.eeb.lsa.umich.edu/EEID/eeid/2011_eco/waifw.pdf
+
+## Set working directory
+setwd("C:/Users/TOM SUMMER/Documents/TIME_research/TeaTime")
+
+## Load packages
+library(deSolve)
+library(reshape2)
+library(ggplot2)
+
+## Initial conditions - 1950 population
+UN_pop_age <- as.data.frame(read.table("SA_pop_age.txt",header=TRUE)) # Load UN Population data
+temp <- c()
+for (i in 1:num_ages){temp[i]<-UN_pop_age[1,i+1]}
+xstart <- c(S=c(temp))
+
+## Fertility
+# Uses crude birth rate (per 1000 population) from UN pop for South Africa which has values for 5 year periods
+# Puts these values at midpoint of period and interpolates between 
+# 2010-2015 (2012.5) value based on medium fertility projection
+birth_rate <- cbind(c(0,1950,seq(1952.5,2047.5,5)),
+                    c(30.52,30.52,44,42,41,38,38,36,34,31,27,25,24,22,21,20,18,17,17,16,15,14))
+
+## Survival
+Survive_age <- as.data.frame(read.table("SA_survival_age.txt",header=TRUE)) # Load survival proportions calculated from life tables
+# Proportion surviving from age 0 to 1 - used to determine entry to first age group
+s_birth <- cbind(Survive_age$Year,Survive_age$X1)
+# and to other ages
+s5 <- cbind(Survive_age$Year,Survive_age$X5)
+s10 <- cbind(Survive_age$Year,Survive_age$X10)
+s15 <- cbind(Survive_age$Year,Survive_age$X15)
+s20 <- cbind(Survive_age$Year,Survive_age$X20)
+s25 <- cbind(Survive_age$Year,Survive_age$X25)
+s30 <- cbind(Survive_age$Year,Survive_age$X30)
+s35 <- cbind(Survive_age$Year,Survive_age$X35)
+s40 <- cbind(Survive_age$Year,Survive_age$X40)
+s45 <- cbind(Survive_age$Year,Survive_age$X45)
+s50 <- cbind(Survive_age$Year,Survive_age$X50)
+s55 <- cbind(Survive_age$Year,Survive_age$X55)
+s60 <- cbind(Survive_age$Year,Survive_age$X60)
+s65 <- cbind(Survive_age$Year,Survive_age$X65)
+s70 <- cbind(Survive_age$Year,Survive_age$X70)
+s75 <- cbind(Survive_age$Year,Survive_age$X75)
+s80 <- cbind(Survive_age$Year,Survive_age$X80)
+
+# With model in C - Demog_model.c
+system("R CMD SHLIB Demog_model.c") # Compile
+dyn.load("Demog_model.dll")
+
+# Parameters
+parms <- c(d = 0.2, d2 = 0.0476)
+## vector of timesteps
+times <- seq(1950,2050 , by=1)
+
+force <- list(birth_rate,s_birth,s5,s10,s15,s20,s25,s30,s35,s40,s45,s50,s55,s60,s65,s70,s75,s80)
+
+time_C<-system.time(for (i in 1:100) out <- ode(y=xstart, times, func = "derivsc",
+                             parms = parms, dllname = "Demog_model",initforc = "forcc",
+                             forcings=force, initfunc = "parmsc", nout = 2,
+                             outnames = c("Total"), method = rkMethod("rk34f")))
+
+dyn.unload("Demog_model.dll")
+
+## Plot populations in each age group over time
+
+# add total to data and convert to long format
+UN_pop_age_t <- cbind(UN_pop_age,rowSums(UN_pop_age[,2:18]))
+colnames(UN_pop_age_t) <- c(colnames(UN_pop_age),"Total")
+temp_data <- melt(UN_pop_age_t,id="Year")
+
+# then turn the model output into long format
+temp_model <- as.data.frame(out[,1:19])
+colnames(temp_model) <- colnames(UN_pop_age_t)
+temp_model <- melt(temp_model,id="Year")
+
+# Then call R native model e
+
+# Set up age structure
+ages <- c(4,9,14,19,24,29,34,39,44,49,54,59,64,69,74,79,100) # upper end of age classes
+num_ages <- length(ages) # calculates the number of age classes
+da <- diff(c(0,ages)) # calculates the widths of age classes
+da [1] <- da[1]+1 # add one year to first age group as start of group is birth (i.e. 0) not 1
+
+## Initial conditions - 1950 population
+UN_pop_age <- as.data.frame(read.table("SA_pop_age.txt",header=TRUE)) # Load UN Population data
+temp <- c()
+for (i in 1:num_ages){temp[i]<-UN_pop_age[1,i+1]}
+yinit <- c(S=c(temp))
+sindex <- 1:num_ages
+
+## Fertility
+# Uses crude birth rate (per 1000 population) from UN pop for South Africa which has values for 5 year periods
+# Puts these values at midpoint of period and interpolates between 
+# 2010-2015 (2012.5) value based on medium fertility projection
+
+birth_rate <- approxfun(x=c(0,1950,seq(1952.5,2047.5,5)),
+                        y=c(30.52,30.52,44,42,41,38,38,36,34,31,27,25,24,22,21,20,18,17,17,16,15,14),rule=2)
+
+## Survival
+Survive_age <- as.data.frame(read.table("SA_survival_age.txt",header=TRUE)) # Load survival proportions calculated from life tables
+# Proportion surviving from age 0 to 1 - used to determine entry to first age group
+s_birth <- approxfun(x=Survive_age$Year,y=Survive_age$X1,rule=2)
+# and to other ages
+s5 <- approxfun(x=Survive_age$Year,y=Survive_age$X5,rule=2)
+s10 <- approxfun(x=Survive_age$Year,y=Survive_age$X10,rule=2)
+s15 <- approxfun(x=Survive_age$Year,y=Survive_age$X15,rule=2)
+s20 <- approxfun(x=Survive_age$Year,y=Survive_age$X20,rule=2)
+s25 <- approxfun(x=Survive_age$Year,y=Survive_age$X25,rule=2)
+s30 <- approxfun(x=Survive_age$Year,y=Survive_age$X30,rule=2)
+s35 <- approxfun(x=Survive_age$Year,y=Survive_age$X35,rule=2)
+s40 <- approxfun(x=Survive_age$Year,y=Survive_age$X40,rule=2)
+s45 <- approxfun(x=Survive_age$Year,y=Survive_age$X45,rule=2)
+s50 <- approxfun(x=Survive_age$Year,y=Survive_age$X50,rule=2)
+s55 <- approxfun(x=Survive_age$Year,y=Survive_age$X55,rule=2)
+s60 <- approxfun(x=Survive_age$Year,y=Survive_age$X60,rule=2)
+s65 <- approxfun(x=Survive_age$Year,y=Survive_age$X65,rule=2)
+s70 <- approxfun(x=Survive_age$Year,y=Survive_age$X70,rule=2)
+s75 <- approxfun(x=Survive_age$Year,y=Survive_age$X75,rule=2)
+s80 <- approxfun(x=Survive_age$Year,y=Survive_age$X80,rule=2)
+
+## To model the aging process, define a matrix to hold the rates of movement between age classes.
+aging <- diag(-1/da) # This is aging out of class
+aging[row(aging)-col(aging)==1] <- 1/head(da,-1) # This is movement into next class assuming 100% survival
+
+## Now we can put the pieces together to write a simulator for the demogrpahics
+ja.multistage.model <- function (t, x, ...) {
+  
+  s <- x[sindex] # susceptibles
+  
+  # create a vector of survial at time t
+  surv <- c(s5(t),s10(t),s15(t),s20(t),s25(t),s30(t),s35(t),s40(t),s45(t),s50(t),s55(t),s60(t),s65(t),s70(t),s75(t),s80(t))
+  aging_temp <- aging
+  aging_temp[row(aging_temp)-col(aging_temp)==1] <- surv*1/head(da,-1)
+  
+  dsdt <- aging_temp%*%s
+  
+  Total <- sum(s)
+  
+  Births <- s_birth(t)*birth_rate(t)*Total/1000
+  
+  dsdt[1] <- dsdt[1]+s_birth(t)*birth_rate(t)*Total/1000
+  
+  list(c(dsdt),Total=Total,Births=Births)
+  
+}
+
+# And run it
+time_R<-system.time(for(i in 1:100) sol <- ode(y=yinit,times=seq(1950,2050,by=1),func=ja.multistage.model))
+
+# then turn the model output into long format
+temp_modelR <- as.data.frame(sol[,1:19])
+colnames(temp_modelR) <- colnames(UN_pop_age_t)
+temp_modelR <- melt(temp_modelR,id="Year")
+
+# and plot
+plot_temp <- ggplot(temp_model,aes(x=Year,y=value))+
+                    geom_line(colour="red")+
+                    geom_line(data=temp_modelR,colour="green",linetype="dashed",aes(x=Year,y=value))+
+                    geom_point(data=temp_data,aes(x=Year,y=value))+
+                    facet_wrap(~variable,scales="free")+
+                    xlim(c(1950,2050))
+
+plot_temp
