@@ -27,8 +27,8 @@ sindex <- 1:num_ages
 # Uses crude birth rate (per 1000 population) from UN pop for South Africa which has values for 5 year periods
 # Puts these values at midpoint of period and interpolates between 
 # 2010-2015 (2012.5) value based on medium fertility projection
-birth_rate <- approxfun(x=c(0,1950,1952.5,1957.5,1962.5,1967.5,1972.7,1977.5,1982.5,1987.5,1992.5,1997.5,2002.5,2007.5,2012.5),
-                        y=c(30.52,30.52,44,42,41,38,38,36,34,31,27,25,24,22,21),rule=2)
+birth_rate <- approxfun(x=c(0,1950,seq(1952.5,2047.5,5)),
+                        y=c(30.52,30.52,44,42,41,38,38,36,34,31,27,25,24,22,21,20,18,17,17,16,15,14),rule=2)
 
 ## Survival
 Survive_age <- as.data.frame(read.table("SA_survival_age.txt",header=TRUE)) # Load survival proportions calculated from life tables
@@ -79,7 +79,7 @@ ja.multistage.model <- function (t, x, ...) {
 }
 
 # And run it
-system.time(sol <- ode(y=yinit,times=seq(1500,2010,by=1),func=ja.multistage.model))
+system.time(for(i in 1:10) sol <- ode(y=yinit,times=seq(1950,2050,by=1),func=ja.multistage.model))
 
 ## Plot populations in each age group over time
 
@@ -98,6 +98,6 @@ plot_temp <- ggplot(temp_model,aes(x=Year,y=value))+
                     geom_line(colour="red")+
                     geom_point(data=temp_data,aes(x=Year,y=value))+
                     facet_wrap(~variable,scales="free")+
-                    xlim(c(1700,2010))
+                    xlim(c(1950,2050))
 
 
