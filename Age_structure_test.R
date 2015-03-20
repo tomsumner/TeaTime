@@ -1,4 +1,9 @@
-## Code to test approach for age structured model - fits to 2050
+## Code to test approach for age structured model
+## and initialisation of age structure
+## 
+## Start model with 1970 pop and rates and run for 400 years to get equilibrium pop structure
+## Adjust pop down to 1970 size 
+## Run forward to 2050 and check fit
 
 ## Based on http://kinglab.eeb.lsa.umich.edu/EEID/eeid/2011_eco/waifw.pdf
 
@@ -16,10 +21,10 @@ num_ages <- length(ages) # calculates the number of age classes
 da <- diff(c(0,ages)) # calculates the widths of age classes
 da [1] <- da[1]+1 # add one year to first age group as start of group is birth (i.e. 0) not 1
 
-## Initial conditions - 1950 population
+## Initial conditions - 1970 population
 UN_pop_age <- as.data.frame(read.table("SA_pop_age.txt",header=TRUE)) # Load UN Population data
 temp <- c()
-for (i in 1:num_ages){temp[i]<-UN_pop_age[1,i+1]}
+for (i in 1:num_ages){temp[i]<-UN_pop_age[21,i+1]}
 yinit <- c(S=c(temp))
 sindex <- 1:num_ages
 
@@ -27,8 +32,8 @@ sindex <- 1:num_ages
 # Uses crude birth rate (per 1000 population) from UN pop for South Africa which has values for 5 year periods
 # Puts these values at midpoint of period and interpolates between 
 # 2010-2015 (2012.5) value based on medium fertility projection
-birth_rate <- approxfun(x=c(0,1950,seq(1952.5,2047.5,5)),
-                        y=c(30.52,30.52,44,42,41,38,38,36,34,31,27,25,24,22,21,20,18,17,17,16,15,14),rule=2)
+birth_rate <- approxfun(x=seq(1972.5,2047.5,5),
+                        y=c(38,36,34,31,27,25,24,22,21,20,18,17,17,16,15,14),rule=2)
 
 ## Survival
 Survive_age <- as.data.frame(read.table("SA_survival_age.txt",header=TRUE)) # Load survival proportions calculated from life tables
@@ -69,7 +74,7 @@ ja.multistage.model <- function (t, x, ...) {
   dsdt <- aging_temp%*%s
   
   Total <- sum(s)
-  
+    
   Births <- s_birth(t)*birth_rate(t)*Total/1000
   
   dsdt[1] <- dsdt[1]+s_birth(t)*birth_rate(t)*Total/1000
@@ -78,8 +83,21 @@ ja.multistage.model <- function (t, x, ...) {
 
 }
 
-# And run it
-system.time(for(i in 1:10) sol <- ode(y=yinit,times=seq(1950,2050,by=1),func=ja.multistage.model))
+# Run it for 400 years
+sol <- ode(y=yinit,times=seq(0,400,by=1),func=ja.multistage.model)
+
+# Adjust pop down to 1970 values and reassign initial conditions
+temp <- sol[dim(sol)[1],2:18]
+temp <- temp/(sum(temp)/sol[1,19])
+
+temp2 <- c()
+for (i in 1:num_ages){temp2[i]<-temp[i]}
+yinit <- c(S=c(temp2))
+sindex <- 1:num_ages
+
+# Run from 1970 onwards
+sol <- ode(y=yinit,times=seq(1970,2050,by=1),func=ja.multistage.model)
+
 
 ## Plot populations in each age group over time
 
@@ -93,6 +111,11 @@ temp_model <- as.data.frame(sol[,1:19])
 colnames(temp_model) <- colnames(UN_pop_age_t)
 temp_model <- melt(temp_model,id="Year")
 
+temp2 <- sol[,2:18]/sol[,19]
+temp2 <- as.data.frame(cbind(sol[,1],temp2))
+colnames(temp2) <- colnames(UN_pop_age_t[1:18])
+temp_2 <- melt(temp2,id="Year")
+
 # and plot
 plot_temp <- ggplot(temp_model,aes(x=Year,y=value))+
                     geom_line(colour="red")+
@@ -100,4 +123,10 @@ plot_temp <- ggplot(temp_model,aes(x=Year,y=value))+
                     facet_wrap(~variable,scales="free")+
                     xlim(c(1950,2050))
 
+plot_temp <- ggplot(temp_model,aes(x=Year,y=value/sum(value)))+
+  geom_line(colour="red")+
+  #geom_point(data=temp_data,aes(x=Year,y=value))+
+  facet_wrap(~variable,scales="free")+
+  xlim(c(0,400))+
+  ylim(c(0,0.0005))
 
