@@ -10,7 +10,7 @@ library(ggplot2)
 
 ## Compile and load the C code
 system("R CMD SHLIB TB_model_v2.c") # Compile
-dyn.load("TB_model.dll")
+dyn.load("TB_model_v2.dll")
 
 # Set up the model parameters
 
@@ -18,13 +18,16 @@ fit_cost=0.7
 g = fit_cost/(1+fit_cost) # superinfections 
 
 parms <- c(age1 = 1/5, age2 = 1/21, beta = 10, a = 0.115, p = 0.65, v = 0.0001, sig = 0.62, rel_inf = 0.22, theta = 0.015,   
-           r = 0.2, mu_N = 0.2, mu_I = 0.3, fit_cost = 0.7, e = 0.014, g=g, k = 0, l_s = 0, l_m = 0, d = 0, tau_s = 0, tau_m = 0,
-           eff_n = 0, eff_p = 0, dst_n = 0, dst_p = 0) 
+           r = 0.2, mu_N = 0.2, mu_I = 0.3, fit_cost = 0.7, e = 0.014, g=g, k = 0.0, l_s = 0.0, l_m = 0.0, d = 0.0, tau_s = 0.0, tau_m = 0.0,
+           eff_n = 0.0, eff_p = 0.0, dst_n = 0.0, dst_p = 0.0) 
 
 # Define times to solve for
 times <- seq(1950,2050 , by=1)
 
 # Set up the initial conditions
+
+ages <- c(4,9,14,19,24,29,34,39,44,49,54,59,64,69,74,79,100) # upper end of age classes
+num_ages <- length(ages) # calculates the number of age classes
 
 UN_pop_age <- as.data.frame(read.table("SA_pop_age.txt",header=TRUE)) # Load UN Population data
 temp <- c()
@@ -69,12 +72,14 @@ force <- list(birth_rate,s_birth,s5,s10,s15,s20,s25,s30,s35,s40,s45,s50,s55,s60,
 
 # Run the model
 time_C<-system.time(for(i in 1:10) out <- ode(y=xstart, times, func = "derivsc",
-                               parms = parms, dllname = "TB_model",initforc = "forcc",
-                               forcings=force, initfunc = "parmsc", nout = 13,
-                               outnames = c("Total","Total_S","Total_L","Total_Ns","Total_Nm",
+                               parms = parms, dllname = "TB_model_v2",initforc = "forcc",
+                               forcings=force, initfunc = "parmsc", nout = 15,
+                               outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                             "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM"), method = rkMethod("rk34f")))
 
+
+
 # Unload the C code
-dyn.unload("TB_model.dll")
+dyn.unload("TB_model_v2.dll")
 
 
