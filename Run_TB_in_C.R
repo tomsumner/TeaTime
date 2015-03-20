@@ -9,7 +9,7 @@ library(reshape2)
 library(ggplot2)
 
 ## Compile and load the C code
-system("R CMD SHLIB TB_model.c") # Compile
+system("R CMD SHLIB TB_model_v2.c") # Compile
 dyn.load("TB_model.dll")
 
 # Set up the model parameters
@@ -68,7 +68,7 @@ s80 <- cbind(Survive_age$Year,Survive_age$X80)
 force <- list(birth_rate,s_birth,s5,s10,s15,s20,s25,s30,s35,s40,s45,s50,s55,s60,s65,s70,s75,s80)
 
 # Run the model
-time_C<-system.time(out <- ode(y=xstart, times, func = "derivsc",
+time_C<-system.time(for(i in 1:10) out <- ode(y=xstart, times, func = "derivsc",
                                parms = parms, dllname = "TB_model",initforc = "forcc",
                                forcings=force, initfunc = "parmsc", nout = 13,
                                outnames = c("Total","Total_S","Total_L","Total_Ns","Total_Nm",

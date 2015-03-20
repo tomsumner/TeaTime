@@ -115,14 +115,14 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
      
     int i=0;  
      
-    for (i=0; i<17; i++) S[i] = y[i];         /* S: 0-16 */
+    for (i=0; i<17; i++) S[i] = y[i];            /* S: 0-16 */
      
     for (i=17; i<34; i++) Lsn[i-17] = y[i];      /* Lsn: 17-33 */
     for (i=34; i<51; i++) Lsp[i-34] = y[i];      /* Lsp: 34-50 */
     for (i=51; i<68; i++) Lmn[i-51] = y[i];      /* Lmn: 51-67 */
     for (i=68; i<85; i++) Lmp[i-68] = y[i];      /* Lmp: 68-84 */
     
-    for (i=85; i<102; i++) Nsn[i-85] = y[i];     /* Nsn: 85-101 */
+    for (i=85; i<102; i++) Nsn[i-85] = y[i];      /* Nsn: 85-101 */
     for (i=102; i<119; i++) Nsp[i-102] = y[i];    /* Nsp: 102-118 */
     for (i=119; i<136; i++) Nmn[i-119] = y[i];    /* Nmn: 119-135 */
     for (i=136; i<153; i++) Nmp[i-136] = y[i];    /* Nmp: 136-152 */
@@ -135,7 +135,10 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     /* sum up various totals - uses function sum_array(array,i_start,i_end) */ 
     
     double Total_S = sumsum(S,0,16);
-    double Total_L = sumsum(Lsn,0,16)+sumsum(Lsp,0,16)+sumsum(Lmn,0,16)+sumsum(Lmp,0,16);
+    
+    double Total_Ls = sumsum(Lsn,0,16)+sumsum(Lsp,0,16);
+    double Total_Lm = sumsum(Lmn,0,16)+sumsum(Lmp,0,16);
+    double Total_L = Total_Ls + Total_Lm;
     
     double Total_Ns = sumsum(Nsn,0,16)+sumsum(Nsp,0,16);
     double Total_Nm = sumsum(Nmn,0,16)+sumsum(Nmp,0,16);
@@ -161,7 +164,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     for (i=1; i<16; i++) dS[i] = age1*forc[i+1]*S[i-1] - age1*S[i] - (FS + FM)*S[i];  
     dS[16] = age1*s80*S[15] - age2*S[16] - (FS + FM)*S[16];
 
-    /* Latent,s,n [ok] */
+    /* Latent,s,n*/
   
     dLsn[0] =  -age1*Lsn[0] 
                + FS*((1-a)*S[0] + (1-a)*(1-p)*(1-g)*Lmn[0])
@@ -368,7 +371,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
 
     /* Smear positive,m,n [ok] */
     
-    dImn[0] = - age1*y[0]
+    dImn[0] = - age1*Imn[0]
               + (v*sig + FM*a*sig*(1-p))*Lmn[0]
               + FM*a*sig*S[0]
               + FM*a*(1-p)*sig*Lsn[0]
@@ -438,21 +441,21 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
 
     yout[0] = Total;
     yout[1] = Total_S;
-    yout[2] = Total_L;
-    yout[3] = Total_Ns;
-    yout[4] = Total_Nm;
-    yout[5] = Total_N;
-    yout[6] = Total_Is;
-    yout[7] = Total_Im;
-    yout[8] = Total_I;
-    yout[9] = Total_DS;
-    yout[10] = Total_MDR;
-    yout[11] = FS;
-    yout[12] = FM;
+    yout[2] = Total_Ls;
+    yout[3] = Total_Lm;
+    yout[4] = Total_L;
+    yout[5] = Total_Ns;
+    yout[6] = Total_Nm;
+    yout[7] = Total_N;
+    yout[8] = Total_Is;
+    yout[9] = Total_Im;
+    yout[10] = Total_I;
+    yout[11] = Total_DS;
+    yout[12] = Total_MDR;
+    yout[13] = FS;
+    yout[14] = FM;
     
 }
-
-
 
                                                                     
   
