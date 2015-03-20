@@ -156,267 +156,121 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     double FS = beta*(Total_Ns*rel_inf + Total_Is)/Total; 
     double FM = fit_cost*beta*(Total_Nm*rel_inf + Total_Im)/Total;
  
+    /* Create vectors of aging rates to use in derivatives */
+    double age_out[17];                         /* age_out is lower for final age group because it is wider */
+    for (i=0; i<16; i++) age_out[i] = age1;            
+    age_out[16] = age2;
+    
+    double age_in[17];                          /* age_in is set to zero for first age group as new borns only enter the S class */
+    for (i=1; i<17; i++) age_in[i] = age1;            
+    age_in[0] = 0;
+ 
     /* Derivatives */ 
  
     /* Susceptible */ 
     
     dS[0] = s_birth*birth_rate*Total/1000 - age1*S[0] - (FS + FM)*S[0];
-    for (i=1; i<16; i++) dS[i] = age1*forc[i+1]*S[i-1] - age1*S[i] - (FS + FM)*S[i];  
-    dS[16] = age1*s80*S[15] - age2*S[16] - (FS + FM)*S[16];
+    for (i=1; i<17; i++) dS[i] = age1*forc[i+1]*S[i-1] - age_out[i]*S[i] - (FS + FM)*S[i];  
 
     /* Latent,s,n*/
-  
-    dLsn[0] =  -age1*Lsn[0] 
-               + FS*((1-a)*S[0] + (1-a)*(1-p)*(1-g)*Lmn[0])
-               - (v + FS*a*(1-p) + FM*a*(1-p) + FM*(1-a)*(1-p)*g)*Lsn[0]
-               + r*(Isn[0] + Nsn[0]);
-    
-    for (i=1; i<16; i++) dLsn[i] = age1*forc[i+1]*Lsn[i-1] - age1*Lsn[i]
+
+    for (i=0; i<17; i++) dLsn[i] = age_in[i]*forc[i+1]*Lsn[i-1] - age_out[i]*Lsn[i]
                                    + FS*((1-a)*S[i] + (1-a)*(1-p)*(1-g)*Lmn[i])
                                    - (v + FS*a*(1-p) + FM*a*(1-p) + FM*(1-a)*(1-p)*g)*Lsn[i]
                                    + r*(Isn[i] + Nsn[i]); 
     
-    dLsn[16] = age1*s80*Lsn[15] - age2*Lsn[16] 
-               + FS*((1-a)*S[16] + (1-a)*(1-p)*(1-g)*Lmn[16])
-               - (v + FS*a*(1-p) + FM*a*(1-p) + FM*(1-a)*(1-p)*g)*Lsn[16]
-               + r*(Isn[16] + Nsn[16]);
-    
     /* Latent,s,p [ok] */
-
-    dLsp[0] =  - age1*Lsp[0] 
-               + FS*(1-a)*(1-p)*(1-g)*Lmp[0]
-               - (v + FS*a*(1-p) + FM*a*(1-p) + FM*(1-a)*(1-p)*g)*Lsp[0]
-               + r*(Isp[0]+Nsp[0])
-               + k*l_s*(1-e)*tau_s*(Isn[0]+Isp[0]) 
-               + k*l_s*(1-e)*tau_s*d*(Nsn[0]+Nsp[0]);
   
-    for (i=1; i<16; i++) dLsp[i] = age1*forc[i+1]*Lsp[i-1] - age1*Lsp[i] 
+    for (i=0; i<17; i++) dLsp[i] = age_in[i]*forc[i+1]*Lsp[i-1] - age_out[i]*Lsp[i] 
                                    + FS*(1-a)*(1-p)*(1-g)*Lmp[i]
                                    - (v + FS*a*(1-p) + FM*a*(1-p) + FM*(1-a)*(1-p)*g)*Lsp[i]
                                    + r*(Isp[i]+Nsp[i])
                                    + k*l_s*(1-e)*tau_s*(Isn[i]+Isp[i]) 
                                    + k*l_s*(1-e)*tau_s*d*(Nsn[i]+Nsp[i]);
     
-    dLsp[16] = age1*s80*Lsp[15] - age2*Lsp[16] 
-               + FS*(1-a)*(1-p)*(1-g)*Lmp[16]
-               - (v + FS*a*(1-p) + FM*a*(1-p) + FM*(1-a)*(1-p)*g)*Lsp[16]
-               + r*(Isp[16]+Nsp[16])
-               + k*l_s*(1-e)*tau_s*(Isn[16]+Isp[16]) 
-               + k*l_s*(1-e)*tau_s*d*(Nsn[16]+Nsp[16]);
-    
     /* Latent,m,n [ok] */
-  
-    dLmn[0] =  - age1*Lmn[0] 
-               + FM*((1-a)*S[0] + (1-a)*(1-p)*g*Lsn[0])
-               - (v + FM*a*(1-p) + FS*a*(1-p) + FS*(1-a)*(1-p)*(1-g))*Lmn[0]
-               + r*(Imn[0]+Nmn[0]);
                 
-    for (i=1; i<16; i++) dLmn[i] = age1*forc[i+1]*Lmn[i-1] - age1*Lmn[i] 
+    for (i=0; i<17; i++) dLmn[i] = age_in[i]*forc[i+1]*Lmn[i-1] - age_out[i]*Lmn[i] 
                                    + FM*((1-a)*S[i] + (1-a)*(1-p)*g*Lsn[i])
                                    - (v + FM*a*(1-p) + FS*a*(1-p) + FS*(1-a)*(1-p)*(1-g))*Lmn[i]
                                    + r*(Imn[i]+Nmn[i]);  
     
-    dLmn[16] = age1*s80*Lmn[15] - age2*Lmn[16] 
-               + FM*((1-a)*S[16] + (1-a)*(1-p)*g*Lsn[16])
-               - (v + FM*a*(1-p) + FS*a*(1-p) + FS*(1-a)*(1-p)*(1-g))*Lmn[16]
-               + r*(Imn[16]+Nmn[16]);
-
     /* Latent,m,p [ok] */
-    
-    dLmp[0] = - age1*Lmp[0] 
-              + FM*(1-a)*(1-p)*g*Lsp[0]
-              - (v + FM*a*(1-p) + FS*a*(1-p) + FS*(1-a)*(1-p)*(1-g))*Lmp[0]
-              + r*(Imp[0]+Nmp[0])
-              + k*(l_m*dst_n*tau_m + l_s*(1-dst_n)*tau_s*eff_n)*(Imn[0]+d*Nmn[0])
-              + k*(l_m*dst_p*tau_m + l_s*(1-dst_p)*tau_s*eff_p)*(Imp[0]+d*Nmp[0]);
                 
-    for (i=1; i<16; i++) dLmp[i] = age1*forc[i+1]*Lmp[i-1] - age1*Lmp[i] 
+    for (i=0; i<17; i++) dLmp[i] = age_in[i]*forc[i+1]*Lmp[i-1] - age_out[i]*Lmp[i] 
                                    + FM*(1-a)*(1-p)*g*Lsp[i]
                                    - (v + FM*a*(1-p) + FS*a*(1-p) + FS*(1-a)*(1-p)*(1-g))*Lmp[i]
                                    + r*(Imp[i]+Nmp[i])
                                    + k*(l_m*dst_n*tau_m + l_s*(1-dst_n)*tau_s*eff_n)*(Imn[i]+d*Nmn[i])
                                    + k*(l_m*dst_p*tau_m + l_s*(1-dst_p)*tau_s*eff_p)*(Imp[i]+d*Nmp[i]);
-    
-    dLmp[16] = age1*s80*Lmp[15] - age2*Lmp[16] 
-               + FM*(1-a)*(1-p)*g*Lsp[16]
-               - (v + FM*a*(1-p) + FS*a*(1-p) + FS*(1-a)*(1-p)*(1-g))*Lmp[16]
-               + r*(Imp[16]+Nmp[16])
-               + k*(l_m*dst_n*tau_m + l_s*(1-dst_n)*tau_s*eff_n)*(Imn[16]+d*Nmn[16])
-               + k*(l_m*dst_p*tau_m + l_s*(1-dst_p)*tau_s*eff_p)*(Imp[16]+d*Nmp[16]);
-
 
     /* Smear negative,s,n */
-
-    dNsn[0] = - age1*Nsn[0] 
-              + (v*(1-sig) + FS*a*(1-p)*(1-sig))*Lsn[0]
-              + FS*a*(1-sig)*(S[0] + (1-p)*Lmn[0])
-              - (theta + r + k*l_s*d + mu_N)*Nsn[0];
                 
-    for (i=1; i<16; i++) dNsn[i] = age1*forc[i+1]*Nsn[i-1] - age1*Nsn[i] 
+    for (i=0; i<17; i++) dNsn[i] = age_in[i]*forc[i+1]*Nsn[i-1] - age_out[i]*Nsn[i] 
                                    + (v*(1-sig) + FS*a*(1-p)*(1-sig))*Lsn[i]
                                    + FS*a*(1-sig)*(S[i] + (1-p)*Lmn[i])
                                    - (theta + r + k*l_s*d + mu_N)*Nsn[i];
-    
-    dNsn[16] = age1*s80*Nsn[15] - age2*Nsn[16] 
-               + (v*(1-sig) + FS*a*(1-p)*(1-sig))*Lsn[16]
-               + FS*a*(1-sig)*(S[16] + (1-p)*Lmn[16])
-               - (theta + r + k*l_s*d + mu_N)*Nsn[16];
 
     /* Smear negative,s,p [ok] */
-
-    dNsp[0] = - age1*Nsp[0] 
-              + (v*(1-sig) + FS*a*(1-p)*(1-sig))*Lsp[0]
-              + FS*a*(1-sig)*(1-p)*Lmp[0]
-              - (theta + r + k*l_s*d*(1-e)*tau_s + k*l_s*d*e + mu_N)*Nsp[0]
-              + k*l_s*d*(1-e)*(1-tau_s)*Nsn[0];
-    
-                
-    for (i=1; i<16; i++) dNsp[i] = age1*forc[i+1]*Nsp[i-1] - age1*Nsp[i] 
+                    
+    for (i=0; i<17; i++) dNsp[i] = age_in[i]*forc[i+1]*Nsp[i-1] - age_out[i]*Nsp[i] 
                                    + (v*(1-sig) + FS*a*(1-p)*(1-sig))*Lsp[i]
                                    + FS*a*(1-sig)*(1-p)*Lmp[i]
                                    - (theta + r + k*l_s*d*(1-e)*tau_s + k*l_s*d*e + mu_N)*Nsp[i]
                                    + k*l_s*d*(1-e)*(1-tau_s)*Nsn[i];
-    
-    dNsp[16] = age1*s80*Nsp[15] - age2*Nsp[16] 
-               + (v*(1-sig) + FS*a*(1-p)*(1-sig))*Lsp[16]
-               + FS*a*(1-sig)*(1-p)*Lmp[16]
-               - (theta + r + k*l_s*d*(1-e)*tau_s + k*l_s*d*e + mu_N)*Nsp[16]
-               + k*l_s*d*(1-e)*(1-tau_s)*Nsn[16];
 
     /* Smear negative,m,n [ok] */
 
-    dNmn[0] = - age1*Nmn[0] 
-              + (v*(1-sig) + FM*a*(1-p)*(1-sig))*Lmn[0]
-              + FM*a*(1-sig)*(S[0] + (1-p)*Lsn[0])
-              - (theta + r + k*l_m*d*dst_n + k*l_s*d*(1-dst_n) + mu_N)*Nmn[0];
-
-    for (i=1; i<16; i++) dNmn[i] = age1*forc[i+1]*Nmn[i-1] - age1*Nmn[i] 
+    for (i=0; i<17; i++) dNmn[i] = age_in[i]*forc[i+1]*Nmn[i-1] - age_out[i]*Nmn[i] 
                                    + (v*(1-sig) + FM*a*(1-p)*(1-sig))*Lmn[i]
                                    + FM*a*(1-sig)*(S[i] + (1-p)*Lsn[i])
                                    - (theta + r + k*l_m*d*dst_n + k*l_s*d*(1-dst_n) + mu_N)*Nmn[i];
     
-    dNmn[16] = age1*s80*Nmn[15] - age2*Nmn[16] 
-               + (v*(1-sig) + FM*a*(1-p)*(1-sig))*Lmn[16]
-               + FM*a*(1-sig)*(S[16] + (1-p)*Lsn[16])
-               - (theta + r + k*l_m*d*dst_n + k*l_s*d*(1-dst_n) + mu_N)*Nmn[16];
-    
     /* Smear negative,m,p [ok] */
-    
-    dNmp[0] = - age1*Nmp[0]
-              + (v*(1-sig) + FM*a*(1-p)*(1-sig))*Lmp[0]
-              + FM*a*(1-sig)*(1-p)*Lsp[0]
-              - (theta + r + k*l_m*d*dst_p*tau_m + k*l_s*d*(1-dst_p)*tau_s*eff_p + mu_N)*Nmp[0]
-              + k*l_s*d*e*(Nsn[0]+Nsp[0])
-              + (k*l_m*d*dst_n*(1-tau_m) + k*l_s*d*(1-dst_n)*(1-(tau_s*eff_n)))*Nmn[0]; 
 
-    for (i=1; i<16; i++) dNmp[i] = age1*forc[i+1]*Nmp[i-1] - age1*Nmp[i] 
+    for (i=0; i<17; i++) dNmp[i] = age_in[i]*forc[i+1]*Nmp[i-1] - age_out[i]*Nmp[i] 
                                    + (v*(1-sig) + FM*a*(1-p)*(1-sig))*Lmp[i]
                                    + FM*a*(1-sig)*(1-p)*Lsp[i]
                                    - (theta + r + k*l_m*d*dst_p*tau_m + k*l_s*d*(1-dst_p)*tau_s*eff_p + mu_N)*Nmp[i]
                                    + k*l_s*d*e*(Nsn[i]+Nsp[i])
                                    + (k*l_m*d*dst_n*(1-tau_m) + k*l_s*d*(1-dst_n)*(1-(tau_s*eff_n)))*Nmn[i]; 
 
-    dNmp[16] = age1*s80*Nmp[15] - age2*Nmp[16] 
-               + (v*(1-sig) + FM*a*(1-p)*(1-sig))*Lmp[16]
-               + FM*a*(1-sig)*(1-p)*Lsp[16]
-               - (theta + r + k*l_m*d*dst_p*tau_m + k*l_s*d*(1-dst_p)*tau_s*eff_p + mu_N)*Nmp[16]
-               + k*l_s*d*e*(Nsn[16]+Nsp[16])
-               + (k*l_m*d*dst_n*(1-tau_m) + k*l_s*d*(1-dst_n)*(1-(tau_s*eff_n)))*Nmn[16]; 
-
     /* Smear positive,s,n [ok] */
-    
-    dIsn[0] = - age1*Isn[0]
-              + (v*sig + FS*a*sig*(1-p))*Lsn[0]
-              + FS*a*sig*S[0]
-              + FS*a*(1-p)*sig*Lmn[0]
-              + theta*Nsn[0]
-              - (r + k*l_s +mu_I)*Isn[0];
 
-    for (i=1; i<16; i++) dIsn[i] = age1*forc[i+1]*Isn[i-1] - age1*Isn[i] 
+    for (i=0; i<17; i++) dIsn[i] = age_in[i]*forc[i+1]*Isn[i-1] - age_out[i]*Isn[i] 
                                    + (v*sig + FS*a*sig*(1-p))*Lsn[i]
                                    + FS*a*sig*S[i]
                                    + FS*a*(1-p)*sig*Lmn[i]
                                    + theta*Nsn[i]
                                    - (r + k*l_s +mu_I)*Isn[i];
 
-    dIsn[16] = age1*s80*Isn[15] - age2*Isn[16] 
-               + (v*sig + FS*a*sig*(1-p))*Lsn[16]
-               + FS*a*sig*S[16]
-               + FS*a*(1-p)*sig*Lmn[16]
-               + theta*Nsn[16]
-               - (r + k*l_s +mu_I)*Isn[16];
-
     /* Smear positive,s,p [ok] */
 
-    dIsp[0] = - age1*Isp[0]
-              + (v*sig + FS*a*sig*(1-p))*Lsp[0]
-              + FS*a*sig*(1-p)*Lmp[0]
-              + theta*Nsp[0]
-              + k*l_s*(1-e)*(1-tau_s)*Isn[0]
-              - (r + k*l_s*(1-e)*tau_s + k*l_s*e + mu_I)*Isp[0];
-
-    for (i=1; i<16; i++) dIsp[i] = age1*forc[i+1]*Isp[i-1] - age1*Isp[i] 
+    for (i=0; i<17; i++) dIsp[i] = age_in[i]*forc[i+1]*Isp[i-1] - age_out[i]*Isp[i] 
                                    + (v*sig + FS*a*sig*(1-p))*Lsp[i]
                                    + FS*a*sig*(1-p)*Lmp[i]
                                    + theta*Nsp[i]
                                    + k*l_s*(1-e)*(1-tau_s)*Isn[i]
                                    - (r + k*l_s*(1-e)*tau_s + k*l_s*e + mu_I)*Isp[i];
-
-    dIsp[16] = age1*s80*dIsp[15] - age2*Isp[16] 
-               + (v*sig + FS*a*sig*(1-p))*Lsp[16]
-               + FS*a*sig*(1-p)*Lmp[16]
-               + theta*Nsp[16]
-               + k*l_s*(1-e)*(1-tau_s)*Isn[16]
-               - (r + k*l_s*(1-e)*tau_s + k*l_s*e + mu_I)*Isp[16];
-
+                                   
     /* Smear positive,m,n [ok] */
-    
-    dImn[0] = - age1*Imn[0]
-              + (v*sig + FM*a*sig*(1-p))*Lmn[0]
-              + FM*a*sig*S[0]
-              + FM*a*(1-p)*sig*Lsn[0]
-              + theta*Nmn[0]
-              - (r + k*l_m*dst_n + k*l_s*(1-dst_n) + mu_I)*Imn[0];
 
-    for (i=1; i<16; i++) dImn[i] = age1*forc[i+1]*Imn[i-1] - age1*Imn[i] 
+    for (i=0; i<17; i++) dImn[i] = age_in[i]*forc[i+1]*Imn[i-1] - age_out[i]*Imn[i] 
                                    + (v*sig + FM*a*sig*(1-p))*Lmn[i]
                                    + FM*a*sig*S[i]
                                    + FM*a*(1-p)*sig*Lsn[i]
                                    + theta*Nmn[i]
                                    - (r + k*l_m*dst_n + k*l_s*(1-dst_n) + mu_I)*Imn[i];
-
-    dImn[16] = age1*s80*Imn[15] - age2*Imn[16] 
-                + (v*sig + FM*a*sig*(1-p))*Lmn[16]
-                + FM*a*sig*S[16]
-                + FM*a*(1-p)*sig*Lsn[16]
-                + theta*Nmn[16]
-                - (r + k*l_m*dst_n + k*l_s*(1-dst_n) + mu_I)*Imn[16];
     
     /* Smear positive,m,n [OK] */
-       
-    dImp[0] = - age1*Imp[0]
-              + (v*sig + FM*a*sig*(1-p))*Lmp[0]
-              + FM*a*sig*(1-p)*Lsp[0]
-              + theta*Nmp[0]
-              + (k*l_m*dst_n*(1-tau_m) + k*l_s*(1-dst_n)*(1-(tau_s*eff_n)))*Imn[0]
-              + k*l_s*e*(Isn[0]+Isp[0])
-              - (r + k*l_m*dst_p*tau_m + k*l_s*(1-dst_p)*tau_s*eff_p + mu_I)*Imp[0];
 
-    for (i=1; i<16; i++) dImp[i] = age1*forc[i+1]*Imp[i-1] - age1*Imp[i] 
+    for (i=0; i<17; i++) dImp[i] = age_in[i]*forc[i+1]*Imp[i-1] - age_out[i]*Imp[i] 
                                       + (v*sig + FM*a*sig*(1-p))*Lmp[i]
                                       + FM*a*sig*(1-p)*Lsp[i]
                                       + theta*Nmp[i]
                                       + (k*l_m*dst_n*(1-tau_m) + k*l_s*(1-dst_n)*(1-(tau_s*eff_n)))*Imn[i]
                                       + k*l_s*e*(Isn[i]+Isp[i])
                                       - (r + k*l_m*dst_p*tau_m + k*l_s*(1-dst_p)*tau_s*eff_p + mu_I)*Imp[i];
-
-    dImp[16] = age1*s80*Imp[15] - age2*Imp[16] 
-                + (v*sig + FM*a*sig*(1-p))*Lmp[16]
-                + FM*a*sig*(1-p)*Lsp[16]
-                + theta*Nmp[16]
-                + (k*l_m*dst_n*(1-tau_m) + k*l_s*(1-dst_n)*(1-(tau_s*eff_n)))*Imn[16]
-                + k*l_s*e*(Isn[16]+Isp[16])
-                - (r + k*l_m*dst_p*tau_m + k*l_s*(1-dst_p)*tau_s*eff_p + mu_I)*Imp[16];
                 
     /* Put function values into ydot */
 
