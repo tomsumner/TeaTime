@@ -42,8 +42,8 @@ Imp_index <- (12*num_ages+1):(13*num_ages)
 # Uses crude birth rate (per 1000 population) from UN pop for South Africa which has values for 5 year periods
 # Puts these values at midpoint of period and interpolates between 
 # 2010-2015 (2012.5) value based on medium fertility projection
-birth_rate <- approxfun(x=seq(1952.5,2047.5,5),
-                        y=c(44,42,41,38,38,36,34,31,27,25,24,22,21,20,18,17,17,16,15,14),rule=2)
+birth_rate <- approxfun(x=c(0,1950,seq(1952.5,2047.5,5)),
+                        y=c(30.52,30.52,44,42,41,38,38,36,34,31,27,25,24,22,21,20,18,17,17,16,15,14),rule=2)
 
 ## Survival
 Survive_age <- as.data.frame(read.table("SA_survival_age.txt",header=TRUE)) # Load survival proportions calculated from life tables
@@ -217,8 +217,18 @@ ja.multistage.model <- function (t, x, ...) {
 }
 
 # And run it
-system.time(sol <- ode(y=yinit,times=seq(1950,2250,by=1),func=ja.multistage.model))
+time_R <- system.time(for (i in 1:10) sol <- ode(y=yinit,times=seq(1950,2050,by=1),func=ja.multistage.model))
 
+
+par(mfrow=c(2,2))
+plot(out[,"Total"])
+lines(sol[,"Total"],col="red")
+plot(out[,"Total_S"])
+lines(sol[,"Total_S"],col="red")
+plot(out[,"Total_L"])
+lines(sol[,"Total_L"],col="red")
+plot(out[,"Total_DS"])
+lines(sol[,"Total_DS"],col="red")
 
 
 
