@@ -194,118 +194,132 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     muI_age[0] = mu_I0;
     for (i=1; i<17; i++) muI_age[i] = mu_I;
  
-    /* Calculate disease induced mortality by age group and add this to the survival proportion when modelling aging */
-    double mort[17];
-    for (i=0; i<17; i++) mort[i] = 0;/*((Nsn[i]+Nsp[i]+Nmn[i]+Nmp[i])*muN_age[i] + (Isn[i]+Isp[i]+Imn[i]+Imp[i])*muI_age[i])/
-                                  (S[i]+Lsn[i]+Lsp[i]+Lmn[i]+Lmp[i]+Nsn[i]+Nsp[i]+Nmn[i]+Nmp[i]+Isn[i]+Isp[i]+Imn[i]+Imp[i]);*/
-    /* Derivatives */ 
+    /* Calculate deaths due to TB by age group - these will be distributed across all states to avoid double counting deaths */
+    double TB_deaths[17];
+    for (i=0; i<17; i++) TB_deaths[i] = (Nsn[i]+Nsp[i]+Nmn[i]+Nmp[i])*muN_age[i] + (Isn[i]+Isp[i]+Imn[i]+Imp[i])*muI_age[i];
+     
+    /* Calculate total population by age - this is used to distribute those dying of TB as mortality rates already include TB deaths */
+    double tot_age[17];
+    for (i=0; i<17; i++) tot_age[i] = S[i]+Lsn[i]+Lsp[i]+Lmn[i]+Lmp[i]+Nsn[i]+Nsp[i]+Nmn[i]+Nmp[i]+Isn[i]+Isp[i]+Imn[i]+Imp[i];
+     
+    /* Derivatives - each also includes a term which adds back in some proportion (based on compartment size) of TB deaths*/ 
  
-    /* Susceptible - adding TB deaths back in as susceptibles to check if pop matches okay*/ 
+    /* Susceptible */ 
     
-    dS[0] = s_birth*birth_rate*Total/1000 - age1*S[0] - (FS + FM)*S[0] + 
-           (Nsn[0]+Nsp[0]+Nmn[i]+Nmp[0])*muN_age[0] + (Isn[0]+Isp[0]+Imn[0]+Imp[0])*muI_age[0];
-    for (i=1; i<17; i++) dS[i] = age1*(forc[i+1]+mort[i-1])*S[i-1] - age_out[i]*S[i] - (FS + FM)*S[i] +
-    (Nsn[i]+Nsp[i]+Nmn[i]+Nmp[i])*muN_age[i] + (Isn[i]+Isp[i]+Imn[i]+Imp[i])*muI_age[i];  
+    dS[0] = s_birth*birth_rate*Total/1000 - age1*S[0] - (FS + FM)*S[0] + TB_deaths[0]*S[0]/tot_age[0];
+    for (i=1; i<17; i++) dS[i] = age1*forc[i+1]*S[i-1] - age_out[i]*S[i] - (FS + FM)*S[i] + TB_deaths[i]*S[i]/tot_age[i];
 
     /* Latent,s,n*/
 
-    for (i=0; i<17; i++) dLsn[i] = age_in[i]*(forc[i+1]+mort[i-1])*Lsn[i-1] - age_out[i]*Lsn[i] +
+    for (i=0; i<17; i++) dLsn[i] = age_in[i]*forc[i+1]*Lsn[i-1] - age_out[i]*Lsn[i] +
                                    FS*((1-a_age[i])*S[i] + (1-a_age[i])*(1-p)*(1-g)*Lmn[i]) -
                                    (v + FS*a_age[i]*(1-p) + FM*a_age[i]*(1-p) + FM*(1-a_age[i])*(1-p)*g)*Lsn[i] +
-                                   r*(Isn[i] + Nsn[i]); 
+                                   r*(Isn[i] + Nsn[i]) +
+                                   TB_deaths[i]*Lsn[i]/tot_age[i];
     
     /* Latent,s,p [ok] */
   
-    for (i=0; i<17; i++) dLsp[i] = age_in[i]*(forc[i+1]+mort[i-1])*Lsp[i-1] - age_out[i]*Lsp[i] +
+    for (i=0; i<17; i++) dLsp[i] = age_in[i]*forc[i+1]*Lsp[i-1] - age_out[i]*Lsp[i] +
                                    FS*(1-a_age[i])*(1-p)*(1-g)*Lmp[i] -
                                    (v + FS*a_age[i]*(1-p) + FM*a_age[i]*(1-p) + FM*(1-a_age[i])*(1-p)*g)*Lsp[i] +
                                    r*(Isp[i]+Nsp[i]) +
                                    k*l_s*(1-e)*tau_s*(Isn[i]+Isp[i]) + 
-                                   k*l_s*(1-e)*tau_s*d*(Nsn[i]+Nsp[i]);
+                                   k*l_s*(1-e)*tau_s*d*(Nsn[i]+Nsp[i]) +
+                                   TB_deaths[i]*Lsp[i]/tot_age[i];
     
     /* Latent,m,n [ok] */
                 
-    for (i=0; i<17; i++) dLmn[i] = age_in[i]*(forc[i+1]+mort[i-1])*Lmn[i-1] - age_out[i]*Lmn[i] +
+    for (i=0; i<17; i++) dLmn[i] = age_in[i]*forc[i+1]*Lmn[i-1] - age_out[i]*Lmn[i] +
                                    FM*((1-a_age[i])*S[i] + (1-a_age[i])*(1-p)*g*Lsn[i]) -
                                    (v + FM*a_age[i]*(1-p) + FS*a_age[i]*(1-p) + FS*(1-a_age[i])*(1-p)*(1-g))*Lmn[i] +
-                                   r*(Imn[i]+Nmn[i]);  
+                                   r*(Imn[i]+Nmn[i]) +
+                                   TB_deaths[i]*Lmn[i]/tot_age[i];  
     
     /* Latent,m,p [ok] */
                 
-    for (i=0; i<17; i++) dLmp[i] = age_in[i]*(forc[i+1]+mort[i-1])*Lmp[i-1] - age_out[i]*Lmp[i] + 
+    for (i=0; i<17; i++) dLmp[i] = age_in[i]*forc[i+1]*Lmp[i-1] - age_out[i]*Lmp[i] + 
                                    FM*(1-a_age[i])*(1-p)*g*Lsp[i] -
                                    (v + FM*a_age[i]*(1-p) + FS*a_age[i]*(1-p) + FS*(1-a_age[i])*(1-p)*(1-g))*Lmp[i] +
                                    r*(Imp[i]+Nmp[i]) +
                                    k*(l_m*dst_n*tau_m + l_s*(1-dst_n)*tau_s*eff_n)*(Imn[i]+d*Nmn[i]) +
-                                   k*(l_m*dst_p*tau_m + l_s*(1-dst_p)*tau_s*eff_p)*(Imp[i]+d*Nmp[i]);
+                                   k*(l_m*dst_p*tau_m + l_s*(1-dst_p)*tau_s*eff_p)*(Imp[i]+d*Nmp[i]) +
+                                   TB_deaths[i]*Lmp[i]/tot_age[i];
 
     /* Smear negative,s,n */
                 
-    for (i=0; i<17; i++) dNsn[i] = age_in[i]*(forc[i+1]+mort[i-1])*Nsn[i-1] - age_out[i]*Nsn[i] +
+    for (i=0; i<17; i++) dNsn[i] = age_in[i]*forc[i+1]*Nsn[i-1] - age_out[i]*Nsn[i] +
                                    (v*(1-sig_age[i]) + FS*a_age[i]*(1-p)*(1-sig_age[i]))*Lsn[i] +
                                    FS*a_age[i]*(1-sig_age[i])*(S[i] + (1-p)*Lmn[i]) -
-                                   (theta + r + k*l_s*d + muN_age[i])*Nsn[i];
+                                   (theta + r + k*l_s*d + muN_age[i])*Nsn[i] +
+                                   TB_deaths[i]*Nsn[i]/tot_age[i];
 
     /* Smear negative,s,p [ok] */
                     
-    for (i=0; i<17; i++) dNsp[i] = age_in[i]*(forc[i+1]+mort[i-1])*Nsp[i-1] - age_out[i]*Nsp[i] + 
+    for (i=0; i<17; i++) dNsp[i] = age_in[i]*forc[i+1]*Nsp[i-1] - age_out[i]*Nsp[i] + 
                                    (v*(1-sig_age[i]) + FS*a_age[i]*(1-p)*(1-sig_age[i]))*Lsp[i] +
                                    FS*a_age[i]*(1-sig_age[i])*(1-p)*Lmp[i] -
                                    (theta + r + k*l_s*d*(1-e)*tau_s + k*l_s*d*e + muN_age[i])*Nsp[i] +
-                                   k*l_s*d*(1-e)*(1-tau_s)*Nsn[i];
+                                   k*l_s*d*(1-e)*(1-tau_s)*Nsn[i] +
+                                   TB_deaths[i]*Nsp[i]/tot_age[i];
 
     /* Smear negative,m,n [ok] */
 
-    for (i=0; i<17; i++) dNmn[i] = age_in[i]*(forc[i+1]+mort[i-1])*Nmn[i-1] - age_out[i]*Nmn[i] +
+    for (i=0; i<17; i++) dNmn[i] = age_in[i]*forc[i+1]*Nmn[i-1] - age_out[i]*Nmn[i] +
                                    (v*(1-sig_age[i]) + FM*a_age[i]*(1-p)*(1-sig_age[i]))*Lmn[i] +
                                    FM*a_age[i]*(1-sig_age[i])*(S[i] + (1-p)*Lsn[i]) -
-                                   (theta + r + k*l_m*d*dst_n + k*l_s*d*(1-dst_n) + muN_age[i])*Nmn[i];
+                                   (theta + r + k*l_m*d*dst_n + k*l_s*d*(1-dst_n) + muN_age[i])*Nmn[i] +
+                                   TB_deaths[i]*Nmn[i]/tot_age[i];
     
     /* Smear negative,m,p [ok] */
 
-    for (i=0; i<17; i++) dNmp[i] = age_in[i]*(forc[i+1]+mort[i-1])*Nmp[i-1] - age_out[i]*Nmp[i] +
+    for (i=0; i<17; i++) dNmp[i] = age_in[i]*forc[i+1]*Nmp[i-1] - age_out[i]*Nmp[i] +
                                    (v*(1-sig_age[i]) + FM*a_age[i]*(1-p)*(1-sig_age[i]))*Lmp[i] +
                                    FM*a_age[i]*(1-sig_age[i])*(1-p)*Lsp[i] -
                                    (theta + r + k*l_m*d*dst_p*tau_m + k*l_s*d*(1-dst_p)*tau_s*eff_p + muN_age[i])*Nmp[i] +
                                    k*l_s*d*e*(Nsn[i]+Nsp[i]) +
-                                   (k*l_m*d*dst_n*(1-tau_m) + k*l_s*d*(1-dst_n)*(1-(tau_s*eff_n)))*Nmn[i]; 
+                                   (k*l_m*d*dst_n*(1-tau_m) + k*l_s*d*(1-dst_n)*(1-(tau_s*eff_n)))*Nmn[i] +
+                                   TB_deaths[i]*Nmp[i]/tot_age[i]; 
 
     /* Smear positive,s,n [ok] */
 
-    for (i=0; i<17; i++) dIsn[i] = age_in[i]*(forc[i+1]+mort[i-1])*Isn[i-1] - age_out[i]*Isn[i] +
+    for (i=0; i<17; i++) dIsn[i] = age_in[i]*forc[i+1]*Isn[i-1] - age_out[i]*Isn[i] +
                                    (v*sig_age[i] + FS*a_age[i]*sig_age[i]*(1-p))*Lsn[i] +
                                    FS*a_age[i]*sig_age[i]*S[i] +
                                    FS*a_age[i]*(1-p)*sig_age[i]*Lmn[i] +
                                    theta*Nsn[i] -
-                                   (r + k*l_s + muI_age[i])*Isn[i];
+                                   (r + k*l_s + muI_age[i])*Isn[i] +
+                                   TB_deaths[i]*Isn[i]/tot_age[i];
 
     /* Smear positive,s,p [ok] */
 
-    for (i=0; i<17; i++) dIsp[i] = age_in[i]*(forc[i+1]+mort[i-1])*Isp[i-1] - age_out[i]*Isp[i] +
+    for (i=0; i<17; i++) dIsp[i] = age_in[i]*forc[i+1]*Isp[i-1] - age_out[i]*Isp[i] +
                                    (v*sig_age[i] + FS*a_age[i]*sig_age[i]*(1-p))*Lsp[i] +
                                    FS*a_age[i]*sig_age[i]*(1-p)*Lmp[i] +
                                    theta*Nsp[i] +
                                    k*l_s*(1-e)*(1-tau_s)*Isn[i] -
-                                   (r + k*l_s*(1-e)*tau_s + k*l_s*e + muI_age[i])*Isp[i];
+                                   (r + k*l_s*(1-e)*tau_s + k*l_s*e + muI_age[i])*Isp[i] +
+                                   TB_deaths[i]*Isp[i]/tot_age[i];
                                    
     /* Smear positive,m,n [ok] */
 
-    for (i=0; i<17; i++) dImn[i] = age_in[i]*(forc[i+1]+mort[i-1])*Imn[i-1] - age_out[i]*Imn[i] +
+    for (i=0; i<17; i++) dImn[i] = age_in[i]*forc[i+1]*Imn[i-1] - age_out[i]*Imn[i] +
                                    (v*sig_age[i] + FM*a_age[i]*sig_age[i]*(1-p))*Lmn[i] +
                                    FM*a_age[i]*sig_age[i]*S[i] +
                                    FM*a_age[i]*(1-p)*sig_age[i]*Lsn[i] +
                                    theta*Nmn[i] -
-                                   (r + k*l_m*dst_n + k*l_s*(1-dst_n) + muI_age[i])*Imn[i];
+                                   (r + k*l_m*dst_n + k*l_s*(1-dst_n) + muI_age[i])*Imn[i] +
+                                   TB_deaths[i]*Imn[i]/tot_age[i];
     
     /* Smear positive,m,n [OK] */
 
-    for (i=0; i<17; i++) dImp[i] = age_in[i]*(forc[i+1]+mort[i-1])*Imp[i-1] - age_out[i]*Imp[i] +
+    for (i=0; i<17; i++) dImp[i] = age_in[i]*forc[i+1]*Imp[i-1] - age_out[i]*Imp[i] +
                                       (v*sig_age[i] + FM*a_age[i]*sig_age[i]*(1-p))*Lmp[i] +
                                       FM*a_age[i]*sig_age[i]*(1-p)*Lsp[i] +
                                       theta*Nmp[i] +
                                       (k*l_m*dst_n*(1-tau_m) + k*l_s*(1-dst_n)*(1-(tau_s*eff_n)))*Imn[i] +
                                       k*l_s*e*(Isn[i]+Isp[i]) -
-                                      (r + k*l_m*dst_p*tau_m + k*l_s*(1-dst_p)*tau_s*eff_p + muI_age[i])*Imp[i];
+                                      (r + k*l_m*dst_p*tau_m + k*l_s*(1-dst_p)*tau_s*eff_p + muI_age[i])*Imp[i] +
+                                      TB_deaths[i]*Imp[i]/tot_age[i];
                 
     /* Put function values into ydot */
 
@@ -343,7 +357,6 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     yout[12] = Total_MDR;
     yout[13] = FS;
     yout[14] = FM;
-    yout[15] = mort[10];
     
 }
 
