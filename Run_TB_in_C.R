@@ -49,8 +49,29 @@ s70 <- cbind(Survive_age$Year,Survive_age$X70)
 s75 <- cbind(Survive_age$Year,Survive_age$X75)
 s80 <- cbind(Survive_age$Year,Survive_age$X80)
 
+# HIV Incidence by age and year - based on AIM output
+HIV_Inc_age <- as.data.frame(read.table("HIV_Inc_age.txt",header=TRUE)) # Load HIV incidence data taken from AIM
+h0 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X0)
+h5 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X5)
+h10 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X10)
+h15 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X15)
+h20 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X20)
+h25 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X25)
+h30 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X30)
+h35 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X35)
+h40 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X40)
+h45 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X45)
+h50 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X50)
+h55 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X55)
+h60 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X60)
+h65 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X65)
+h70 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X70)
+h75 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X75)
+h80 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X80)
+
 # Combine forcing functions into a list
-force <- list(birth_rate,s_birth,s5,s10,s15,s20,s25,s30,s35,s40,s45,s50,s55,s60,s65,s70,s75,s80)
+force <- list(birth_rate,s_birth,s5,s10,s15,s20,s25,s30,s35,s40,s45,s50,s55,s60,s65,s70,s75,s80,
+              h0,h5,h10,h15,h20,h25,h30,h35,h40,h45,h50,h55,h60,h65,h70,h75,h80)
 
 # run model for different values of beta
 
@@ -170,7 +191,7 @@ colnames(UN_pop_age_t) <- c(colnames(UN_pop_age),"Total")
 temp_data <- melt(UN_pop_age_t,id="Year")
 
 # sum up model outputs over age groups and turn into long format
-tot<-mat.or.vec(131,17)
+tot<-mat.or.vec(101,17)
 for (i in 1:17){
   temp <- seq(i+1,i+205,17)
   for (j in 1:13){
@@ -178,15 +199,15 @@ for (i in 1:17){
   }
 }
 
-temp_model1 <- as.data.frame(cbind(seq(1970,2070),tot,out[,"Total"]))
-colnames(temp_model1) <- colnames(UN_pop_age_t)
-temp_model1 <- melt(temp_model1,id="Year")
+temp_model <- as.data.frame(cbind(seq(1970,2070),tot,out[,"Total"]))
+colnames(temp_model) <- colnames(UN_pop_age_t)
+temp_model <- melt(temp_model,id="Year")
 
 # and plot
 plot_pop <- ggplot(temp_model,aes(x=Year,y=value))+
   geom_line(colour="red")+
   geom_point(data=temp_data,aes(x=Year,y=value))+
-  geom_line(data=temp_model1,aes(x=Year,y=value),colour="green")+
+  #geom_line(data=temp_model1,aes(x=Year,y=value),colour="green")+
   facet_wrap(~variable,scales="free")+
   xlim(c(1970,2100))
 
