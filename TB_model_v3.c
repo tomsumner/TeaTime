@@ -150,6 +150,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     double dImp[17];
      
     int i=0;  
+    int j=0; 
      
     for (i=0; i<17; i++) S[i] = y[i];             /* Susceptible, HIV- */
 
@@ -169,6 +170,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     for (i=204; i<221; i++) Imp[i-204] = y[i];    /* Imp: 204-220 */  
        
     for (i=221; i<340; i++) S_H[i-221] = y[i];    /* sus, HIV+ */
+    
    /* for (i=340; i<697; i++) S_A[i-340] = y[i];    /* sus, ART */
        
     /* sum up various totals - uses function sum_array(array,i_start,i_end) */ 
@@ -202,7 +204,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     
     double age_in[17];                          /* age_in is set to zero for first age group as new borns only enter the S class */
     for (i=1; i<17; i++) age_in[i] = age1;            
-    age_in[0] = 0;
+    age_in[0] = 0.0;
  
     /* Create vectors of disease parameters (by age) to use in derivatives */
     double a_age[17];
@@ -227,67 +229,71 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
  
     /* Set up parameters for HIV model - these are taken from AIM */
  
-    double H_CD4[119];        /* Distribution of new HIV infections (age,CD4) */
-    double H_mort[119];       /* HIV+ mortality (age, CD4) */
-    double H_prog_out[119];   /* Progression out of CD4 categories (age,CD4) - needs to have zero in the correct places to prevent movement between ages*/
-    double H_prog_in[119];    /* Progression into CD4 categories (age,CD4) - needs to have zero in the correct places to prevent movement between ages*/
-    double H_ART[119];        /* Start ART (age,CD4) */
-    for (i=0; i<119; i++){
-
-      H_CD4[i] = 0;
-      H_mort[i] = 0;
-      H_prog_out[i] = 0;
-      H_prog_in[i] = 0;
-      H_ART[i] = 0;
-      
+    double H_CD4[7][17] = {        /* Distribution of new HIV infections (age,CD4) */
+      {0,0,0,0.643,0.643,0.607,0.607,0.585,0.585,0.552,0.552,0.552,0.552,0.552,0.552,0.552,0.552},
+      {0,0,0,0.357,0.357,0.393,0.393,0.415,0.415,0.448,0.448,0.448,0.448,0.448,0.448,0.448,0.448},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+    };
+    
+    double H_mort[7][17];       /* HIV+ mortality (age, CD4) */
+    double H_prog_out[7][17];   /* Progression out of CD4 categories (age,CD4) - needs to have zero in the correct places to prevent movement between ages*/
+    double H_prog_in[17][7];    /* Progression into CD4 categories (age,CD4) - needs to have zero in the correct places to prevent movement between ages*/
+    double H_ART[17][7];        /* Start ART (age,CD4) */
+    for (i=0; i<17; i++){
+      for (j=0; j<7; j++){
+        H_mort[i][j] = 0.0;
+        H_prog_out[i][j] = 0.0;
+        H_prog_in[i][j] = 0.0;
+        H_ART[i][j] = 0.0;
+      }
     }
     
-    for (i=0; i<17; i++) H_CD4[i] = 1;  /* Currently put all new infections in highest CD4 category */
 
-    double A_mort[357];      /* On ART mortality (age,starting CD4, time on ART) */
-    double A_prog_out[357];  /* Progression through time on ART */
-    double A_prog_in[357];   /* Progression through time on ART */
-    for (i=0; i<357; i++) {
+
+
+  /*  double A_mort[357];      /* On ART mortality (age,starting CD4, time on ART) */
+  /*  double A_prog_out[357];  /* Progression through time on ART */
+  /*  double A_prog_in[357];   /* Progression through time on ART */
+  /*  for (i=0; i<357; i++) {
       
       A_mort[i] = 0;
       A_prog_out[i] = 0;
       A_prog_in[i] = 0;
       
-    }
+    }*/
  
-    double Astart[3];   /* ensure ART starters only enter first ART category */
-    Astart[0]=1;
+   /* double Astart[3];   /* ensure ART starters only enter first ART category */
+  /*  Astart[0]=1;
     Astart[2]=0;
-    Astart[3]=0;
+    Astart[3]=0;*/
  
     /* Derivatives */ 
  
     /* Susceptible */ 
     
     /* HIV- */
-    dS[0] = s_birth*birth_rate*Total/1000 - age1*S[0] - (FS + FM)*S[0] - h0*S[0] - forc[18]*S[0];
+    dS[0] = s_birth*birth_rate*Total/1000 - age1*S[0] - (FS + FM)*S[0] - forc[18]*S[0];
     for (i=1; i<17; i++) dS[i] = age_in[i]*forc[i+1]*S[i-1] - age_out[i]*S[i] - (FS + FM)*S[i] - forc[i+18]*S[i];
 
     
    /* for (i=0; i<119; i++) dS_H[i] = 0;*/
    /* for (i=0; i<357; i++) dS_A[i] = 0;*/
 
-
     /* HIV+
     Loop through CD4 categories and through ages for each category
     Need to work out how to stop aging running into next CD4 catergory and vice versa - think just need to set the H_prog to zero in the appropriate places
     */
-
-    int ih = 0;
-    int j = 0;
-    int jt = 0;
-    int ia = 0;
-    for (j=0; j<7; j++){      /* CD4 */
+  
+   int ih=0;
+   for (j=0; j<7; j++){      /* CD4 */
       for (i=0; i<17; i++){   /* age */
-
-        dS_H[ih] = age_in[i]*forc[i+1]*S_H[ih-1] - age_out[i]*S_H[ih] - (FS + FM)*S_H[ih] + 
-                   forc[i+18]*H_CD4[ih]*S[i] - H_mort[ih]*S_H[ih] - H_prog_out[ih]*S_H[ih] + H_prog_in[ih]*S_H[ih-17] - 
-                   H_ART[ih]*S_H[ih];
+        dS_H[ih] = age_in[i]*forc[i+1]*S_H[ih-1] - age_out[i]*S_H[ih] - (FS + FM)*S_H[ih] +
+                   forc[i+18]*H_CD4[j][i]*S[i];/* - H_mort[i][j]*S_H[ih] - H_prog_out[i][j]*S_H[ih] + H_prog_in[i][j]*S_H[ih-17] - 
+                   H_ART[i][j]*S_H[ih];*/
         ih = ih+1;
       
       }
