@@ -49,11 +49,13 @@ s70 <- cbind(Survive_age$Year,Survive_age$X70)
 s75 <- cbind(Survive_age$Year,Survive_age$X75)
 s80 <- cbind(Survive_age$Year,Survive_age$X80)
 
-# HIV Incidence by age and year - based on AIM output
+# HIV Incidence by age and year - based on AIM output, but ignoring childhood infections (this is waht Carel does in TIME)
 HIV_Inc_age <- as.data.frame(read.table("HIV_Inc_age.txt",header=TRUE)) # Load HIV incidence data taken from AIM                                       # Data from AIM is rate per 1000 
-h0 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X0/1000)
-h5 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X5/1000)
-h10 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X10/1000)
+HIV_Inc_age[,2:18]=HIV_Inc_age[,2:18]*0
+
+h0 <- 0*cbind(HIV_Inc_age$Year,HIV_Inc_age$X0/1000)
+h5 <- 0*cbind(HIV_Inc_age$Year,HIV_Inc_age$X5/1000)
+h10 <- 0*cbind(HIV_Inc_age$Year,HIV_Inc_age$X10/1000)
 h15 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X15/1000)
 h20 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X20/1000)
 h25 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X25/1000)
@@ -113,8 +115,6 @@ system.time(out_pop <- ode(y=xstart, times, func = "derivsc",
             forcings=force, initfunc = "parmsc", nout = 15,
             outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                          "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM"), method = rkMethod("rk34f")))
-
-
 
 # Update initial conditions based on end of last run and add 100 TB cases
 temp <- c()
@@ -187,27 +187,31 @@ temp_data <- melt(UN_pop_age_t,id="Year")
 
 # sum up model outputs over age groups and turn into long format
 tot<-mat.or.vec(101,17)
-for (i in 1:17){
-  temp <- seq(i+1,i+205,17)
-  for (j in 1:13){
-    tot[,i]<-tot[,i]+out[,temp[j]]
-  }
+for(i in 1:17){
+  tot[,i] <- apply(out,1,function(x) sum(x[seq(i+1,341,17)]))
 }
 
-
-
-temp_model <- as.data.frame(cbind(seq(1970,2070),tot,out[,"Total"]))
-colnames(temp_model) <- colnames(UN_pop_age_t)
-temp_model <- melt(temp_model,id="Year")
+temp_model1 <- as.data.frame(cbind(seq(1970,2070),tot,out[,"Total"]))
+colnames(temp_model1) <- colnames(UN_pop_age_t)
+temp_model1 <- melt(temp_model1,id="Year")
 
 # and plot
 plot_pop <- ggplot(temp_model,aes(x=Year,y=value))+
   geom_line(colour="red")+
   geom_point(data=temp_data,aes(x=Year,y=value))+
-  #geom_line(data=temp_model1,aes(x=Year,y=value),colour="green")+
+  geom_line(data=temp_model1,aes(x=Year,y=value),colour="green",linetype=2)+
+ # geom_line(data=temp_model2,aes(x=Year,y=value),colour="cyan")+
+  #geom_line(data=temp_model3,aes(x=Year,y=value),colour="cyan")+
   facet_wrap(~variable,scales="free")+
   xlim(c(1970,2100))
 
 lines(100*out[,"Total_DS"]/out[,"Total"]) # prevalence (%)
 
 plot(100*out[,"Total_DS"]/out[,"Total"]) # prevalence (%)
+
+
+
+for (i in 1:17){
+  print(seq(i+1,340,17))
+}
+
