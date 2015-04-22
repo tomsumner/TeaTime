@@ -92,16 +92,20 @@ g = fit_cost/(1+fit_cost) # superinfections
 
 # Care and control parameters
 
-k = 0     # diagnositic rate (assummed to be the same for DS and MDR cases)         
-l_s = 0   # linkage to care (DS TB)
-l_m = 0   # linkage to care (MDR TB)
-d = 0     # relative detection of smear negative cases
-tau_s = 0 # treatment success for DS TB
-tau_m = 0 # treatment success for MDR TB
-eff_n = 0 # efficacy of first line treatment in new MDR cases
-eff_p = 0 # efficacy of first line treatment in retreatment MDR cases
-dst_n = 0 # DST coverage in new TB cases
-dst_p = 0 # DST coverage in retreatment TB cases
+k = 0.2     # diagnositic rate (assummed to be the same for DS and MDR cases)         
+l_s = 0.7   # linkage to care (DS TB)
+l_m = 0.7   # linkage to care (MDR TB)
+d = 0.8     # relative detection of smear negative cases
+tau_s = 0.8 # treatment success for DS TB
+tau_m = 0.5 # treatment success for MDR TB
+eff_n = 0.6 # efficacy of first line treatment in new MDR cases
+eff_p = 0.6 # efficacy of first line treatment in retreatment MDR cases
+dst_n = 0.5 # DST coverage in new TB cases
+dst_p = 0.5 # DST coverage in retreatment TB cases
+
+parms <- c(age1 = 1/5, age2 = 1/21, beta = 10, a = 0.115, p = 0.65, v = 0.0001, sig = 0.62, rel_inf = 0.22, theta = 0.015,   
+           r = 0.2, mu_N = 0.2, mu_I = 0.3, fit_cost = 0.7, e = 0.014, g=g, k = 0.2, l_s = 0.7, l_m = 0.7, d = 0.8, tau_s = 0.8, tau_m = 0.5,
+           eff_n = 0.6, eff_p = 0.6, dst_n = 0.5, dst_p = 0.5) 
 
 ## Now we can put the pieces together to write a simulator TB
 ja.multistage.model <- function (t, x, ...) {
@@ -219,8 +223,15 @@ ja.multistage.model <- function (t, x, ...) {
 # And run it
 time_R <- system.time(for (i in 1:10) sol <- ode(y=yinit,times=seq(1950,2050,by=1),func=ja.multistage.model))
 
+time_C<-system.time(for(i in 1:10) out <- ode(y=xstart, times, func = "derivsc",
+                                              parms = parms, dllname = "TB_model_v2",initforc = "forcc",
+                                              forcings=force, initfunc = "parmsc", nout = 15,
+                                              outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
+                                                           "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM"), method = rkMethod("rk34f")))
 
-par(mfrow=c(2,2))
+
+
+par(mfrow=c(3,3))
 plot(out[,"Total"])
 lines(sol[,"Total"],col="red")
 plot(out[,"Total_S"])
@@ -229,6 +240,14 @@ plot(out[,"Total_L"])
 lines(sol[,"Total_L"],col="red")
 plot(out[,"Total_DS"])
 lines(sol[,"Total_DS"],col="red")
-
-
+plot(out[,"Total_MDR"])
+lines(sol[,"Total_MDR"],col="red")
+plot(out[,"Total_I"])
+lines(sol[,"Total_I"],col="red")
+plot(out[,"Total_N"])
+lines(sol[,"Total_N"],col="red")
+plot(out[,"FS"])
+lines(sol[,"FS"],col="red")
+plot(out[,"FM"])
+lines(sol[,"FM"],col="red")
 
