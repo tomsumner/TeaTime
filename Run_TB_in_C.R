@@ -51,7 +51,7 @@ s80 <- cbind(Survive_age$Year,Survive_age$X80)
 
 # HIV Incidence by age and year - based on AIM output, but ignoring childhood infections (this is waht Carel does in TIME)
 HIV_Inc_age <- as.data.frame(read.table("HIV_Inc_age.txt",header=TRUE)) # Load HIV incidence data taken from AIM                                       # Data from AIM is rate per 1000 
-HIV_Inc_age[,2:18]=HIV_Inc_age[,2:18]*0
+#HIV_Inc_age[,2:18]=HIV_Inc_age[,2:18]*0
 
 h0 <- 0*cbind(HIV_Inc_age$Year,HIV_Inc_age$X0/1000)
 h5 <- 0*cbind(HIV_Inc_age$Year,HIV_Inc_age$X5/1000)
@@ -112,8 +112,8 @@ xstart <- c(S=c(temp),
 
 system.time(out_pop <- ode(y=xstart, times, func = "derivsc",
             parms = parms, dllname = "TB_model_v3",initforc = "forcc",
-            forcings=force, initfunc = "parmsc", nout = 15,
-            outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
+            forcings=force, initfunc = "parmsc", nout = 16,
+            outnames = c("Total","Total_S","Total_SH","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                          "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM"), method = rkMethod("rk34f")))
 
 # Update initial conditions based on end of last run and add 100 TB cases
@@ -129,8 +129,8 @@ xstart <- c(S=c(temp),
 
 system.time(out_TB <- ode(y=xstart, times, func = "derivsc",
                        parms = parms, dllname = "TB_model_v3",initforc = "forcc",
-                       forcings=force, initfunc = "parmsc", nout = 15,
-                       outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
+                       forcings=force, initfunc = "parmsc", nout = 16,
+                       outnames = c("Total","Total_S","Total_SH","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                     "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM"), method = rkMethod("rk34f")))
 
 
@@ -167,8 +167,8 @@ times <- seq(1970,2070 , by=1)
 # Run the model
 time_TB<-system.time(out <- ode(y=xstart, times, func = "derivsc",
            parms = parms, dllname = "TB_model_v3",initforc = "forcc",
-           forcings=force, initfunc = "parmsc", nout = 15,
-           outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
+           forcings=force, initfunc = "parmsc", nout = 16,
+           outnames = c("Total","Total_S","Total_SH","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                         "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM"), method = rkMethod("rk34f")))
 
 
@@ -191,9 +191,9 @@ for(i in 1:17){
   tot[,i] <- apply(out,1,function(x) sum(x[seq(i+1,341,17)]))
 }
 
-temp_model1 <- as.data.frame(cbind(seq(1970,2070),tot,out[,"Total"]))
-colnames(temp_model1) <- colnames(UN_pop_age_t)
-temp_model1 <- melt(temp_model1,id="Year")
+temp_model <- as.data.frame(cbind(seq(1970,2070),tot,out[,"Total"]))
+colnames(temp_model) <- colnames(UN_pop_age_t)
+temp_model <- melt(temp_model,id="Year")
 
 # and plot
 plot_pop <- ggplot(temp_model,aes(x=Year,y=value))+
