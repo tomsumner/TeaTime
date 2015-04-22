@@ -116,7 +116,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     
     /* Expand state variables so can use more meaningful names than y and ydot  */
     double S[17];
-    double S_H[119];
+    double S_H[17][7];
    /* double S_A[357]; */
     
     double Lsn[17];
@@ -133,7 +133,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     double Imp[17];
     
     double dS[17];
-    double dS_H[119]; 
+    double dS_H[17][7]; 
   /*  double dS_A[357];*/
     
     double dLsn[17];
@@ -168,34 +168,14 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     for (i=170; i<187; i++) Isp[i-170] = y[i];    /* Isp: 170-186 */
     for (i=187; i<204; i++) Imn[i-187] = y[i];    /* Imn: 187-203 */
     for (i=204; i<221; i++) Imp[i-204] = y[i];    /* Imp: 204-220 */  
-       
-    for (i=221; i<340; i++) S_H[i-221] = y[i];    /* sus, HIV+ */
     
-   /* for (i=340; i<697; i++) S_A[i-340] = y[i];    /* sus, ART */
-       
-    /* sum up various totals - uses function sum_array(array,i_start,i_end) */ 
-    
-    double Total_S = sumsum(S,0,16) + sumsum(S_H,0,118);/* + sumsum(S_A,0,356);*/
-    
-    double Total_Ls = sumsum(Lsn,0,16)+sumsum(Lsp,0,16);
-    double Total_Lm = sumsum(Lmn,0,16)+sumsum(Lmp,0,16);
-    double Total_L = Total_Ls + Total_Lm;
-    
-    double Total_Ns = sumsum(Nsn,0,16)+sumsum(Nsp,0,16);
-    double Total_Nm = sumsum(Nmn,0,16)+sumsum(Nmp,0,16);
-    double Total_N = Total_Ns + Total_Nm;
-    double Total_Is = sumsum(Isn,0,16)+sumsum(Isp,0,16);
-    double Total_Im = sumsum(Imn,0,16)+sumsum(Imp,0,16);
-    double Total_I = Total_Is + Total_Im;
- 
-    double Total_DS = Total_Ns + Total_Is;
-    double Total_MDR = Total_Nm + Total_Im;
- 
-    double Total = Total_S+Total_L+Total_N+Total_I;
- 
-    /* Force of infection */
-    double FS = beta*(Total_Ns*rel_inf + Total_Is)/Total; 
-    double FM = fit_cost*beta*(Total_Nm*rel_inf + Total_Im)/Total; 
+    int ih = 221;
+    for (j=0; j<7; j++){
+      for (i=0; i<17; i++){  /* sus, HIV+ */
+        S_H[i][j] = y[ih];
+        ih = ih+1;
+      }
+    }
     
     /* Create vectors of aging rates to use in derivatives */
     double age_out[17];                         /* age_out is lower for final age group because it is wider */
@@ -228,8 +208,8 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     for (i=1; i<17; i++) muI_age[i] = mu_I;
  
     /* Set up parameters for HIV model - these are taken from AIM */
- 
-    double H_CD4[7][17] = {        /* Distribution of new HIV infections (age,CD4) */
+
+    double H_CD4[7][17] = { /* Distribution of new HIV infections (age,CD4) */
       {0,0,0,0.643,0.643,0.607,0.607,0.585,0.585,0.552,0.552,0.552,0.552,0.552,0.552,0.552,0.552},
       {0,0,0,0.357,0.357,0.393,0.393,0.415,0.415,0.448,0.448,0.448,0.448,0.448,0.448,0.448,0.448},
       {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
@@ -239,22 +219,27 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
       {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
     };
     
-    double H_mort[7][17];       /* HIV+ mortality (age, CD4) */
-    double H_prog_out[7][17];   /* Progression out of CD4 categories (age,CD4) - needs to have zero in the correct places to prevent movement between ages*/
-    double H_prog_in[17][7];    /* Progression into CD4 categories (age,CD4) - needs to have zero in the correct places to prevent movement between ages*/
-    double H_ART[17][7];        /* Start ART (age,CD4) */
-    for (i=0; i<17; i++){
-      for (j=0; j<7; j++){
-        H_mort[i][j] = 0.0;
-        H_prog_out[i][j] = 0.0;
-        H_prog_in[i][j] = 0.0;
-        H_ART[i][j] = 0.0;
-      }
-    }
+    double H_prog[8][17] = {  /* Progression through CD4 categories (age, CD4) - has extra row to avoid progression in/out of first/last groups */
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0.111,0.111,0.137,0.137,0.168,0.168,0.192,0.192,0.192,0.192,0.192,0.192,0.192,0.192},
+      {0,0,0,0.2,0.2,0.213,0.213,0.299,0.299,0.414,0.414,0.414,0.414,0.414,0.414,0.414,0.414},
+      {0,0,0,0.255,0.255,0.364,0.364,0.441,0.441,0.575,0.575,0.575,0.575,0.575,0.575,0.575,0.575},
+      {0,0,0,0.398,0.398,0.663,0.663,0.713,0.713,0.838,0.838,0.838,0.838,0.838,0.838,0.838,0.838},
+      {0,0,0,0.193,0.193,0.471,0.471,0.491,0.491,0.614,0.614,0.614,0.614,0.614,0.614,0.614,0.614},
+      {0,0,0,0.294,0.294,0.765,0.765,0.765,0.765,0.865,0.865,0.865,0.865,0.865,0.865,0.865,0.865},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+    };
     
-
-
-
+    double H_mort[7][17] = { /* Mortality due to HIV (no ART) (age, CD4) */
+      {0,0,0,0.005,0.005,0.004,0.004,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005},
+      {0,0,0,0.011,0.011,0.01,0.01,0.013,0.013,0.013,0.013,0.013,0.013,0.013,0.013,0.013,0.013},
+      {0,0,0,0.026,0.026,0.026,0.026,0.036,0.036,0.032,0.032,0.032,0.032,0.032,0.032,0.032,0.032},
+      {0,0,0,0.061,0.061,0.069,0.069,0.096,0.096,0.08,0.08,0.08,0.08,0.08,0.08,0.08,0.08},
+      {0,0,0,0.139,0.139,0.185,0.185,0.258,0.258,0.203,0.203,0.203,0.203,0.203,0.203,0.203,0.203},
+      {0,0,0,0.321,0.321,0.499,0.499,0.691,0.691,0.513,0.513,0.513,0.513,0.513,0.513,0.513,0.513},
+      {0,0,0,0.737,0.737,1.342,1.342,1.851,1.851,1.295,1.295,1.295,1.295,1.295,1.295,1.295,1.295}
+    };
+    
   /*  double A_mort[357];      /* On ART mortality (age,starting CD4, time on ART) */
   /*  double A_prog_out[357];  /* Progression through time on ART */
   /*  double A_prog_in[357];   /* Progression through time on ART */
@@ -270,14 +255,80 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
   /*  Astart[0]=1;
     Astart[2]=0;
     Astart[3]=0;*/
+    
+    
+   /* for (i=340; i<697; i++) S_A[i-340] = y[i];    /* sus, ART */
+       
+    /* sum up various totals - uses function sum_array(array,i_start,i_end) */ 
+    
+    double Total_S = sumsum(S,0,16);
+    double Total_SH = 0;
+    for (j=0; j<7; j++){
+      for (i=0; i<17; i++){
+        Total_SH = Total_SH + S_H[i][j];
+      }
+    }
+    
+    double Total_Ls = sumsum(Lsn,0,16)+sumsum(Lsp,0,16);
+    double Total_Lm = sumsum(Lmn,0,16)+sumsum(Lmp,0,16);
+    double Total_L = Total_Ls + Total_Lm;
+    
+    double Total_Ns = sumsum(Nsn,0,16)+sumsum(Nsp,0,16);
+    double Total_Nm = sumsum(Nmn,0,16)+sumsum(Nmp,0,16);
+    double Total_N = Total_Ns + Total_Nm;
+    double Total_Is = sumsum(Isn,0,16)+sumsum(Isp,0,16);
+    double Total_Im = sumsum(Imn,0,16)+sumsum(Imp,0,16);
+    double Total_I = Total_Is + Total_Im;
+ 
+    double Total_DS = Total_Ns + Total_Is;
+    double Total_MDR = Total_Nm + Total_Im;
+ 
+    double Total = Total_S+Total_SH+Total_L+Total_N+Total_I;
+    
+    double CD4_dist[7] = {0,0,0,0,0,0,0};
+    
+    for (j=0; j<7; j++){
+      for (i=0; i<17; i++){
+        CD4_dist[j] = CD4_dist[j]+S_H[i][j]
+      } 
+    }
+ 
+    /* Force of infection */
+    double FS = beta*(Total_Ns*rel_inf + Total_Is)/Total; 
+    double FM = fit_cost*beta*(Total_Nm*rel_inf + Total_Im)/Total; 
+    
+    /* Calculate deaths due to TB by age group - these will be distributed across all states to avoid double counting deaths */
+    double TB_deaths[17];
+    for (i=0; i<17; i++) TB_deaths[i] = (Nsn[i]+Nsp[i]+Nmn[i]+Nmp[i])*muN_age[i] + 
+                                        (Isn[i]+Isp[i]+Imn[i]+Imp[i])*muI_age[i]; /* will need updating to include HIV_ TB deaths */
+     
+     
+    /* Calculate deaths due to HIV by age group */
+    double HIV_deaths[17] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    for (i=0; i<17; i++){
+      for (j=0; j<7; j++){
+        HIV_deaths[i] = HIV_deaths[i]+H_mort[j][i]*S_H[i][j];
+      }
+    }
+     
+    /* Calculate total population by age - this is used to distribute those dying of TB/HIV as mortality rates already include TB deaths */
+    double tot_age[17];
+    for (i=0; i<17; i++){
+      tot_age[i] = S[i]+Lsn[i]+Lsp[i]+Lmn[i]+Lmp[i]+Nsn[i]+Nsp[i]+Nmn[i]+Nmp[i]+Isn[i]+Isp[i]+Imn[i]+Imp[i];
+      for (j=0; j<7; j++){
+        tot_age[i] = tot_age[i]+S_H[i][j];
+      }
+    }
  
     /* Derivatives */ 
  
     /* Susceptible */ 
     
     /* HIV- */
-    dS[0] = s_birth*birth_rate*Total/1000 - age1*S[0] - (FS + FM)*S[0] - forc[18]*S[0];
-    for (i=1; i<17; i++) dS[i] = age_in[i]*forc[i+1]*S[i-1] - age_out[i]*S[i] - (FS + FM)*S[i] - forc[i+18]*S[i];
+    dS[0] = s_birth*birth_rate*Total/1000 - age1*S[0] - (FS + FM)*S[0] - forc[18]*S[0] + 
+            TB_deaths[0]*S[0]/tot_age[0] + HIV_deaths[0]*S[0]/tot_age[0];
+    for (i=1; i<17; i++) dS[i] = age_in[i]*forc[i+1]*S[i-1] - age_out[i]*S[i] - (FS + FM)*S[i] - forc[i+18]*S[i] +
+                                 + TB_deaths[i]*S[i]/tot_age[i] + HIV_deaths[i]*S[i]/tot_age[i];
 
     
    /* for (i=0; i<119; i++) dS_H[i] = 0;*/
@@ -288,14 +339,13 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     Need to work out how to stop aging running into next CD4 catergory and vice versa - think just need to set the H_prog to zero in the appropriate places
     */
   
-   int ih=0;
    for (j=0; j<7; j++){      /* CD4 */
       for (i=0; i<17; i++){   /* age */
-        dS_H[ih] = age_in[i]*forc[i+1]*S_H[ih-1] - age_out[i]*S_H[ih] - (FS + FM)*S_H[ih] +
-                   forc[i+18]*H_CD4[j][i]*S[i];/* - H_mort[i][j]*S_H[ih] - H_prog_out[i][j]*S_H[ih] + H_prog_in[i][j]*S_H[ih-17] - 
-                   H_ART[i][j]*S_H[ih];*/
+        dS_H[i][j] = age_in[i]*forc[i+1]*S_H[i-1][j] - age_out[i]*S_H[i][j] - (FS + FM)*S_H[i][j] +
+                   forc[i+18]*H_CD4[j][i]*S[i] - H_prog[j+1][i]*S_H[i][j] + H_prog[j][i]*S_H[i][j-1] -
+                   H_mort[j][i]*S_H[i][j] + HIV_deaths[i]*S_H[i][j]/tot_age[i];
+                   /*H_ART[j][i]*S_H[i][j];*/
         ih = ih+1;
-      
       }
     }
     
@@ -435,26 +485,41 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     for (i=187; i<204; i++) ydot[i] = dImn[i-187];    /* Imn: 187-203 */
     for (i=204; i<221; i++) ydot[i] = dImp[i-204];    /* Imp: 204-220 */
 
-    for (i=221; i<340; i++) ydot[i] = dS_H[i-221];
+    ih = 221;
+    for (j=0; j<7; j++){
+      for (i=0; i<17; i++){
+        ydot[ih] = dS_H[i][j];
+        ih=ih+1;
+      }
+    }
+
   /*  for (i=340; i<697; i++) ydot[i] = dS_A[i-340];*/
   
     /* add variables to yout */
 
     yout[0] = Total;
     yout[1] = Total_S;
-    yout[2] = Total_Ls;
-    yout[3] = Total_Lm;
-    yout[4] = Total_L;
-    yout[5] = Total_Ns;
-    yout[6] = Total_Nm;
-    yout[7] = Total_N;
-    yout[8] = Total_Is;
-    yout[9] = Total_Im;
-    yout[10] = Total_I;
-    yout[11] = Total_DS;
-    yout[12] = Total_MDR;
-    yout[13] = FS;
-    yout[14] = FM;
+    yout[2] = Total_SH;
+    yout[3] = Total_Ls;
+    yout[4] = Total_Lm;
+    yout[5] = Total_L;
+    yout[6] = Total_Ns;
+    yout[7] = Total_Nm;
+    yout[8] = Total_N;
+    yout[9] = Total_Is;
+    yout[10] = Total_Im;
+    yout[11] = Total_I;
+    yout[12] = Total_DS;
+    yout[13] = Total_MDR;
+    yout[14] = FS;
+    yout[15] = FM;
+    yout[16] = CD4_dist[0];
+    yout[17] = CD4_dist[1];
+    yout[18] = CD4_dist[2];
+    yout[19] = CD4_dist[3];
+    yout[20] = CD4_dist[4];
+    yout[21] = CD4_dist[5];
+    yout[22] = CD4_dist[6];
     
 }
 
