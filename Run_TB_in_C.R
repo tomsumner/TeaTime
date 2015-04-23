@@ -75,46 +75,54 @@ h80 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X80/1000)
 force <- list(birth_rate,s_birth,s5,s10,s15,s20,s25,s30,s35,s40,s45,s50,s55,s60,s65,s70,s75,s80,
               h0,h5,h10,h15,h20,h25,h30,h35,h40,h45,h50,h55,h60,h65,h70,h75,h80)
 
-##############################################################################################################################
-# Model initialisation
-# run the model from 1970 pop with 1970 birth/death rates and care and control parameters for 400 years to get stable age structure
-# Then rerun with 100 TB cases at time 0, no MDR or HIV. Run for 400 years to get stable disease state
+# Set up TB parameters
 
-# Times to run model for
-times <- seq(0,400 , by=1)
-
-# Parameters - proportion primary, proportion smear pos and mortality rates depend on age as in TIME
+# Fitness of MDR, used to calculate parameter for superinfections
+# Both of these are passed into "parms"
 fit_cost=0.7
 g = fit_cost/(1+fit_cost) # superinfections 
+
+# proportion primary (a), proportion smear pos (sig) and mortality rates (muN and mu_I) take different values for 
+# adults (>15) (_a), 0-4 (_0), 5-9 (_5) and 10-14 (_10)
 
 parms <- c(age1 = 1/5, age2 = 1/21, beta = 18, 
            a_a = 0.14, a0 = 0.26432, a5 = 0.14056, a10 = 0.056,  
            p = 0.65, v = 0.001, 
            sig_a = 0.45, sig0 = 0.0684, sig5 = 0.0414, sig10 = 0.0846, rel_inf = 0.25, theta = 0.02, r = 0.25, 
-           mu_N = 0.25, mu_N0 = 0.426, mu_I = 0.35, mu_I0 = 0.59, fit_cost = 0.7, e = 0, g=g, k = 0.3, l_s = 0.83, l_m = 0.0, d = 0.8, tau_s = 0.76, tau_m = 0.0,
+           mu_N = 0.25, mu_N0 = 0.426, mu_I = 0.35, mu_I0 = 0.59, fit_cost = fit_cost, e = 0, g=g, k = 0.3, l_s = 0.83, l_m = 0.0, d = 0.8, tau_s = 0.76, tau_m = 0.0,
            eff_n = 0.0, eff_p = 0.0, dst_n = 0.0, dst_p = 0.0) 
 
-# Initial conditions - all susceptible
+## Load UN population data
 UN_pop_age <- as.data.frame(read.table("SA_pop_age.txt",header=TRUE)) # Load UN Population data
 # add total to data
 UN_pop_age_t <- cbind(UN_pop_age,rowSums(UN_pop_age[,2:18]))
 colnames(UN_pop_age_t) <- c(colnames(UN_pop_age),"Total")
 
+##############################################################################################################################
+# Model initialisation
+# run the model from 1970 pop with 1970 birth/death rates and care and control parameters for 400 years to get stable age structure
+# Then rerun with 100 TB cases at time 0, no MDR or HIV (note no HIV pre 1975). Run for 400 years to get stable disease state
+
+# Times to run model for
+times <- seq(0,400 , by=1)
+
+# Initial conditions - all susceptible
 temp <- c()
 for (i in 1:num_ages){temp[i]<-UN_pop_age[21,i+1]}
 xstart <- c(S=c(temp),
             Lsn=rep(0,num_ages),Lsp=rep(0,num_ages),Lmn=rep(0,num_ages),Lmp=rep(0,num_ages),
             Nsn=rep(0,num_ages),Nsp=rep(0,num_ages),Nmn=rep(0,num_ages),Nmp=rep(0,num_ages),
             Isn=rep(0,num_ages),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
-            S_H=rep(0,num_ages*7))#,S_A=rep(0,num_ages*7*3))
+            S_H=rep(0,num_ages*7),S_A=rep(0,num_ages*7*3))
 
 # Run the model
-
 system.time(out_pop <- ode(y=xstart, times, func = "derivsc",
             parms = parms, dllname = "TB_model_v3",initforc = "forcc",
-            forcings=force, initfunc = "parmsc", nout = 16,
-            outnames = c("Total","Total_S","Total_SH","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
-                         "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM"), method = rkMethod("rk34f")))
+            forcings=force, initfunc = "parmsc", nout = 31,
+            outnames = c("Total","Total_S","Total_SH","Total_SA","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
+                         "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
+                         "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
+                         "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50"), method = rkMethod("rk34f")))
 
 # Update initial conditions based on end of last run and add 100 TB cases
 temp <- c()
@@ -123,62 +131,54 @@ xstart <- c(S=c(temp),
             Lsn=rep(0,num_ages),Lsp=rep(0,num_ages),Lmn=rep(0,num_ages),Lmp=rep(0,num_ages),
             Nsn=rep(0,num_ages),Nsp=rep(0,num_ages),Nmn=rep(0,num_ages),Nmp=rep(0,num_ages),
             Isn=c(rep(0,5),0,rep(0,11)),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
-            S_H=rep(0,num_ages*7))#,S_A=rep(0,num_ages*7*3))
+            S_H=rep(0,num_ages*7),S_A=rep(0,num_ages*7*3))
 
 # Run the model
-
 system.time(out_TB <- ode(y=xstart, times, func = "derivsc",
                        parms = parms, dllname = "TB_model_v3",initforc = "forcc",
-                       forcings=force, initfunc = "parmsc", nout = 16,
-                       outnames = c("Total","Total_S","Total_SH","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
-                                    "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM"), method = rkMethod("rk34f")))
+                       forcings=force, initfunc = "parmsc", nout = 31,
+                       outnames = c("Total","Total_S","Total_SH","Total_SA","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
+                                    "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
+                                    "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
+                                    "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50"), method = rkMethod("rk34f")))
 
-
-# Is TB in equilibrium? # Looks like it's okay but is way higher than TIME
-
-#plot(100*out_TB[,"Total_DS"]/out_TB[,"Total"]) # prevalence (%)
-
-# Is age structure in equilibrium and in line with data? # Looks like it's okay
-#pop_sum <- mat.or.vec(dim(out_TB)[1],num_ages)
-#for (i in 1:num_ages){
-  
-#  temp <- seq((i+1),(12*17)+(i+1),17)
-#  for (j in 1:length(temp)) pop_sum[,i] <- pop_sum[,i]+out_TB[,temp[j]]
-  
-#}
-#total_pop <- rowSums(pop_sum)
-#pop_prop <- pop_sum/total_pop
-
-#par(mfrow=c(4,5))
-#for (i in 1:17){
-#  plot(pop_prop[,i],ylim=c(0,0.2))
-#  abline(h=UN_pop_age_t[21,i+1]/UN_pop_age_t[21,19],col="red")
-#}
-
-# Adjust pop down to 1970 values and reassign initial conditions - model can now be run from 1970
+# Adjust pop down to 1970 values and reassign initial conditions - model can now be run from 1970 with TB and HIV
 temp <- out_TB[dim(out_TB)[1],2:341]
 temp <- temp/(sum(temp)/22502) # 22502 is total pop from UN estimates in 1970
 xstart <- temp
 
 ##############################################################################################################################
 
+# Now run the model for TB and HIV
+
 # Set times to run for
 times <- seq(1970,2070 , by=1)
 # Run the model
 time_TB<-system.time(out <- ode(y=xstart, times, func = "derivsc",
            parms = parms, dllname = "TB_model_v3",initforc = "forcc",
-           forcings=force, initfunc = "parmsc", nout = 16,
-           outnames = c("Total","Total_S","Total_SH","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
-                        "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM"), method = rkMethod("rk34f")))
+           forcings=force, initfunc = "parmsc", nout = 31,
+           outnames = c("Total","Total_S","Total_SH","Total_SA","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
+                        "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
+                        "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
+                        "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50"), method = rkMethod("rk34f")))
 
 
+######## Some plots for testing things
 
 
+# Plot of CD4 distribution #####################
+# Get the CD4 outputs
 
+temp <- as.data.frame(cbind(seq(1970,2070),out[,358:364]))
+colnames(temp) <- c("Year",colnames(temp[,2:8]))
+temp_CD4 <- melt(temp,id="Year")
 
+plot_CD4 <- ggplot(temp_CD4,aes(x=Year,y=value,fill=variable))+
+  geom_area(colour="black", size=.2, alpha=.4) +
+  xlim(c(1970,2050))
 
-
-# Plot pop against UN data
+# 
+Plot pop against UN data ###################
 
 # add total to data and convert to long format
 UN_pop_age_t <- cbind(UN_pop_age,rowSums(UN_pop_age[,2:18]))
@@ -199,19 +199,10 @@ temp_model <- melt(temp_model,id="Year")
 plot_pop <- ggplot(temp_model,aes(x=Year,y=value))+
   geom_line(colour="red")+
   geom_point(data=temp_data,aes(x=Year,y=value))+
-  geom_line(data=temp_model1,aes(x=Year,y=value),colour="green",linetype=2)+
- # geom_line(data=temp_model2,aes(x=Year,y=value),colour="cyan")+
-  #geom_line(data=temp_model3,aes(x=Year,y=value),colour="cyan")+
   facet_wrap(~variable,scales="free")+
   xlim(c(1970,2100))
 
-lines(100*out[,"Total_DS"]/out[,"Total"]) # prevalence (%)
-
-plot(100*out[,"Total_DS"]/out[,"Total"]) # prevalence (%)
 
 
 
-for (i in 1:17){
-  print(seq(i+1,340,17))
-}
 
