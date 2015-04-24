@@ -113,7 +113,7 @@ xstart <- c(S=c(temp),
             Lsn=rep(0,num_ages),Lsp=rep(0,num_ages),Lmn=rep(0,num_ages),Lmp=rep(0,num_ages),
             Nsn=rep(0,num_ages),Nsp=rep(0,num_ages),Nmn=rep(0,num_ages),Nmp=rep(0,num_ages),
             Isn=rep(0,num_ages),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
-            S_H=rep(0,num_ages*7),S_A=rep(0,num_ages*7*3))
+            S_H=rep(0,num_ages*7),S_A1=rep(0,num_ages*7),S_A2=rep(0,num_ages*7),S_A3=rep(0,num_ages*7))
 
 # Run the model
 system.time(out_pop <- ode(y=xstart, times, func = "derivsc",
@@ -131,7 +131,7 @@ xstart <- c(S=c(temp),
             Lsn=rep(0,num_ages),Lsp=rep(0,num_ages),Lmn=rep(0,num_ages),Lmp=rep(0,num_ages),
             Nsn=rep(0,num_ages),Nsp=rep(0,num_ages),Nmn=rep(0,num_ages),Nmp=rep(0,num_ages),
             Isn=c(rep(0,5),0,rep(0,11)),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
-            S_H=rep(0,num_ages*7),S_A=rep(0,num_ages*7*3))
+            S_H=rep(0,num_ages*7),S_A1=rep(0,num_ages*7),S_A2=rep(0,num_ages*7),S_A3=rep(0,num_ages*7))
 
 # Run the model
 system.time(out_TB <- ode(y=xstart, times, func = "derivsc",
@@ -143,7 +143,7 @@ system.time(out_TB <- ode(y=xstart, times, func = "derivsc",
                                     "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50"), method = rkMethod("rk34f")))
 
 # Adjust pop down to 1970 values and reassign initial conditions - model can now be run from 1970 with TB and HIV
-temp <- out_TB[dim(out_TB)[1],2:341]
+temp <- out_TB[dim(out_TB)[1],2:698]
 temp <- temp/(sum(temp)/22502) # 22502 is total pop from UN estimates in 1970
 xstart <- temp
 
@@ -169,7 +169,7 @@ time_TB<-system.time(out <- ode(y=xstart, times, func = "derivsc",
 # Plot of CD4 distribution #####################
 # Get the CD4 outputs
 
-temp <- as.data.frame(cbind(seq(1970,2070),out[,358:364]))
+temp <- as.data.frame(cbind(seq(1970,2070),out[,716:722]))
 colnames(temp) <- c("Year",colnames(temp[,2:8]))
 temp_CD4 <- melt(temp,id="Year")
 
@@ -188,7 +188,7 @@ temp_data <- melt(UN_pop_age_t,id="Year")
 # sum up model outputs over age groups and turn into long format
 tot<-mat.or.vec(101,17)
 for(i in 1:17){
-  tot[,i] <- apply(out,1,function(x) sum(x[seq(i+1,341,17)]))
+  tot[,i] <- apply(out,1,function(x) sum(x[seq(i+1,698,17)]))
 }
 
 temp_model <- as.data.frame(cbind(seq(1970,2070),tot,out[,"Total"]))
