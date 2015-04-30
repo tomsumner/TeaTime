@@ -57,7 +57,7 @@ s80 <- cbind(Survive_age$Year,Survive_age$X80)
 
 # HIV Incidence by age and year - based on AIM output, but ignoring childhood infections (this is waht Carel does in TIME)
 HIV_Inc_age <- as.data.frame(read.table("HIV_Inc_age.txt",header=TRUE)) # Load HIV incidence data taken from AIM                                       # Data from AIM is rate per 1000 
-HIV_Inc_age[,2:18]=HIV_Inc_age[,2:18]*0
+#HIV_Inc_age[,2:18]=HIV_Inc_age[,2:18]*0
 
 h0 <- 0*cbind(HIV_Inc_age$Year,HIV_Inc_age$X0/1000)
 h5 <- 0*cbind(HIV_Inc_age$Year,HIV_Inc_age$X5/1000)
@@ -96,7 +96,8 @@ parms <- c(age1 = 1/5, age2 = 1/21, beta = 18,
            p = 0.65, v = 0.001, 
            sig_a = 0.45, sig0 = 0.0684, sig5 = 0.0414, sig10 = 0.0846, rel_inf = 0.25, theta = 0.02, r = 0.25, 
            mu_N = 0.25, mu_N0 = 0.426, mu_I = 0.35, mu_I0 = 0.59, fit_cost = fit_cost, e = 0, g=g, k = 0.3, l_s = 0.83, l_m = 0.0, d = 0.8, tau_s = 0.76, tau_m = 0.0,
-           eff_n = 0.0, eff_p = 0.0, dst_n = 0.0, dst_p = 0.0) 
+           eff_n = 0.0, eff_p = 0.0, dst_n = 0.0, dst_p = 0.0, 
+           muN_H = 0.45, muI_H = 0.6, RR1a = 2, RR2a = 1.288, RR1v = 3, RR2v = 3, RR1p = 0.5, RR2p = 1.1) 
 
 ##############################################################################################################################
 # Model initialisation
@@ -113,13 +114,17 @@ xstart <- c(S=c(temp),
             Lsn=rep(0,num_ages),Lsp=rep(0,num_ages),Lmn=rep(0,num_ages),Lmp=rep(0,num_ages),
             Nsn=rep(0,num_ages),Nsp=rep(0,num_ages),Nmn=rep(0,num_ages),Nmp=rep(0,num_ages),
             Isn=rep(0,num_ages),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
-            S_H=rep(0,num_ages*7),S_A=rep(0,num_ages*7*3))
+            S_H=rep(0,num_ages*7),
+            Lsn_H=rep(0,num_ages*7),Lsp_H=rep(0,num_ages*7),Lmn_H=rep(0,num_ages*7),Lmp_H=rep(0,num_ages*7),
+            Nsn_H=rep(0,num_ages*7),Nsp_H=rep(0,num_ages*7),Nmn_H=rep(0,num_ages*7),Nmp_H=rep(0,num_ages*7),
+            Isn_H=rep(0,num_ages*7),Isp_H=rep(0,num_ages*7),Imn_H=rep(0,num_ages*7),Imp_H=rep(0,num_ages*7),
+            S_A=rep(0,num_ages*7*3))
 
 # Run the model
 time_1 <- system.time(out_pop <- ode(y=xstart, times, func = "derivsc",
             parms = parms, dllname = "TB_model_v4",initforc = "forcc",
-            forcings=force, initfunc = "parmsc", nout = 31,
-            outnames = c("Total","Total_S","Total_SH","Total_SA","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
+            forcings=force, initfunc = "parmsc", nout = 29,
+            outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                          "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                          "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
                          "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50"), method = rkMethod("rk34f")))
@@ -131,19 +136,23 @@ xstart <- c(S=c(temp),
             Lsn=rep(0,num_ages),Lsp=rep(0,num_ages),Lmn=rep(0,num_ages),Lmp=rep(0,num_ages),
             Nsn=rep(0,num_ages),Nsp=rep(0,num_ages),Nmn=rep(0,num_ages),Nmp=rep(0,num_ages),
             Isn=c(rep(0,5),100,rep(0,11)),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
-            S_H=rep(0,num_ages*7),S_A=rep(0,num_ages*7*3))
+            S_H=rep(0,num_ages*7),
+            Lsn_H=rep(0,num_ages*7),Lsp_H=rep(0,num_ages*7),Lmn_H=rep(0,num_ages*7),Lmp_H=rep(0,num_ages*7),
+            Nsn_H=rep(0,num_ages*7),Nsp_H=rep(0,num_ages*7),Nmn_H=rep(0,num_ages*7),Nmp_H=rep(0,num_ages*7),
+            Isn_H=rep(0,num_ages*7),Isp_H=rep(0,num_ages*7),Imn_H=rep(0,num_ages*7),Imp_H=rep(0,num_ages*7),
+            S_A=rep(0,num_ages*7*3))
 
 # Run the model
 time_2 <- system.time(out_TB <- ode(y=xstart, times, func = "derivsc",
                        parms = parms, dllname = "TB_model_v4",initforc = "forcc",
-                       forcings=force, initfunc = "parmsc", nout = 31,
-                       outnames = c("Total","Total_S","Total_SH","Total_SA","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
+                       forcings=force, initfunc = "parmsc", nout = 29,
+                       outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                     "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                                     "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
                                     "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50"), method = rkMethod("rk34f")))
 
 # Adjust pop down to 1970 values and reassign initial conditions - model can now be run from 1970 with TB and HIV
-temp <- out_TB[dim(out_TB)[1],2:698]
+temp <- out_TB[dim(out_TB)[1],2:2126]
 temp <- temp/(sum(temp)/22502) # 22502 is total pop from UN estimates in 1970)
 xstart <- temp
 
@@ -156,19 +165,18 @@ times <- seq(1970,2070 , by=1)
 # Run the model
 time_3 <-system.time(out <- ode(y=xstart, times, func = "derivsc",
            parms = parms, dllname = "TB_model_v4",initforc = "forcc",
-           forcings=force, initfunc = "parmsc", nout = 31,
-           outnames = c("Total","Total_S","Total_SH","Total_SA","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
+           forcings=force, initfunc = "parmsc", nout = 29,
+           outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                         "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                         "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
                         "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50"), method = rkMethod("rk34f")))
-
 
 ######## Some plots for testing things
 
 # Plot of CD4 distribution #####################
 # Get the CD4 outputs
 
-temp <- as.data.frame(cbind(seq(1970,2070),out[,716:722]))
+temp <- as.data.frame(cbind(seq(1970,2070),out[,2142:2148]))
 colnames(temp) <- c("Year",colnames(temp[,2:8]))
 temp_CD4_4 <- melt(temp,id="Year")
 
@@ -184,20 +192,23 @@ temp_data <- melt(UN_pop_age_t,id="Year")
 # sum up model outputs over age groups and turn into long format
 tot<-mat.or.vec(101,17)
 for(i in 1:17){
-  tot[,i] <- apply(out,1,function(x) sum(x[seq(i+1,698,17)]))
+  tot[,i] <- apply(out,1,function(x) sum(x[seq(i+1,2126,17)]))
 }
 
-temp_model1 <- as.data.frame(cbind(seq(1970,2070),tot,out[,"Total"]))
-colnames(temp_model1) <- colnames(UN_pop_age_t)
-temp_model1 <- melt(temp_model1,id="Year")
+temp_model <- as.data.frame(cbind(seq(1970,2070),tot,out[,"Total"]))
+colnames(temp_model) <- colnames(UN_pop_age_t)
+temp_model <- melt(temp_model,id="Year")
 
 # and plot
 plot_pop <- ggplot(temp_model,aes(x=Year,y=value))+
   geom_line(colour="red")+
   geom_point(data=temp_data,aes(x=Year,y=value))+
-  geom_line(data=temp_model1,aes(x=Year,y=value),col="green",linetype=2)+
   facet_wrap(~variable,scales="free")+
   xlim(c(1970,2100))
+
+
+
+
 
 
 
