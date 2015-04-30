@@ -7,8 +7,9 @@
 /* compile within R with system("R CMD SHLIB TB_model_v3.c") */
 
 #include <R.h>
+#include <math.h>
 
-static double parms[33];
+static double parms[41];
 static double forc[35];
 
 /* A trick to keep up with the parameters and forcings */
@@ -45,6 +46,14 @@ static double forc[35];
 #define eff_p parms[30]
 #define dst_n parms[31]
 #define dst_p parms[32]
+#define muN_H parms[33]
+#define muI_H parms[34]
+#define RR1a parms[35]
+#define RR2a parms[36]
+#define RR1v parms[37]
+#define RR2v parms[38]
+#define RR1p parms[39]
+#define RR2p parms[40]
 
 #define birth_rate forc[0] /* Birth rate */
 #define s_birth forc[1]    /* Survival at birth */
@@ -98,7 +107,7 @@ double sumsum(double ar[], int i_start, int i_end)
 /* initializers*/
 void parmsc(void (* odeparms)(int *, double *))
 {
-    int N=33;
+    int N=41;
     odeparms(&N, parms);
 }
 
@@ -182,47 +191,56 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
      
     /* HIV- */ 
     for (i=0; i<17; i++) S[i] = y[i];             /* S: 0-17 */
-
     for (i=17; i<34; i++) Lsn[i-17] = y[i];       /* Lsn: 17-33 */
     for (i=34; i<51; i++) Lsp[i-34] = y[i];       /* Lsp: 34-50 */
     for (i=51; i<68; i++) Lmn[i-51] = y[i];       /* Lmn: 51-67 */
     for (i=68; i<85; i++) Lmp[i-68] = y[i];       /* Lmp: 68-84 */
-    
     for (i=85; i<102; i++) Nsn[i-85] = y[i];      /* Nsn: 85-101 */
     for (i=102; i<119; i++) Nsp[i-102] = y[i];    /* Nsp: 102-118 */
     for (i=119; i<136; i++) Nmn[i-119] = y[i];    /* Nmn: 119-135 */
     for (i=136; i<153; i++) Nmp[i-136] = y[i];    /* Nmp: 136-152 */
-       
     for (i=153; i<170; i++) Isn[i-153] = y[i];    /* Isn: 153-169 */
     for (i=170; i<187; i++) Isp[i-170] = y[i];    /* Isp: 170-186 */
     for (i=187; i<204; i++) Imn[i-187] = y[i];    /* Imn: 187-203 */
     for (i=204; i<221; i++) Imp[i-204] = y[i];    /* Imp: 204-220 */  
-    
-    ij = 221;                                     /* Susceptible, HIV+ */
+    /* HIV+ */
+    ij = 221;                                     
     for (j=0; j<7; j++){
       for (i=0; i<17; i++){  
         S_H[i][j] = y[ij];
-        Lsn_H[i][j] = y[ij+17];
-        Lsp_H[i][j] = y[ij+(2*17)];
-        Lmn_H[i][j] = y[ij+(3*17)];
-        Lmp_H[i][j] = y[ij+(4*17)];  /* NEED TO DOUBLE CHECK THIS */
-        Nsn_H[i][j] = y[ij+(5*17)];
-        Nsp_H[i][j] = y[ij+(6*17)];
-        Nmn_H[i][j] = y[ij+(7*17)];
-        Nmp_H[i][j] = y[ij+(8*17)];
-        Isn_H[i][j] = y[ij+(9*17)];
-        Isp_H[i][j] = y[ij+(10*17)];
-        Imn_H[i][j] = y[ij+(11*17)];
-        Imp_H[i][j] = y[ij+(12*17];
+        Lsn_H[i][j] = y[ij+119];
+        Lsp_H[i][j] = y[ij+(2*119)];
+        Lmn_H[i][j] = y[ij+(3*119)];
+        Lmp_H[i][j] = y[ij+(4*119)];  
+        Nsn_H[i][j] = y[ij+(5*119)];
+        Nsp_H[i][j] = y[ij+(6*119)];
+        Nmn_H[i][j] = y[ij+(7*119)];
+        Nmp_H[i][j] = y[ij+(8*119)];
+        Isn_H[i][j] = y[ij+(9*119)];
+        Isp_H[i][j] = y[ij+(10*119)];
+        Imn_H[i][j] = y[ij+(11*119)];
+        Imp_H[i][j] = y[ij+(12*119)];
         ij = ij+1;
       }
     }
-    
-    ij = 340;   
-    for (l=0; l<3; l++){                          /* Susceptible, on ART */
+    /* HIV+, on ART */
+    ij = 1768;   
+    for (l=0; l<3; l++){                          
       for (j=0; j<7; j++){
         for (i=0; i<17; i++){
           S_A[i][j][l] = y[ij];
+      /*    Lsn_A[i][j][l] = y[ij+357];
+          Lsp_A[i][j][l] = y[ij+(2*357)];
+          Lmn_A[i][j][l] = y[ij+(3*357)];
+          Lmp_A[i][j][l] = y[ij+(4*357)];  
+          Nsn_A[i][j][l] = y[ij+(5*357)];
+          Nsp_A[i][j][l] = y[ij+(6*357)];
+          Nmn_A[i][j][l] = y[ij+(7*357)];
+          Nmp_A[i][j][l] = y[ij+(8*357)];
+          Isn_A[i][j][l] = y[ij+(9*357)];
+          Isp_A[i][j][l] = y[ij+(10*357)];
+          Imn_A[i][j][l] = y[ij+(11*357)];
+          Imp_A[i][j][l] = y[ij+(12*357)];*/
           ij = ij+1;
         }
       }
@@ -237,13 +255,16 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     for (i=1; i<17; i++) age_in[i] = age1;            
     age_in[0] = 0.0;
  
+     /* Set up vector of midpoints of CD4 categories to use to calculate TB risks */
+    double mid_CD4[7] = {500,425,300,225,150,75,25};
+ 
     /* Create vectors of disease parameters (by age) to use in derivatives */
     double a_age[17];
     a_age[0] = a0;
     a_age[1] = a5;
     a_age[2] = a10;
     for (i=3; i<17; i++) a_age[i] = a_a;
- 
+    
     double sig_age[17];
     sig_age[0] = sig0;
     sig_age[1] = sig5;
@@ -258,6 +279,18 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     muI_age[0] = mu_I0;
     for (i=1; i<17; i++) muI_age[i] = mu_I;
  
+    /* and adjust TB parameters for HIV - mortality rates are passed straight in*/
+    double a_age_H[17][7];
+    double p_H[7];
+    double v_H[7];
+    for (j=0; j<7; j++){
+      p_H[j] = p*RR1p*pow(RR2p,-1*(500-mid_CD4[j]/100));
+      v_H[j] = v*RR1v*pow(RR2v,(500-mid_CD4[j]/100));
+      for (i=0; i<17; i++){
+        a_age_H[i][j] = a_age[i]*RR1a*pow(RR2a,(500-mid_CD4[j])/100);
+      }
+    }
+    
     /* Set up parameters for HIV model - these are taken from AIM */
 
     double H_CD4[7][17] = { /* Distribution of new HIV infections (age,CD4) */
@@ -322,41 +355,68 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     /* sum up various totals - uses function sum_array(array,i_start,i_end) */ 
     
     double Total_S = sumsum(S,0,16);
-    double Total_SH = 0;
     for (j=0; j<7; j++){
       for (i=0; i<17; i++){
-        Total_SH = Total_SH + S_H[i][j];
-      }
-    }
-    double Total_SA = 0;
-    for (l=0; l<3; l++){
-      for (j=0; j<7; j++){
-        for (i=0; i<17; i++){
-          Total_SA = Total_SA + S_A[i][j][l];
+        Total_S = Total_S + S_H[i][j];
+        for (l=0; l<3; l++){
+          Total_S = Total_S + S_A[i][j][l];
         }
       }
     }
 
     double Total_Ls = sumsum(Lsn,0,16)+sumsum(Lsp,0,16);
+    for(j=0; j<7; j++){
+      for (i=0; i<17; i++){
+        Total_Ls = Total_Ls + Lsn_H[i][j]+Lsp_H[i][j];
+      }
+    }
     double Total_Lm = sumsum(Lmn,0,16)+sumsum(Lmp,0,16);
+    for(j=0; j<7; j++){
+      for (i=0; i<17; i++){
+        Total_Lm = Total_Lm + Lmn_H[i][j]+Lmp_H[i][j];
+      }
+    }
     double Total_L = Total_Ls + Total_Lm;
     
     double Total_Ns = sumsum(Nsn,0,16)+sumsum(Nsp,0,16);
+    for(j=0; j<7; j++){
+      for (i=0; i<17; i++){
+        Total_Ns = Total_Ns + Nsn_H[i][j]+Nsp_H[i][j];
+      }
+    }
     double Total_Nm = sumsum(Nmn,0,16)+sumsum(Nmp,0,16);
+    for(j=0; j<7; j++){
+      for (i=0; i<17; i++){
+        Total_Nm = Total_Nm + Nmn_H[i][j]+Nmp_H[i][j];
+      }
+    }
     double Total_N = Total_Ns + Total_Nm;
+    
     double Total_Is = sumsum(Isn,0,16)+sumsum(Isp,0,16);
+    for(j=0; j<7; j++){
+      for (i=0; i<17; i++){
+        Total_Is = Total_Is + Isn_H[i][j]+Isp_H[i][j];
+      }
+    }    
     double Total_Im = sumsum(Imn,0,16)+sumsum(Imp,0,16);
+    for(j=0; j<7; j++){
+      for (i=0; i<17; i++){
+        Total_Im = Total_Im + Imn_H[i][j]+Imp_H[i][j];
+      }
+    }    
     double Total_I = Total_Is + Total_Im;
  
     double Total_DS = Total_Ns + Total_Is;
     double Total_MDR = Total_Nm + Total_Im;
  
-    double Total = Total_S+Total_SH+Total_SA+Total_L+Total_N+Total_I;
+    double Total = Total_S+Total_L+Total_N+Total_I;
     
     double CD4_dist[7] = {0,0,0,0,0,0,0};
     for (j=0; j<7; j++){
       for (i=0; i<17; i++){
-        CD4_dist[j] = CD4_dist[j]+S_H[i][j];
+        CD4_dist[j] = CD4_dist[j]+S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+
+                      Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j]+ 
+                      Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j];
       } 
     }
     
@@ -379,8 +439,8 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
       TB_deaths[i] = (Nsn[i]+Nsp[i]+Nmn[i]+Nmp[i])*muN_age[i] + 
                      (Isn[i]+Isp[i]+Imn[i]+Imp[i])*muI_age[i];
       for(j=0; j<7; j++){
-        TB_deaths[i] = TB_deaths[i] + (Nsn_H[i]+Nsp_H[i]+Nmn_H[i]+Nmp_H[i])*muN_age[i]*muN_H + 
-                                      (Isn_H[i]+Isp_H[i]+Imn_H[i]+Imp_H[i])*muI_age[i]*muI_H;
+        TB_deaths[i] = TB_deaths[i] + (Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j])*muN_H + 
+                                      (Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j])*muI_H;
       }                            
     }                                  
      
@@ -436,7 +496,8 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
       dLsn[i] = age_in[i]*forc[i+1]*Lsn[i-1] - age_out[i]*Lsn[i] +
                                    FS*((1-a_age[i])*S[i] + (1-a_age[i])*(1-p)*(1-g)*Lmn[i]) -
                                    (v + FS*a_age[i]*(1-p) + FM*a_age[i]*(1-p) + FM*(1-a_age[i])*(1-p)*g)*Lsn[i] +
-                                   r*(Isn[i] + Nsn[i]) +
+                                   r*(Isn[i] + Nsn[i]) - 
+                                   forc[i+18]*Lsn[i] +
                                    (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Lsn[i]/tot_age[i];
       /* Latent, ds, prev */
       dLsp[i] = age_in[i]*forc[i+1]*Lsp[i-1] - age_out[i]*Lsp[i] +
@@ -444,13 +505,15 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                                    (v + FS*a_age[i]*(1-p) + FM*a_age[i]*(1-p) + FM*(1-a_age[i])*(1-p)*g)*Lsp[i] +
                                    r*(Isp[i]+Nsp[i]) +
                                    k*l_s*(1-e)*tau_s*(Isn[i]+Isp[i]) + 
-                                   k*l_s*(1-e)*tau_s*d*(Nsn[i]+Nsp[i]) +
+                                   k*l_s*(1-e)*tau_s*d*(Nsn[i]+Nsp[i]) - 
+                                   forc[i+18]*Lsp[i] +
                                    (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Lsp[i]/tot_age[i];
       /* Latent, mdr, naive */ 
       dLmn[i] = age_in[i]*forc[i+1]*Lmn[i-1] - age_out[i]*Lmn[i] +
                                    FM*((1-a_age[i])*S[i] + (1-a_age[i])*(1-p)*g*Lsn[i]) -
                                    (v + FM*a_age[i]*(1-p) + FS*a_age[i]*(1-p) + FS*(1-a_age[i])*(1-p)*(1-g))*Lmn[i] +
-                                   r*(Imn[i]+Nmn[i]) +
+                                   r*(Imn[i]+Nmn[i]) - 
+                                   forc[i+18]*Lmn[i] +
                                    (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Lmn[i]/tot_age[i];
       /* Latent, mdr, prev */
       dLmp[i] = age_in[i]*forc[i+1]*Lmp[i-1] - age_out[i]*Lmp[i] + 
@@ -458,26 +521,30 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                                    (v + FM*a_age[i]*(1-p) + FS*a_age[i]*(1-p) + FS*(1-a_age[i])*(1-p)*(1-g))*Lmp[i] +
                                    r*(Imp[i]+Nmp[i]) +
                                    k*(l_m*dst_n*tau_m + l_s*(1-dst_n)*tau_s*eff_n)*(Imn[i]+d*Nmn[i]) +
-                                   k*(l_m*dst_p*tau_m + l_s*(1-dst_p)*tau_s*eff_p)*(Imp[i]+d*Nmp[i]) +
+                                   k*(l_m*dst_p*tau_m + l_s*(1-dst_p)*tau_s*eff_p)*(Imp[i]+d*Nmp[i]) - 
+                                   forc[i+18]*Lmp[i] +
                                    (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Lmp[i]/tot_age[i];
       /* Smear neg, ds, new */
       dNsn[i] = age_in[i]*forc[i+1]*Nsn[i-1] - age_out[i]*Nsn[i] +
                                    (v*(1-sig_age[i]) + FS*a_age[i]*(1-p)*(1-sig_age[i]))*Lsn[i] +
                                    FS*a_age[i]*(1-sig_age[i])*(S[i] + (1-p)*Lmn[i]) -
-                                   (theta + r + k*l_s*d + muN_age[i])*Nsn[i] +
+                                   (theta + r + k*l_s*d + muN_age[i])*Nsn[i] - 
+                                   forc[i+18]*Nsn[i] +
                                    (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Nsn[i]/tot_age[i];
       /* Smear neg, ds, prev */                             
       dNsp[i] = age_in[i]*forc[i+1]*Nsp[i-1] - age_out[i]*Nsp[i] + 
                                    (v*(1-sig_age[i]) + FS*a_age[i]*(1-p)*(1-sig_age[i]))*Lsp[i] +
                                    FS*a_age[i]*(1-sig_age[i])*(1-p)*Lmp[i] -
                                    (theta + r + k*l_s*d*(1-e)*tau_s + k*l_s*d*e + muN_age[i])*Nsp[i] +
-                                   k*l_s*d*(1-e)*(1-tau_s)*Nsn[i] +
+                                   k*l_s*d*(1-e)*(1-tau_s)*Nsn[i] - 
+                                   forc[i+18]*Nsp[i] +
                                    (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Nsp[i]/tot_age[i];
       /* Smear neg, mdr, new */
       dNmn[i] = age_in[i]*forc[i+1]*Nmn[i-1] - age_out[i]*Nmn[i] +
                                    (v*(1-sig_age[i]) + FM*a_age[i]*(1-p)*(1-sig_age[i]))*Lmn[i] +
                                    FM*a_age[i]*(1-sig_age[i])*(S[i] + (1-p)*Lsn[i]) -
-                                   (theta + r + k*l_m*d*dst_n + k*l_s*d*(1-dst_n) + muN_age[i])*Nmn[i] +
+                                   (theta + r + k*l_m*d*dst_n + k*l_s*d*(1-dst_n) + muN_age[i])*Nmn[i] - 
+                                   forc[i+18]*Nmn[i] +
                                    (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Nmn[i]/tot_age[i];
       /* Smear neg, mdr, prev */
       dNmp[i] = age_in[i]*forc[i+1]*Nmp[i-1] - age_out[i]*Nmp[i] +
@@ -485,7 +552,8 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                                    FM*a_age[i]*(1-sig_age[i])*(1-p)*Lsp[i] -
                                    (theta + r + k*l_m*d*dst_p*tau_m + k*l_s*d*(1-dst_p)*tau_s*eff_p + muN_age[i])*Nmp[i] +
                                    k*l_s*d*e*(Nsn[i]+Nsp[i]) +
-                                   (k*l_m*d*dst_n*(1-tau_m) + k*l_s*d*(1-dst_n)*(1-(tau_s*eff_n)))*Nmn[i] +
+                                   (k*l_m*d*dst_n*(1-tau_m) + k*l_s*d*(1-dst_n)*(1-(tau_s*eff_n)))*Nmn[i] - 
+                                   forc[i+18]*Nmp[i] +
                                    (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Nmp[i]/tot_age[i];
     
       /* Smear pos, ds, new */
@@ -494,7 +562,8 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                                    FS*a_age[i]*sig_age[i]*S[i] +
                                    FS*a_age[i]*(1-p)*sig_age[i]*Lmn[i] +
                                    theta*Nsn[i] -
-                                   (r + k*l_s + muI_age[i])*Isn[i] +
+                                   (r + k*l_s + muI_age[i])*Isn[i] - 
+                                   forc[i+18]*Isn[i] +
                                    (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Isn[i]/tot_age[i];
 
       /* Smear pos, ds, prev */
@@ -503,7 +572,8 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                                    FS*a_age[i]*sig_age[i]*(1-p)*Lmp[i] +
                                    theta*Nsp[i] +
                                    k*l_s*(1-e)*(1-tau_s)*Isn[i] -
-                                   (r + k*l_s*(1-e)*tau_s + k*l_s*e + muI_age[i])*Isp[i] +
+                                   (r + k*l_s*(1-e)*tau_s + k*l_s*e + muI_age[i])*Isp[i] - 
+                                   forc[i+18]*Isp[i] +
                                    (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Isp[i]/tot_age[i];
                                    
       /* Smear pos, mdr, new */
@@ -512,7 +582,8 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                                    FM*a_age[i]*sig_age[i]*S[i] +
                                    FM*a_age[i]*(1-p)*sig_age[i]*Lsn[i] +
                                    theta*Nmn[i] -
-                                   (r + k*l_m*dst_n + k*l_s*(1-dst_n) + muI_age[i])*Imn[i] +
+                                   (r + k*l_m*dst_n + k*l_s*(1-dst_n) + muI_age[i])*Imn[i] - 
+                                   forc[i+18]*Imn[i] +
                                    (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Imn[i]/tot_age[i];
     
       /* Smear pos, mdr, prev */
@@ -523,7 +594,8 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                                       theta*Nmp[i] +
                                       (k*l_m*dst_n*(1-tau_m) + k*l_s*(1-dst_n)*(1-(tau_s*eff_n)))*Imn[i] +
                                       k*l_s*e*(Isn[i]+Isp[i]) -
-                                      (r + k*l_m*dst_p*tau_m + k*l_s*(1-dst_p)*tau_s*eff_p + muI_age[i])*Imp[i] +
+                                      (r + k*l_m*dst_p*tau_m + k*l_s*(1-dst_p)*tau_s*eff_p + muI_age[i])*Imp[i] - 
+                                      forc[i+18]*Imp[i] +
                                       (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Imp[i]/tot_age[i];
     }
 
@@ -535,6 +607,121 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                      forc[i+18]*H_CD4[j][i]*S[i] - H_prog[j+1][i]*S_H[i][j] + H_prog[j][i]*S_H[i][j-1] - 
                      H_mort[j][i]*S_H[i][j] - 0*S_H[i][j] + 
                      (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*S_H[i][j]/tot_age[i];
+
+        /* NEED TO INCLUDE HIV RRs IN TB EQUATIONS */
+
+        dLsn_H[i][j] = age_in[i]*forc[i+1]*Lsn_H[i-1][j] - age_out[i]*Lsn_H[i][j] +
+                       FS*((1-a_age_H[i][j])*S_H[i][j] + (1-a_age_H[i][j])*(1-p_H[j])*(1-g)*Lmn_H[i][j]) -
+                       (v_H[j] + FS*a_age_H[i][j]*(1-p_H[j]) + FM*a_age_H[i][j]*(1-p_H[j]) + FM*(1-a_age_H[i][j])*(1-p_H[j])*g)*Lsn_H[i][j] +
+                       r*(Isn_H[i][j] + Nsn_H[i][j]) +
+                       forc[i+18]*H_CD4[j][i]*Lsn[i] - H_prog[j+1][i]*Lsn_H[i][j] + H_prog[j][i]*Lsn_H[i][j-1] - 
+                       H_mort[j][i]*Lsn_H[i][j] - 0*Lsn_H[i][j] + 
+                       (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Lsn_H[i][j]/tot_age[i];
+        
+        dLsp_H[i][j] = age_in[i]*forc[i+1]*Lsp_H[i-1][j] - age_out[i]*Lsp_H[i][j] +
+                       FS*(1-a_age_H[i][j])*(1-p_H[j])*(1-g)*Lmp_H[i][j] -
+                       (v_H[j] + FS*a_age_H[i][j]*(1-p_H[j]) + FM*a_age_H[i][j]*(1-p_H[j]) + FM*(1-a_age_H[i][j])*(1-p_H[j])*g)*Lsp_H[i][j] +
+                       r*(Isp_H[i][j]+Nsp_H[i][j]) +
+                       k*l_s*(1-e)*tau_s*(Isn_H[i][j]+Isp_H[i][j]) + 
+                       k*l_s*(1-e)*tau_s*d*(Nsn_H[i][j]+Nsp_H[i][j]) +
+                       forc[i+18]*H_CD4[j][i]*Lsp[i] - H_prog[j+1][i]*Lsp_H[i][j] + H_prog[j][i]*Lsp_H[i][j-1] - 
+                       H_mort[j][i]*Lsp_H[i][j] - 0*Lsp_H[i][j] + 
+                       (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Lsp_H[i][j]/tot_age[i];
+                             
+        dLmn_H[i][j] = age_in[i]*forc[i+1]*Lmn_H[i-1][j] - age_out[i]*Lmn_H[i][j] +
+                       FM*((1-a_age_H[i][j])*S_H[i][j] + (1-a_age_H[i][j])*(1-p_H[j])*g*Lsn_H[i][j]) -
+                       (v_H[j] + FM*a_age_H[i][j]*(1-p_H[j]) + FS*a_age_H[i][j]*(1-p_H[j]) + FS*(1-a_age_H[i][j])*(1-p_H[j])*(1-g))*Lmn_H[i][j] +
+                       r*(Imn_H[i][j]+Nmn_H[i][j]) +
+                       forc[i+18]*H_CD4[j][i]*Lmn[i] - H_prog[j+1][i]*Lmn_H[i][j] + H_prog[j][i]*Lmn_H[i][j-1] - 
+                       H_mort[j][i]*Lmn_H[i][j] - 0*Lmn_H[i][j] + 
+                       (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Lmn_H[i][j]/tot_age[i];
+                     
+        dLmp_H[i][j] = age_in[i]*forc[i+1]*Lmp_H[i-1][j] - age_out[i]*Lmp_H[i][j] + 
+                       FM*(1-a_age_H[i][j])*(1-p_H[j])*g*Lsp_H[i][j] -
+                       (v_H[j] + FM*a_age_H[i][j]*(1-p_H[j]) + FS*a_age_H[i][j]*(1-p_H[j]) + FS*(1-a_age_H[i][j])*(1-p_H[j])*(1-g))*Lmp_H[i][j] +
+                       r*(Imp_H[i][j]+Nmp_H[i][j]) +
+                       k*(l_m*dst_n*tau_m + l_s*(1-dst_n)*tau_s*eff_n)*(Imn_H[i][j]+d*Nmn_H[i][j]) +
+                       k*(l_m*dst_p*tau_m + l_s*(1-dst_p)*tau_s*eff_p)*(Imp_H[i][j]+d*Nmp_H[i][j]) +
+                       forc[i+18]*H_CD4[j][i]*Lmp[i] - H_prog[j+1][i]*Lmp_H[i][j] + H_prog[j][i]*Lmp_H[i][j-1] - 
+                       H_mort[j][i]*Lmp_H[i][j] - 0*Lmp_H[i][j] + 
+                       (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Lmp_H[i][j]/tot_age[i];
+           
+        dNsn_H[i][j] = age_in[i]*forc[i+1]*Nsn_H[i-1][j] - age_out[i]*Nsn_H[i][j] +
+                       (v_H[j]*(1-sig_age[i]) + FS*a_age_H[i][j]*(1-p_H[j])*(1-sig_age[i]))*Lsn_H[i][j] +
+                       FS*a_age_H[i][j]*(1-sig_age[i])*(S_H[i][j] + (1-p_H[j])*Lmn_H[i][j]) -
+                       (theta + r + k*l_s*d + muN_H)*Nsn_H[i][j] +
+                       forc[i+18]*H_CD4[j][i]*Nsn[i] - H_prog[j+1][i]*Nsn_H[i][j] + H_prog[j][i]*Nsn_H[i][j-1] - 
+                       H_mort[j][i]*Nsn_H[i][j] - 0*Nsn_H[i][j] + 
+                       (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Nsn_H[i][j]/tot_age[i];
+                                                
+        dNsp_H[i][j] = age_in[i]*forc[i+1]*Nsp_H[i-1][j] - age_out[i]*Nsp_H[i][j] + 
+                       (v_H[j]*(1-sig_age[i]) + FS*a_age_H[i][j]*(1-p_H[j])*(1-sig_age[i]))*Lsp_H[i][j] +
+                       FS*a_age_H[i][j]*(1-sig_age[i])*(1-p_H[j])*Lmp_H[i][j] -
+                       (theta + r + k*l_s*d*(1-e)*tau_s + k*l_s*d*e + muN_H)*Nsp_H[i][j] +
+                       k*l_s*d*(1-e)*(1-tau_s)*Nsn_H[i][j] +
+                       forc[i+18]*H_CD4[j][i]*Nsp[i] - H_prog[j+1][i]*Nsp_H[i][j] + H_prog[j][i]*Nsp_H[i][j-1] - 
+                       H_mort[j][i]*Nsp_H[i][j] - 0*Nsp_H[i][j] + 
+                       (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Nsp_H[i][j]/tot_age[i];
+                       
+        dNmn_H[i][j] = age_in[i]*forc[i+1]*Nmn_H[i-1][j] - age_out[i]*Nmn_H[i][j] +
+                       (v_H[j]*(1-sig_age[i]) + FM*a_age_H[i][j]*(1-p_H[j])*(1-sig_age[i]))*Lmn_H[i][j] +
+                       FM*a_age_H[i][j]*(1-sig_age[i])*(S_H[i][j] + (1-p_H[j])*Lsn_H[i][j]) -
+                       (theta + r + k*l_m*d*dst_n + k*l_s*d*(1-dst_n) + muN_H)*Nmn_H[i][j] +
+                       forc[i+18]*H_CD4[j][i]*Nmn[i] - H_prog[j+1][i]*Nmn_H[i][j] + H_prog[j][i]*Nmn_H[i][j-1] - 
+                       H_mort[j][i]*Nmn_H[i][j] - 0*Nmn_H[i][j] + 
+                       (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Nmn_H[i][j]/tot_age[i];
+                       
+        dNmp_H[i][j] = age_in[i]*forc[i+1]*Nmp_H[i-1][j] - age_out[i]*Nmp_H[i][j] +
+                       (v_H[j]*(1-sig_age[i]) + FM*a_age_H[i][j]*(1-p_H[j])*(1-sig_age[i]))*Lmp_H[i][j] +
+                       FM*a_age_H[i][j]*(1-sig_age[i])*(1-p_H[j])*Lsp_H[i][j] -
+                       (theta + r + k*l_m*d*dst_p*tau_m + k*l_s*d*(1-dst_p)*tau_s*eff_p + muN_H)*Nmp_H[i][j] +
+                       k*l_s*d*e*(Nsn_H[i][j]+Nsp_H[i][j]) +
+                       (k*l_m*d*dst_n*(1-tau_m) + k*l_s*d*(1-dst_n)*(1-(tau_s*eff_n)))*Nmn_H[i][j] +
+                       forc[i+18]*H_CD4[j][i]*Nmp[i] - H_prog[j+1][i]*Nmp_H[i][j] + H_prog[j][i]*Nmp_H[i][j-1] - 
+                       H_mort[j][i]*Nmp_H[i][j] - 0*Nmp_H[i][j] + 
+                       (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Nmp_H[i][j]/tot_age[i];
+           
+        dIsn_H[i][j] = age_in[i]*forc[i+1]*Isn_H[i-1][j] - age_out[i]*Isn_H[i][j] +
+                       (v_H[j]*sig_age[i] + FS*a_age_H[i][j]*sig_age[i]*(1-p_H[j]))*Lsn_H[i][j] +
+                       FS*a_age_H[i][j]*sig_age[i]*S_H[i][j] +
+                       FS*a_age_H[i][j]*(1-p_H[j])*sig_age[i]*Lmn_H[i][j] +
+                       theta*Nsn_H[i][j] -
+                       (r + k*l_s + muI_H)*Isn_H[i][j] +
+                       forc[i+18]*H_CD4[j][i]*Isn[i] - H_prog[j+1][i]*Isn_H[i][j] + H_prog[j][i]*Isn_H[i][j-1] - 
+                       H_mort[j][i]*Isn_H[i][j] - 0*Isn_H[i][j] + 
+                       (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Isn_H[i][j]/tot_age[i];
+
+        dIsp_H[i][j] = age_in[i]*forc[i+1]*Isp_H[i-1][j] - age_out[i]*Isp_H[i][j] +
+                       (v_H[j]*sig_age[i] + FS*a_age_H[i][j]*sig_age[i]*(1-p_H[j]))*Lsp_H[i][j] +
+                       FS*a_age_H[i][j]*sig_age[i]*(1-p_H[j])*Lmp_H[i][j] +
+                       theta*Nsp_H[i][j] +
+                       k*l_s*(1-e)*(1-tau_s)*Isn_H[i][j] -
+                       (r + k*l_s*(1-e)*tau_s + k*l_s*e + muI_H)*Isp_H[i][j] +
+                       forc[i+18]*H_CD4[j][i]*Isp[i] - H_prog[j+1][i]*Isp_H[i][j] + H_prog[j][i]*Isp_H[i][j-1] - 
+                       H_mort[j][i]*Isp_H[i][j] - 0*Isp_H[i][j] + 
+                       (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Isp_H[i][j]/tot_age[i];
+                                   
+        dImn_H[i][j] = age_in[i]*forc[i+1]*Imn_H[i-1][j] - age_out[i]*Imn_H[i][j] +
+                       (v_H[j]*sig_age[i] + FM*a_age_H[i][j]*sig_age[i]*(1-p_H[j]))*Lmn_H[i][j] +
+                       FM*a_age_H[i][j]*sig_age[i]*S_H[i][j] +
+                       FM*a_age_H[i][j]*(1-p_H[j])*sig_age[i]*Lsn_H[i][j] +
+                       theta*Nmn_H[i][j] -
+                       (r + k*l_m*dst_n + k*l_s*(1-dst_n) + muI_H)*Imn_H[i][j] +
+                       forc[i+18]*H_CD4[j][i]*Imn[i] - H_prog[j+1][i]*Imn_H[i][j] + H_prog[j][i]*Imn_H[i][j-1] - 
+                       H_mort[j][i]*Imn_H[i][j] - 0*Imn_H[i][j] + 
+                       (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Imn_H[i][j]/tot_age[i];
+
+        dImp_H[i][j] = age_in[i]*forc[i+1]*Imp_H[i-1][j] - age_out[i]*Imp_H[i][j] +
+                       (v_H[j]*sig_age[i] + FM*a_age_H[i][j]*sig_age[i]*(1-p_H[j]))*Lmp_H[i][j] +
+                       FM*a_age_H[i][j]*sig_age[i]*(1-p_H[j])*Lsp_H[i][j] +
+                       theta*Nmp_H[i][j] +
+                       (k*l_m*dst_n*(1-tau_m) + k*l_s*(1-dst_n)*(1-(tau_s*eff_n)))*Imn_H[i][j] +
+                       k*l_s*e*(Isn_H[i][j]+Isp_H[i][j]) -
+                       (r + k*l_m*dst_p*tau_m + k*l_s*(1-dst_p)*tau_s*eff_p + muI_H)*Imp_H[i][j] +
+                       forc[i+18]*H_CD4[j][i]*Imp[i] - H_prog[j+1][i]*Imp_H[i][j] + H_prog[j][i]*Imp_H[i][j-1] - 
+                       H_mort[j][i]*Imp_H[i][j] - 0*Imp_H[i][j] + 
+                       (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Imp_H[i][j]/tot_age[i];
+                     
       }
     }
     
@@ -549,82 +736,94 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
       }
     }
 
-
-
-    for (i=0; i<17; i++) 
-
- 
-                
     /* Put function values into ydot */
-
+    /* HIV+ */
     for (i=0; i<17; i++) ydot[i] = dS[i];             /* S: 0-16 */
-     
     for (i=17; i<34; i++) ydot[i] = dLsn[i-17];       /* Lsn: 17-33 */
     for (i=34; i<51; i++) ydot[i] = dLsp[i-34];       /* Lsp: 34-50 */
     for (i=51; i<68; i++) ydot[i] = dLmn[i-51];       /* Lmn: 51-67 */
     for (i=68; i<85; i++) ydot[i] = dLmp[i-68];       /* Lmp: 68-84 */
-     
     for (i=85; i<102; i++) ydot[i] = dNsn[i-85];      /* Nsn: 85-101 */
     for (i=102; i<119; i++) ydot[i] = dNsp[i-102];    /* Nsp: 102-118 */
     for (i=119; i<136; i++) ydot[i] = dNmn[i-119];    /* Nmn: 119-135 */
-    for (i=136; i<153; i++) ydot[i] = dNmp[i-136];    /* Nmp: 136-152 */
-       
+    for (i=136; i<153; i++) ydot[i] = dNmp[i-136];    /* Nmp: 136-152 */ 
     for (i=153; i<170; i++) ydot[i] = dIsn[i-153];    /* Isn: 153-169 */
     for (i=170; i<187; i++) ydot[i] = dIsp[i-170];    /* Isp: 170-186 */
     for (i=187; i<204; i++) ydot[i] = dImn[i-187];    /* Imn: 187-203 */
     for (i=204; i<221; i++) ydot[i] = dImp[i-204];    /* Imp: 204-220 */
-
-    ij = 221;                                         /* Susceptible, HIV+ */
+    /* HIV+ */
+    ij = 221;                                     
     for (j=0; j<7; j++){
-      for (i=0; i<17; i++){
+      for (i=0; i<17; i++){  
         ydot[ij] = dS_H[i][j];
-        ij=ij+1;
+        ydot[ij+119] = dLsn_H[i][j];
+        ydot[ij+(2*119)] = dLsp_H[i][j]; 
+        ydot[ij+(3*119)] = dLmn_H[i][j];
+        ydot[ij+(4*119)] = dLmp_H[i][j];  
+        ydot[ij+(5*119)] = dNsn_H[i][j];
+        ydot[ij+(6*119)] = dNsp_H[i][j];
+        ydot[ij+(7*119)] = dNmn_H[i][j];
+        ydot[ij+(8*119)] = dNmp_H[i][j];
+        ydot[ij+(9*119)] = dIsn_H[i][j];
+        ydot[ij+(10*119)] = dIsp_H[i][j];
+        ydot[ij+(11*119)] = dImn_H[i][j];
+        ydot[ij+(12*119)] = dImp_H[i][j];
+        ij = ij+1;
       }
     }
-    ij = 340;     
-    for (l=0; l<3; l++){                              /* Susceptible, on ART */
+    /* HIV+, on ART */
+    ij = 1768;   
+    for (l=0; l<3; l++){                          
       for (j=0; j<7; j++){
         for (i=0; i<17; i++){
           ydot[ij] = dS_A[i][j][l];
+          /*ydot[ij+357] = dLsn_A[i][j][l];
+          ydot[ij+(2*357)] = dLsp_A[i][j][l];
+          ydot[ij+(3*357)] = dLmn_A[i][j][l];
+          ydot[ij+(4*357)] = dLmp_A[i][j][l];  
+          ydot[ij+(5*357)] = dNsn_A[i][j][l];
+          ydot[ij+(6*357)] = dNsp_A[i][j][l];
+          ydot[ij+(7*357)] = dNmn_A[i][j][l];
+          ydot[ij+(8*357)] = dNmp_A[i][j][l];
+          ydot[ij+(9*357)] = dIsn_A[i][j][l];
+          ydot[ij+(10*357)] = dIsp_A[i][j][l];
+          ydot[ij+(11*357)] = dImn_A[i][j][l];
+          ydot[ij+(12*357)] = dImp_A[i][j][l];*/
           ij = ij+1;
         }
       }
     }
-
     
     /* add variables to yout */
-
     yout[0] = Total;
     yout[1] = Total_S;
-    yout[2] = Total_SH;
-    yout[3] = Total_SA;
-    yout[4] = Total_Ls;
-    yout[5] = Total_Lm;
-    yout[6] = Total_L;
-    yout[7] = Total_Ns;
-    yout[8] = Total_Nm;
-    yout[9] = Total_N;
-    yout[10] = Total_Is;
-    yout[11] = Total_Im;
-    yout[12] = Total_I;
-    yout[13] = Total_DS;
-    yout[14] = Total_MDR;
-    yout[15] = FS;
-    yout[16] = FM;
-    yout[17] = CD4_dist[0];
-    yout[18] = CD4_dist[1];
-    yout[19] = CD4_dist[2];
-    yout[20] = CD4_dist[3];
-    yout[21] = CD4_dist[4];
-    yout[22] = CD4_dist[5];
-    yout[23] = CD4_dist[6];
-    yout[24] = CD4_dist_ART[0];
-    yout[25] = CD4_dist_ART[1];
-    yout[26] = CD4_dist_ART[2];
-    yout[27] = CD4_dist_ART[3];
-    yout[28] = CD4_dist_ART[4];
-    yout[29] = CD4_dist_ART[5];
-    yout[30] = CD4_dist_ART[6];
+    yout[2] = Total_Ls;
+    yout[3] = Total_Lm;
+    yout[4] = Total_L;
+    yout[5] = Total_Ns;
+    yout[6] = Total_Nm;
+    yout[7] = Total_N;
+    yout[8] = Total_Is;
+    yout[9] = Total_Im;
+    yout[10] = Total_I;
+    yout[11] = Total_DS;
+    yout[12] = Total_MDR;
+    yout[13] = FS;
+    yout[14] = FM;
+    yout[15] = CD4_dist[0];
+    yout[16] = CD4_dist[1];
+    yout[17] = CD4_dist[2];
+    yout[18] = CD4_dist[3];
+    yout[19] = CD4_dist[4];
+    yout[20] = CD4_dist[5];
+    yout[21] = CD4_dist[6];
+    yout[22] = CD4_dist_ART[0];
+    yout[23] = CD4_dist_ART[1];
+    yout[24] = CD4_dist_ART[2];
+    yout[25] = CD4_dist_ART[3];
+    yout[26] = CD4_dist_ART[4];
+    yout[27] = CD4_dist_ART[5];
+    yout[28] = CD4_dist_ART[6];
     
 }
 
