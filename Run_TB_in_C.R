@@ -17,9 +17,15 @@ dyn.unload("TB_model_v4.dll") # Unload - need to do this before recompiling
 
 ## Load UN population data
 UN_pop_age <- as.data.frame(read.table("SA_pop_age.txt",header=TRUE)) # Load UN Population data
+UN_pop_age_low <- as.data.frame(read.table("SA_pop_age_low.txt",header=TRUE)) # Load UN Population data
+UN_pop_age_high <- as.data.frame(read.table("SA_pop_age_high.txt",header=TRUE)) # Load UN Population data
 # add total to data
 UN_pop_age_t <- cbind(UN_pop_age,rowSums(UN_pop_age[,2:18]))
 colnames(UN_pop_age_t) <- c(colnames(UN_pop_age),"Total")
+UN_pop_age_low_t <- cbind(UN_pop_age_low,rowSums(UN_pop_age_low[,2:18]))
+colnames(UN_pop_age_low_t) <- c(colnames(UN_pop_age_low),"Total")
+UN_pop_age_high_t <- cbind(UN_pop_age_high,rowSums(UN_pop_age_high[,2:18]))
+colnames(UN_pop_age_high_t) <- c(colnames(UN_pop_age_high),"Total")
 
 # Set up age structure
 ages <- c(4,9,14,19,24,29,34,39,44,49,54,59,64,69,74,79,100) # upper end of age classes
@@ -77,9 +83,26 @@ h70 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X70/1000)
 h75 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X75/1000)
 h80 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X80/1000)
 
+# ART coverage - based on AIM, use CD4 eligibility threshold and % of those in need on ART
+ART_data <- as.data.frame(read.table("ART_data.txt",header=TRUE)) # Load data
+# Create forcing function of threshold category
+Athresh <- cbind(ART_data[,"Year"],ART_data[,"CD4_cat"])
+# Create forcing functions which account for threshold and coverage
+A50 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>50,1,0)/100)
+A99 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>99,1,0)/100)
+A199 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>199,1,0)/100)
+A249 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>249,1,0)/100)
+A349 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>349,1,0)/100)
+A500 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>499,1,0)/100)
+Ahigh <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>500,1,0)/100)
+
+# Pop adjust - to turn off population adjust for TB/HIV deaths from 2015 onwards
+pop_ad <- cbind(c(2014,2015,2016),c(1,0,0))
+
 # Combine forcing functions into a list
 force <- list(birth_rate,s_birth,s5,s10,s15,s20,s25,s30,s35,s40,s45,s50,s55,s60,s65,s70,s75,s80,
-              h0,h5,h10,h15,h20,h25,h30,h35,h40,h45,h50,h55,h60,h65,h70,h75,h80)
+              h0,h5,h10,h15,h20,h25,h30,h35,h40,h45,h50,h55,h60,h65,h70,h75,h80,
+              Ahigh,A500,A349,A249,A199,A99,A50,Athresh,pop_ad)
 
 # Set up TB parameters
 
@@ -97,7 +120,8 @@ parms <- c(age1 = 1/5, age2 = 1/21, beta = 18,
            sig_a = 0.45, sig0 = 0.0684, sig5 = 0.0414, sig10 = 0.0846, rel_inf = 0.25, theta = 0.02, r = 0.25, 
            mu_N = 0.25, mu_N0 = 0.426, mu_I = 0.35, mu_I0 = 0.59, fit_cost = fit_cost, e = 0, g=g, k = 0.3, l_s = 0.83, l_m = 0.0, d = 0.8, tau_s = 0.76, tau_m = 0.0,
            eff_n = 0.0, eff_p = 0.0, dst_n = 0.0, dst_p = 0.0, 
-           muN_H = 0.45, muI_H = 0.6, RR1a = 2, RR2a = 1.288, RR1v = 3, RR2v = 3, RR1p = 0.5, RR2p = 1.1) 
+           muN_H = 0.45, muI_H = 0.6, RR1a = 2, RR2a = 1.288, RR1v = 3, RR2v = 3, RR1p = 0.5, RR2p = 1.1,
+           ART_TB1 = 0.7, ART_TB2 = 0.5, ART_TB3 = 0.35, ART_mort1 = 0.5, ART_mort2 = 0.4, ART_mort3 = 0.3)
 
 ##############################################################################################################################
 # Model initialisation
@@ -118,16 +142,20 @@ xstart <- c(S=c(temp),
             Lsn_H=rep(0,num_ages*7),Lsp_H=rep(0,num_ages*7),Lmn_H=rep(0,num_ages*7),Lmp_H=rep(0,num_ages*7),
             Nsn_H=rep(0,num_ages*7),Nsp_H=rep(0,num_ages*7),Nmn_H=rep(0,num_ages*7),Nmp_H=rep(0,num_ages*7),
             Isn_H=rep(0,num_ages*7),Isp_H=rep(0,num_ages*7),Imn_H=rep(0,num_ages*7),Imp_H=rep(0,num_ages*7),
-            S_A=rep(0,num_ages*7*3))
+            S_A=rep(0,num_ages*7*3),
+            Lsn_A=rep(0,num_ages*7*3),Lsp_A=rep(0,num_ages*7*3),Lmn_A=rep(0,num_ages*7*3),Lmp_A=rep(0,num_ages*7*3),
+            Nsn_A=rep(0,num_ages*7*3),Nsp_A=rep(0,num_ages*7*3),Nmn_A=rep(0,num_ages*7*3),Nmp_A=rep(0,num_ages*7*3),
+            Isn_A=rep(0,num_ages*7*3),Isp_A=rep(0,num_ages*7*3),Imn_A=rep(0,num_ages*7*3),Imp_A=rep(0,num_ages*7*3))
 
 # Run the model
 time_1 <- system.time(out_pop <- ode(y=xstart, times, func = "derivsc",
             parms = parms, dllname = "TB_model_v4",initforc = "forcc",
-            forcings=force, initfunc = "parmsc", nout = 29,
+            forcings=force, initfunc = "parmsc", nout = 39,
             outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                          "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                          "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
-                         "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50"), method = rkMethod("rk34f")))
+                         "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
+                         "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new"), method = rkMethod("rk34f")))
 
 # Update initial conditions based on end of last run and add 100 TB cases
 temp <- c()
@@ -140,19 +168,22 @@ xstart <- c(S=c(temp),
             Lsn_H=rep(0,num_ages*7),Lsp_H=rep(0,num_ages*7),Lmn_H=rep(0,num_ages*7),Lmp_H=rep(0,num_ages*7),
             Nsn_H=rep(0,num_ages*7),Nsp_H=rep(0,num_ages*7),Nmn_H=rep(0,num_ages*7),Nmp_H=rep(0,num_ages*7),
             Isn_H=rep(0,num_ages*7),Isp_H=rep(0,num_ages*7),Imn_H=rep(0,num_ages*7),Imp_H=rep(0,num_ages*7),
-            S_A=rep(0,num_ages*7*3))
+            S_A=rep(0,num_ages*7*3),
+            Lsn_A=rep(0,num_ages*7*3),Lsp_A=rep(0,num_ages*7*3),Lmn_A=rep(0,num_ages*7*3),Lmp_A=rep(0,num_ages*7*3),
+            Nsn_A=rep(0,num_ages*7*3),Nsp_A=rep(0,num_ages*7*3),Nmn_A=rep(0,num_ages*7*3),Nmp_A=rep(0,num_ages*7*3),
+            Isn_A=rep(0,num_ages*7*3),Isp_A=rep(0,num_ages*7*3),Imn_A=rep(0,num_ages*7*3),Imp_A=rep(0,num_ages*7*3))
 
 # Run the model
 time_2 <- system.time(out_TB <- ode(y=xstart, times, func = "derivsc",
                        parms = parms, dllname = "TB_model_v4",initforc = "forcc",
-                       forcings=force, initfunc = "parmsc", nout = 29,
+                       forcings=force, initfunc = "parmsc", nout = 39,
                        outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                     "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                                     "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
-                                    "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50"), method = rkMethod("rk34f")))
-
+                                    "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
+                                    "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new"), method = rkMethod("rk34f")))
 # Adjust pop down to 1970 values and reassign initial conditions - model can now be run from 1970 with TB and HIV
-temp <- out_TB[dim(out_TB)[1],2:2126]
+temp <- out_TB[dim(out_TB)[1],2:6410]
 temp <- temp/(sum(temp)/22502) # 22502 is total pop from UN estimates in 1970)
 xstart <- temp
 
@@ -165,34 +196,47 @@ times <- seq(1970,2070 , by=1)
 # Run the model
 time_3 <-system.time(out <- ode(y=xstart, times, func = "derivsc",
            parms = parms, dllname = "TB_model_v4",initforc = "forcc",
-           forcings=force, initfunc = "parmsc", nout = 29,
+           forcings=force, initfunc = "parmsc", nout = 39,
            outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                         "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                         "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
-                        "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50"), method = rkMethod("rk34f")))
+                        "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
+                        "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new"), method = rkMethod("rk34f")))
 
 ######## Some plots for testing things
 
 # Plot of CD4 distribution #####################
-# Get the CD4 outputs
 
-temp <- as.data.frame(cbind(seq(1970,2070),out[,2142:2148]))
+# No ART
+temp <- as.data.frame(cbind(seq(1970,2070),out[,6426:6432]))
 colnames(temp) <- c("Year",colnames(temp[,2:8]))
-temp_CD4_4 <- melt(temp,id="Year")
+temp_CD4 <- melt(temp,id="Year")
 
-plot_CD4 <- ggplot(temp_CD4_4,aes(x=Year,y=value,fill=variable))+
+plot_CD4 <- ggplot(temp_CD4,aes(x=Year,y=value,fill=variable))+
   geom_area(colour="black", size=.2, alpha=.4) +
   xlim(c(1970,2050))
+
+# ART
+temp <- as.data.frame(cbind(seq(1970,2070),out[,6433:6439]))
+colnames(temp) <- c("Year",colnames(temp[,2:8]))
+temp_CD4ART <- melt(temp,id="Year")
+
+plot_CD4ART <- ggplot(temp_CD4ART,aes(x=Year,y=value,fill=variable))+
+  geom_area(colour="black", size=.2, alpha=.4) +
+  xlim(c(1970,2050))
+
 
 # Plot pop against UN data ###################
 
 # convert UN data to long format
 temp_data <- melt(UN_pop_age_t,id="Year")
+temp_data_l <- melt(UN_pop_age_low_t,id="Year")
+temp_data_h <- melt(UN_pop_age_high_t,id="Year")
 
 # sum up model outputs over age groups and turn into long format
 tot<-mat.or.vec(101,17)
 for(i in 1:17){
-  tot[,i] <- apply(out,1,function(x) sum(x[seq(i+1,2126,17)]))
+  tot[,i] <- apply(out,1,function(x) sum(x[seq(i+1,6410,17)]))
 }
 
 temp_model <- as.data.frame(cbind(seq(1970,2070),tot,out[,"Total"]))
@@ -202,15 +246,20 @@ temp_model <- melt(temp_model,id="Year")
 # and plot
 plot_pop <- ggplot(temp_model,aes(x=Year,y=value))+
   geom_line(colour="red")+
-  geom_point(data=temp_data,aes(x=Year,y=value))+
+  geom_line(data=temp_data,aes(x=Year,y=value),colour="black")+
+  geom_line(data=temp_data_l,aes(x=Year,y=value),colour="black",linetype="dashed")+
+  geom_line(data=temp_data_h,aes(x=Year,y=value),colour="black",linetype="dashed")+
   facet_wrap(~variable,scales="free")+
   xlim(c(1970,2100))
 
+# Plot TB prevalence ################################
+plot(out[,"time"],100*out[,"Total_DS"]/out[,"Total"],ylim=c(0,5))
+cbind(out[,"time"],out[,"Total_DS"])
 
+plot(100*(out[,"CD4500"]+out[,"CD4350_500"]+out[,"CD4250_349"]+
+          out[,"CD4200_249"]+out[,"CD4100_199"]+out[,"CD450_99"]+
+          out[,"CD450"])/out[,"Total"])
+cbind(out[,"time"],100*(out[,"CD4500"]+out[,"CD4350_500"]+out[,"CD4250_349"]+out[,"CD4200_249"]+out[,"CD4100_199"]+out[,"CD450_99"]+out[,"CD450"])/out[,"Total"])
 
-
-
-
-
-
+cbind(out[,"time"],out[,"CD4500"]+out[,"CD4350_500"]+out[,"CD4250_349"]+out[,"CD4200_249"]+out[,"CD4100_199"]+out[,"CD450_99"]+out[,"CD450"])
 
