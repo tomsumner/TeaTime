@@ -12,8 +12,8 @@
 #include <R.h>
 #include <math.h>
 
-static double parms[48];
-static double forc[45];
+static double parms[47];
+static double forc[46];
 
 /* A trick to keep up with the parameters and forcings */
 #define age1 parms[0]
@@ -39,31 +39,30 @@ static double forc[45];
 #define fit_cost parms[20]
 #define e parms[21]
 #define g parms[22]
-#define k parms[23]
-#define l_s parms[24]
-#define l_m parms[25]
-#define d parms[26]
-#define tau_s parms[27]
-#define tau_m parms[28]
-#define eff_n parms[29]
-#define eff_p parms[30]
-#define dst_n parms[31]
-#define dst_p parms[32]
-#define muN_H parms[33]
-#define muI_H parms[34]
-#define RR1a parms[35]
-#define RR2a parms[36]
-#define RR1v parms[37]
-#define RR2v parms[38]
-#define RR1p parms[39]
-#define RR2p parms[40]
-#define ART_TB1 parms[41]
-#define ART_TB2 parms[42]
-#define ART_TB3 parms[43]
-#define ART_mort1 parms[44]
-#define ART_mort2 parms[45]
-#define ART_mort3 parms[46]
-#define BCG_eff parms[47]
+#define l_s parms[23]
+#define l_m parms[24]
+#define d parms[25]
+#define tau_s parms[26]
+#define tau_m parms[27]
+#define eff_n parms[28]
+#define eff_p parms[29]
+#define dst_n parms[30]
+#define dst_p parms[31]
+#define muN_H parms[32]
+#define muI_H parms[33]
+#define RR1a parms[34]
+#define RR2a parms[35]
+#define RR1v parms[36]
+#define RR2v parms[37]
+#define RR1p parms[38]
+#define RR2p parms[39]
+#define ART_TB1 parms[40]
+#define ART_TB2 parms[41]
+#define ART_TB3 parms[42]
+#define ART_mort1 parms[43]
+#define ART_mort2 parms[44]
+#define ART_mort3 parms[45]
+#define BCG_eff parms[46]
 
 #define birth_rate forc[0] /* Birth rate */
 #define s_birth forc[1]    /* Survival at birth */
@@ -115,6 +114,8 @@ static double forc[45];
 
 #define pop_ad forc[44]
 
+#define k forc[45]
+
 /* Function to sum array from element i_start to i_end */
 double sumsum(double ar[], int i_start, int i_end)
 {
@@ -130,13 +131,13 @@ double sumsum(double ar[], int i_start, int i_end)
 /* initializers*/
 void parmsc(void (* odeparms)(int *, double *))
 {
-    int N=48;
+    int N=47;
     odeparms(&N, parms);
 }
 
 void forcc(void (* odeforcs)(int *, double *))
 {
-    int N=45;
+    int N=46;
     odeforcs(&N, forc);
 }
 
