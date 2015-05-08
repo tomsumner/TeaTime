@@ -99,14 +99,18 @@ Ahigh <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>
 # Pop adjust - to turn off population adjust for TB/HIV deaths from 2015 onwards
 pop_ad <- cbind(c(2014,2015,2016),c(1,0,0))
 
-# BCG coverage - started in 1973 (BCG Atlas), currently assume 90% coverage since then (could use WHO data to inform time trend)
-BCG_cov <- cbind(c(1972,1973,2050),c(0,0.9,0.9))
+# BCG coverage - currently assume 90% at all times
+BCG_cov <- cbind(c(1972,1973,2050),c(0.9,0.9,0.9))
+
+# Case detection rate - generalised logistic function, don't think this quite matches TIME 
+k <- cbind(seq(1970,2050),(30 + ((120-30)/((1+exp(-0.5*(seq(1970,2050)-2002.5)))^(1/2))))/100)
+
 
 # Combine forcing functions into a list
 force <- list(birth_rate,s_birth,s5,s10,s15,s20,s25,s30,s35,s40,s45,s50,s55,s60,s65,s70,s75,s80,
               h0,h5,h10,h15,h20,h25,h30,h35,h40,h45,h50,h55,h60,h65,h70,h75,h80,
               Ahigh,A500,A349,A249,A199,A99,A50,Athresh,
-              BCG_cov,pop_ad)
+              BCG_cov,pop_ad,k)
 
 # Set up TB parameters
 
@@ -122,7 +126,7 @@ parms <- c(age1 = 1/5, age2 = 1/21, beta = 18,
            a_a = 0.14, a0 = 0.26432, a5 = 0.14056, a10 = 0.056,  
            p = 0.65, v = 0.001, 
            sig_a = 0.45, sig0 = 0.0684, sig5 = 0.0414, sig10 = 0.0846, rel_inf = 0.25, theta = 0.02, r = 0.25, 
-           mu_N = 0.25, mu_N0 = 0.426, mu_I = 0.35, mu_I0 = 0.59, fit_cost = fit_cost, e = 0, g=g, k = 0.3, l_s = 0.83, l_m = 0.0, d = 0.8, tau_s = 0.76, tau_m = 0.0,
+           mu_N = 0.25, mu_N0 = 0.426, mu_I = 0.35, mu_I0 = 0.59, fit_cost = fit_cost, e = 0, g=g, l_s = 0.83, l_m = 0.0, d = 0.8, tau_s = 0.76, tau_m = 0.0,
            eff_n = 0.0, eff_p = 0.0, dst_n = 0.0, dst_p = 0.0, 
            muN_H = 0.45, muI_H = 0.6, RR1a = 2, RR2a = 1.288, RR1v = 3, RR2v = 3, RR1p = 0.5, RR2p = 1.1,
            ART_TB1 = 0.7, ART_TB2 = 0.5, ART_TB3 = 0.35, ART_mort1 = 0.5, ART_mort2 = 0.4, ART_mort3 = 0.3,
@@ -208,7 +212,7 @@ time_3 <-system.time(out <- ode(y=xstart, times, func = "derivsc",
                         "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
                         "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new"), method = rkMethod("rk34f")))
 
-######## Some plots for testing things
+######## Some plots for testing things against spectrum
 
 # Plot of CD4 distribution #####################
 
@@ -252,14 +256,21 @@ plot_pop <- ggplot(temp_model,aes(x=Year,y=value))+
 
 # Plot TB prevalence ################################
 plot(out[,"time"],100*out[,"Total_DS"]/out[,"Total"],ylim=c(0,5))
-cbind(out[,"time"],out[,"Total_DS"])
-cbind(out[,"time"],100*out[,"Total_DS"]/out[,"Total"])
 
 
-plot(100*(out[,"CD4500"]+out[,"CD4350_500"]+out[,"CD4250_349"]+
-          out[,"CD4200_249"]+out[,"CD4100_199"]+out[,"CD450_99"]+
-          out[,"CD450"])/out[,"Total"])
-cbind(out[,"time"],100*(out[,"CD4500"]+out[,"CD4350_500"]+out[,"CD4250_349"]+out[,"CD4200_249"]+out[,"CD4100_199"]+out[,"CD450_99"]+out[,"CD450"])/out[,"Total"])
+# Arrange some outputs to take out to excel
+cbind(out[,"time"],1000*out[,"Total_DS"]) # Prev in numbers
+cbind(out[,"time"],100*out[,"Total_DS"]/out[,"Total"]) # Prev in %
+cbind(out[,"time"],1000*out[,"Total"]) # Total population
 
-cbind(out[,"time"],out[,"CD4500"]+out[,"CD4350_500"]+out[,"CD4250_349"]+out[,"CD4200_249"]+out[,"CD4100_199"]+out[,"CD450_99"]+out[,"CD450"])
+temp <- rbind(out[,"time"],1000*out[,"CD4500"],1000*out[,"CD4350_500"],1000*out[,"CD4250_349"],1000*out[,"CD4200_249"],
+                   1000*out[,"CD4100_199"],1000*out[,"CD450_99"],1000*out[,"CD450"])
+write.table(temp,file="CD4_no_ART.txt",sep=" ")
 
+temp <- rbind(out[,"time"],1000*out[,"ART500"],1000*out[,"ART350_500"],1000*out[,"ART250_349"],1000*out[,"ART200_249"],
+              1000*out[,"ART100_199"],1000*out[,"ART50_99"],1000*out[,"ART50"])
+write.table(temp,file="CD4_ART.txt",sep=" ")
+
+cbind(out[,"time"],100*(1000*out[,"CD4500"]+1000*out[,"CD4350_500"]+1000*out[,"CD4250_349"]+1000*out[,"CD4200_249"]+
+      1000*out[,"CD4100_199"]+1000*out[,"CD450_99"]+1000*out[,"CD450"]+1000*out[,"ART500"]+1000*out[,"ART350_500"]+
+      1000*out[,"ART250_349"]+1000*out[,"ART200_249"]+1000*out[,"ART100_199"]+1000*out[,"ART50_99"]+1000*out[,"ART50"])/(1000*out[,"Total"]))
