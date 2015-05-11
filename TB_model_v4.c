@@ -328,7 +328,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
       muI_age[i] = mu_I;
     }
 
-    /* Now adjust parameters to for HIV and ART
+    /* Now adjust parameters for HIV and ART
 
     /* and adjust TB parameters for HIV - mortality rates are passed straight in*/
     double mid_CD4[7] = {500,425,300,225,150,75,25}; /* mid points of CD4 categories */
@@ -348,9 +348,9 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
         a_age_H[i][j] = a_age[i]*RR1a*pow(RR2a,(500-mid_CD4[j])/100);
         v_age_H[i][j] = v_age[i]*RR1v*pow(RR2v,(500-mid_CD4[j])/100);
         for (l=0; l<3; l++){
-          a_age_A[i][j][l] = a_age_H[i][j]*ART_TB[l];
-          v_age_A[i][j][l] = v_age_H[i][j]*ART_TB[l];
-          p_A[j][l] = p_H[j]/ART_TB[l];
+          a_age_A[i][j][l] = fmax(a_age_H[i][j]*ART_TB[l],a_age[i]);
+          v_age_A[i][j][l] = fmax(v_age_H[i][j]*ART_TB[l],v_age[i]);
+          p_A[j][l] = fmin(p_H[j]/ART_TB[l],p);
         }
       }
     }
