@@ -61,7 +61,7 @@ s70 <- cbind(Survive_age$Year,Survive_age$X70)
 s75 <- cbind(Survive_age$Year,Survive_age$X75)
 s80 <- cbind(Survive_age$Year,Survive_age$X80)
 
-# HIV Incidence by age and year - based on AIM output, but ignoring childhood infections (this is waht Carel does in TIME)
+# HIV Incidence by age and year - based on AIM output, but ignoring childhood infections (this is what Carel does in TIME)
 HIV_Inc_age <- as.data.frame(read.table("HIV_Inc_age.txt",header=TRUE)) # Load HIV incidence data taken from AIM                                       # Data from AIM is rate per 1000 
 #HIV_Inc_age[,2:18]=HIV_Inc_age[,2:18]*0
 
@@ -104,7 +104,7 @@ BCG_cov <- cbind(c(1972,1973,2050),c(0.9,0.9,0.9))
 
 # Case detection rate - generalised logistic function, don't think this quite matches TIME 
 k <- cbind(seq(1970,2050),(30 + ((120-30)/((1+exp(-0.5*(seq(1970,2050)-2002.5)))^(1/2))))/100)
-
+#k <- cbind(c(1970,1990,2050),c(0.30,0.30,1.20))
 
 # Combine forcing functions into a list
 force <- list(birth_rate,s_birth,s5,s10,s15,s20,s25,s30,s35,s40,s45,s50,s55,s60,s65,s70,s75,s80,
@@ -263,14 +263,23 @@ cbind(out[,"time"],1000*out[,"Total_DS"]) # Prev in numbers
 cbind(out[,"time"],100*out[,"Total_DS"]/out[,"Total"]) # Prev in %
 cbind(out[,"time"],1000*out[,"Total"]) # Total population
 
+# distribution CD4 no ART
 temp <- rbind(out[,"time"],1000*out[,"CD4500"],1000*out[,"CD4350_500"],1000*out[,"CD4250_349"],1000*out[,"CD4200_249"],
                    1000*out[,"CD4100_199"],1000*out[,"CD450_99"],1000*out[,"CD450"])
 write.table(temp,file="CD4_no_ART.txt",sep=" ")
 
+# distribution CD4 with ART
 temp <- rbind(out[,"time"],1000*out[,"ART500"],1000*out[,"ART350_500"],1000*out[,"ART250_349"],1000*out[,"ART200_249"],
               1000*out[,"ART100_199"],1000*out[,"ART50_99"],1000*out[,"ART50"])
 write.table(temp,file="CD4_ART.txt",sep=" ")
 
+# HIV prevalence 15+
 cbind(out[,"time"],100*(1000*out[,"CD4500"]+1000*out[,"CD4350_500"]+1000*out[,"CD4250_349"]+1000*out[,"CD4200_249"]+
       1000*out[,"CD4100_199"]+1000*out[,"CD450_99"]+1000*out[,"CD450"]+1000*out[,"ART500"]+1000*out[,"ART350_500"]+
-      1000*out[,"ART250_349"]+1000*out[,"ART200_249"]+1000*out[,"ART100_199"]+1000*out[,"ART50_99"]+1000*out[,"ART50"])/(1000*out[,"Total"]))
+      1000*out[,"ART250_349"]+1000*out[,"ART200_249"]+1000*out[,"ART100_199"]+1000*out[,"ART50_99"]+1000*out[,"ART50"])/(1000*rowSums(tot[,4:17])))
+
+# Number of HIV positives - we currently ignore childhood HIV
+cbind(out[,"time"],1000*out[,"CD4500"]+1000*out[,"CD4350_500"]+1000*out[,"CD4250_349"]+1000*out[,"CD4200_249"]+
+                          1000*out[,"CD4100_199"]+1000*out[,"CD450_99"]+1000*out[,"CD450"]+1000*out[,"ART500"]+1000*out[,"ART350_500"]+
+                          1000*out[,"ART250_349"]+1000*out[,"ART200_249"]+1000*out[,"ART100_199"]+1000*out[,"ART50_99"]+1000*out[,"ART50"])
+
