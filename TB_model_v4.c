@@ -1,10 +1,8 @@
 /* TB model in C code to call from R */
 
-/* To add: BCG
-           ART effects
+/* To add: ART effects
            Turning off population scaling
            Incidence and mortality outputs 
-           Add in time varying parameters for care and control
 */
 
 /* compile within R with system("R CMD SHLIB TB_model_v3.c") */
@@ -453,46 +451,9 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     double Total_MDR = Total_Nm + Total_Im;
     double Total = Total_S+Total_L+Total_N+Total_I;
     
-    /* Sum up over CD4 categories, with and without ART and calculate rates of ART initiation */
-    double CD4_dist[7] = {0,0,0,0,0,0,0};
-    double CD4_dist_ART[7] = {0,0,0,0,0,0,0};
-    double Tot_ART = 0;                   /* Total on ART */ 
-    double ART_need = 0;                  /* Number needing ART */
-    double ART_new = 0;                   /* Number who need to start ART */
-    double ART_el = 0;                    /* Number who are eligible but not on ART */
-    double ART_prop[7] = {0,0,0,0,0,0,0};  /* Proportion of CD4 category who should start ART */
-    for (j=0; j<7; j++){
-      for (i=0; i<17; i++){
-        CD4_dist[j] = CD4_dist[j]+S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+
-                      Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j]+ 
-                      Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j];
-        for (l=0; l<3; l++){
-          CD4_dist_ART[j] = CD4_dist_ART[j]+S_A[i][j][l]+Lsn_A[i][j][l]+Lsp_A[i][j][l]+Lmn_A[i][j][l]+Lmp_A[i][j][l]+
-                            Nsn_A[i][j][l]+Nsp_A[i][j][l]+Nmn_A[i][j][l]+Nmp_A[i][j][l]+ 
-                            Isn_A[i][j][l]+Isp_A[i][j][l]+Imn_A[i][j][l]+Imp_A[i][j][l];         
-                      
-        }            
-      } 
-      Tot_ART = Tot_ART + CD4_dist_ART[j];
-      ART_need = ART_need + (CD4_dist[j] + CD4_dist_ART[j])*forc[j+35];
-    }
-    ART_new = fmax(0,ART_need - Tot_ART);
-    /* Then work out where these should go by CD4 */
-    for (j=Athresh; j<7; j++) ART_el = ART_el + CD4_dist[j];
-    if (ART_el > 0){
-      for (j=Athresh; j<7; j++) {
-        if (CD4_dist[j] > 0) {
-          ART_prop[j] = (CD4_dist[j]/ART_el)*(ART_new/CD4_dist[j]);      
-        }
-      }
-    }
-    
-    /* Force of infection */
-    double FS = beta*(Total_Ns*rel_inf + Total_Is)/Total; 
-    double FM = fit_cost*beta*(Total_Nm*rel_inf + Total_Im)/Total; 
-    
     /* Calculate deaths due to TB by age group - these will be distributed across all states to avoid double counting deaths */
     double TB_deaths[17];
+    double TB_ART_deaths = 0;
     for (i=0; i<17; i++) {
       TB_deaths[i] = (Nsn[i]+Nsp[i]+Nmn[i]+Nmp[i])*muN_age[i] + 
                      (Isn[i]+Isp[i]+Imn[i]+Imp[i])*muI_age[i];
@@ -502,6 +463,9 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
         for (l=0; l<3; l++){
           TB_deaths[i] = TB_deaths[i] + (Nsn_A[i][j][l]+Nsp_A[i][j][l]+Nmn_A[i][j][l]+Nmp_A[i][j][l])*muN_H*ART_mort[l] + 
                                         (Isn_A[i][j][l]+Isp_A[i][j][l]+Imn_A[i][j][l]+Imp_A[i][j][l])*muI_H*ART_mort[l];
+                                        
+          TB_ART_deaths = TB_ART_deaths + (Nsn_A[i][j][l]+Nsp_A[i][j][l]+Nmn_A[i][j][l]+Nmp_A[i][j][l])*muN_H*ART_mort[l] + 
+                                        (Isn_A[i][j][l]+Isp_A[i][j][l]+Imn_A[i][j][l]+Imp_A[i][j][l])*muI_H*ART_mort[l];                             
         }                               
       }
     /*TB_deaths[i] = TB_deaths[i]*pop_ad;*/
@@ -529,6 +493,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
         }
       }
     }
+    double ART_deaths_tot = sumsum(ART_deaths,0,16) + TB_ART_deaths; 
      
     /* Calculate total population by age - this is used to distribute those dying of TB/HIV as mortality rates already include TB deaths */
     double tot_age[17];
@@ -546,6 +511,52 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
         }
       }
     }
+    
+    
+    /* Sum up over CD4 categories, with and without ART and calculate rates of ART initiation */
+    double CD4_dist[7] = {0,0,0,0,0,0,0};     /* Not on ART by CD4 */
+    double CD4_dist_ART[7] = {0,0,0,0,0,0,0}; /* On ART by CD4 */
+    double Tot_ART = 0;                       /* Total on ART */ 
+    double ART_need = 0;                      /* Number needing ART - this is all those below the eligibility threshold*/
+    double ART_on = 0;                        /* Number who should be on ART based on reported % */
+    double ART_new = 0;                       /* Number who need to start ART */
+    double ART_el = 0;                        /* Number who are eligible but not on ART */
+    double ART_prop[7] = {0,0,0,0,0,0,0};     /* Proportion of CD4 category who should start ART */
+    
+    for (j=0; j<7; j++){
+      for (i=0; i<17; i++){
+        CD4_dist[j] = CD4_dist[j]+S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+
+                      Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j]+ 
+                      Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j];
+        for (l=0; l<3; l++){
+          CD4_dist_ART[j] = CD4_dist_ART[j]+S_A[i][j][l]+Lsn_A[i][j][l]+Lsp_A[i][j][l]+Lmn_A[i][j][l]+Lmp_A[i][j][l]+
+                            Nsn_A[i][j][l]+Nsp_A[i][j][l]+Nmn_A[i][j][l]+Nmp_A[i][j][l]+ 
+                            Isn_A[i][j][l]+Isp_A[i][j][l]+Imn_A[i][j][l]+Imp_A[i][j][l];         
+                      
+        }            
+      } 
+      Tot_ART = Tot_ART + CD4_dist_ART[j];
+      ART_on = ART_on + (CD4_dist[j] + CD4_dist_ART[j])*forc[j+35];
+    }
+    ART_new = fmax(0,ART_on - (Tot_ART - ART_deaths_tot));
+    /* Then work out where these should go by CD4 */
+    for (j=Athresh; j<7; j++) {
+      ART_el = ART_el + CD4_dist[j];
+      ART_need = ART_need + CD4_dist[j] + CD4_dist_ART[j];
+    }
+    if (ART_el > 0){
+      for (j=Athresh; j<7; j++) {
+        if (CD4_dist[j] > 0) {
+          ART_prop[j] = (CD4_dist[j]/ART_el)*(ART_new/CD4_dist[j]);      
+        }
+      }
+    }
+    
+    /* Force of infection */
+    double FS = beta*(Total_Ns*rel_inf + Total_Is)/Total; 
+    double FM = fit_cost*beta*(Total_Nm*rel_inf + Total_Im)/Total; 
+    
+   
  
     /* Derivatives */ 
  
@@ -1002,8 +1013,8 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     yout[36] = Tot_ART;
     yout[37] = ART_need;
     yout[38] = ART_new;
+    yout[39] = ART_on;
 }
-
 
 
 
