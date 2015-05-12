@@ -103,7 +103,8 @@ pop_ad <- cbind(c(2014,2015,2016),c(1,0,0))
 BCG_cov <- cbind(c(1972,1973,2050),c(0.9,0.9,0.9))
 
 # Case detection rate - generalised logistic function, don't think this quite matches TIME 
-k <- cbind(seq(1970,2050),(30 + ((120-30)/((1+exp(-0.5*(seq(1970,2050)-2002.5)))^(1/2))))/100)
+k <- cbind(seq(1970,2050),(30 + ((120-30)/((1+exp(-0.5*(seq(1970,2050)-2004)))^(1/2))))/100)
+
 #k <- cbind(c(1970,1990,2050),c(0.30,0.30,1.20))
 
 # Combine forcing functions into a list
@@ -159,12 +160,12 @@ xstart <- c(S=c(temp),
 # Run the model
 time_1 <- system.time(out_pop <- ode(y=xstart, times, func = "derivsc",
             parms = parms, dllname = "TB_model_v4",initforc = "forcc",
-            forcings=force, initfunc = "parmsc", nout = 39,
+            forcings=force, initfunc = "parmsc", nout = 40,
             outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                          "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                          "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
                          "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
-                         "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new"), method = rkMethod("rk34f")))
+                         "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on"), method = rkMethod("rk34f")))
 
 # Update initial conditions based on end of last run and add 100 TB cases
 temp <- c()
@@ -185,12 +186,12 @@ xstart <- c(S=c(temp),
 # Run the model
 time_2 <- system.time(out_TB <- ode(y=xstart, times, func = "derivsc",
                        parms = parms, dllname = "TB_model_v4",initforc = "forcc",
-                       forcings=force, initfunc = "parmsc", nout = 39,
+                       forcings=force, initfunc = "parmsc", nout = 40,
                        outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                     "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                                     "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
                                     "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
-                                    "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new"), method = rkMethod("rk34f")))
+                                    "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on"), method = rkMethod("rk34f")))
 # Adjust pop down to 1970 values and reassign initial conditions - model can now be run from 1970 with TB and HIV
 temp <- out_TB[dim(out_TB)[1],2:6410]
 temp <- temp/(sum(temp)/22502) # 22502 is total pop from UN estimates in 1970)
@@ -201,24 +202,24 @@ xstart <- temp
 # Now run the model for TB and HIV
 
 # Set times to run for
-times <- seq(1970,2070 , by=1)
+times <- seq(1970,2050 , by=1)
 # Run the model
 time_3 <-system.time(out <- ode(y=xstart, times, func = "derivsc",
            parms = parms, dllname = "TB_model_v4",initforc = "forcc",
-           forcings=force, initfunc = "parmsc", nout = 39,
+           forcings=force, initfunc = "parmsc", nout = 40,
            outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                         "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                         "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
                         "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
-                        "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new"), method = rkMethod("rk34f")))
+                        "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on"), method = rkMethod("rk34f")))
 
 ######## Some plots for testing things against spectrum
 
 # Plot of CD4 distribution #####################
 
-temp1 <- as.data.frame(cbind(seq(1970,2070),out[,6426:6432],"No ART"))
+temp1 <- as.data.frame(cbind(seq(1970,2050),out[,6426:6432],"No ART"))
 colnames(temp1) <- c("Year",colnames(temp1[,2:8]),"Type")
-temp2 <- as.data.frame(cbind(seq(1970,2070),out[,6433:6439],"ART"))
+temp2 <- as.data.frame(cbind(seq(1970,2050),out[,6433:6439],"ART"))
 colnames(temp2) <- c("Year",colnames(temp1[,2:8]),"Type")
 temp <- rbind(temp1,temp2)
 temp_CD4 <- melt(temp,id=c("Year","Type"))
@@ -236,12 +237,12 @@ temp_data_l <- melt(UN_pop_age_low_t,id="Year")
 temp_data_h <- melt(UN_pop_age_high_t,id="Year")
 
 # sum up model outputs over age groups and turn into long format
-tot<-mat.or.vec(101,17)
+tot<-mat.or.vec(81,17)
 for(i in 1:17){
   tot[,i] <- apply(out,1,function(x) sum(x[seq(i+1,6410,17)]))
 }
 
-temp_model <- as.data.frame(cbind(seq(1970,2070),tot,out[,"Total"]))
+temp_model <- as.data.frame(cbind(seq(1970,2050),tot,out[,"Total"]))
 colnames(temp_model) <- colnames(UN_pop_age_t)
 temp_model <- melt(temp_model,id="Year")
 
