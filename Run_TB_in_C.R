@@ -10,6 +10,8 @@ library(ggplot2)
 
 ## Compile and load the C code
 system("R CMD SHLIB TB_model_v4.c") # Compile
+
+system("MAKEFLAGS=CFLAGS=-O3 R CMD SHLIB TB_model_v4.c") # Compile
 dyn.load("TB_model_v4.dll") # Load
 dyn.unload("TB_model_v4.dll") # Unload - need to do this before recompiling
 
@@ -135,8 +137,8 @@ parms <- c(age1 = 1/5, age2 = 1/21, beta = 18,
 
 ##############################################################################################################################
 # Model initialisation
-# run the model from 1970 pop with 1970 birth/death rates and care and control parameters for 400 years to get stable age structure
-# Then rerun with 100 TB cases at time 0, no MDR or HIV (note no HIV pre 1975). Run for 400 years to get stable disease state
+# run the model from 1970 pop with 1970 birth/death rates and care and control parameters with 100 TB cases (no MDR or HIV) 
+# for 200 years to get stable age structure and disease state
 
 # Times to run model for
 times <- seq(0,200 , by=1)
@@ -144,32 +146,6 @@ times <- seq(0,200 , by=1)
 # Initial conditions - all susceptible
 temp <- c()
 for (i in 1:num_ages){temp[i]<-UN_pop_age[21,i+1]}
-xstart <- c(S=c(temp),
-            Lsn=rep(0,num_ages),Lsp=rep(0,num_ages),Lmn=rep(0,num_ages),Lmp=rep(0,num_ages),
-            Nsn=rep(0,num_ages),Nsp=rep(0,num_ages),Nmn=rep(0,num_ages),Nmp=rep(0,num_ages),
-            Isn=rep(0,num_ages),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
-            S_H=rep(0,num_ages*7),
-            Lsn_H=rep(0,num_ages*7),Lsp_H=rep(0,num_ages*7),Lmn_H=rep(0,num_ages*7),Lmp_H=rep(0,num_ages*7),
-            Nsn_H=rep(0,num_ages*7),Nsp_H=rep(0,num_ages*7),Nmn_H=rep(0,num_ages*7),Nmp_H=rep(0,num_ages*7),
-            Isn_H=rep(0,num_ages*7),Isp_H=rep(0,num_ages*7),Imn_H=rep(0,num_ages*7),Imp_H=rep(0,num_ages*7),
-            S_A=rep(0,num_ages*7*3),
-            Lsn_A=rep(0,num_ages*7*3),Lsp_A=rep(0,num_ages*7*3),Lmn_A=rep(0,num_ages*7*3),Lmp_A=rep(0,num_ages*7*3),
-            Nsn_A=rep(0,num_ages*7*3),Nsp_A=rep(0,num_ages*7*3),Nmn_A=rep(0,num_ages*7*3),Nmp_A=rep(0,num_ages*7*3),
-            Isn_A=rep(0,num_ages*7*3),Isp_A=rep(0,num_ages*7*3),Imn_A=rep(0,num_ages*7*3),Imp_A=rep(0,num_ages*7*3))
-
-# Run the model
-time_1 <- system.time(out_pop <- ode(y=xstart, times, func = "derivsc",
-            parms = parms, dllname = "TB_model_v4",initforc = "forcc",
-            forcings=force, initfunc = "parmsc", nout = 40,
-            outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
-                         "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
-                         "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
-                         "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
-                         "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on"), method = rkMethod("rk34f")))
-
-# Update initial conditions based on end of last run and add 100 TB cases
-temp <- c()
-for (i in 1:num_ages){temp[i]<-out_pop[dim(out_pop)[1],i+1]}
 xstart <- c(S=c(temp),
             Lsn=rep(0,num_ages),Lsp=rep(0,num_ages),Lmn=rep(0,num_ages),Lmp=rep(0,num_ages),
             Nsn=rep(0,num_ages),Nsp=rep(0,num_ages),Nmn=rep(0,num_ages),Nmp=rep(0,num_ages),
@@ -184,16 +160,17 @@ xstart <- c(S=c(temp),
             Isn_A=rep(0,num_ages*7*3),Isp_A=rep(0,num_ages*7*3),Imn_A=rep(0,num_ages*7*3),Imp_A=rep(0,num_ages*7*3))
 
 # Run the model
-time_2 <- system.time(out_TB <- ode(y=xstart, times, func = "derivsc",
-                       parms = parms, dllname = "TB_model_v4",initforc = "forcc",
-                       forcings=force, initfunc = "parmsc", nout = 40,
-                       outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
-                                    "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
-                                    "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
-                                    "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
-                                    "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on"), method = rkMethod("rk34f")))
+time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
+            parms = parms, dllname = "TB_model_v4",initforc = "forcc",
+            forcings=force, initfunc = "parmsc", nout = 40,
+            outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
+                         "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
+                         "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
+                         "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
+                         "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on"), method = rkMethod("rk34f")))
+
 # Adjust pop down to 1970 values and reassign initial conditions - model can now be run from 1970 with TB and HIV
-temp <- out_TB[dim(out_TB)[1],2:6410]
+temp <- out_eq[dim(out_eq)[1],2:6410]
 temp <- temp/(sum(temp)/22502) # 22502 is total pop from UN estimates in 1970)
 xstart <- temp
 
@@ -204,7 +181,7 @@ xstart <- temp
 # Set times to run for
 times <- seq(1970,2050 , by=1)
 # Run the model
-time_3 <-system.time(out <- ode(y=xstart, times, func = "derivsc",
+time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
            parms = parms, dllname = "TB_model_v4",initforc = "forcc",
            forcings=force, initfunc = "parmsc", nout = 40,
            outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
@@ -256,7 +233,7 @@ plot_pop <- ggplot(temp_model,aes(x=Year,y=value))+
   xlim(c(1970,2100))
 
 # Plot TB prevalence ################################
-plot(out[,"time"],100*out[,"Total_DS"]/out[,"Total"],ylim=c(0,5))
+plot(out[,"time"],100*out[,"Total_DS"]/out[,"Total"],ylim=c(0,1))
 
 
 # Arrange some outputs to take out to excel
