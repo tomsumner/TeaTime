@@ -1,7 +1,6 @@
 /* TB model in C code to call from R */
 
-/* To add: ART effects
-           Turning off population scaling
+/* To add: Turning off population scaling
            Incidence and mortality outputs 
 */
 
@@ -289,42 +288,17 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     }
     
     /* Create vectors of aging rates to use in derivatives */
-    double age_out[17];       /* age_out is lower for final age group because it is wider */
-    double age_in[17];        /* age_in is set to zero for first age group as new borns only enter the S class */
-    for (i=0; i<17; i++) {        
-      age_out[i] = age1;  
-      age_in[i] = age1;
-    }
-    age_out[16] = age2;
-    age_in[0] = 0.0;
-           
+    double age_out[17] = {age1,age1,age1,age1,age1,age1,age1,age1,age1,age1,age1,age1,age1,age1,age1,age1,age2};  /* age_out is lower for final age group because it is wider */
+    double age_in[17] = {0.0,age1,age1,age1,age1,age1,age1,age1,age1,age1,age1,age1,age1,age1,age1,age1,age1};    /* age_in is set to zero for first age group as new borns only enter the S class */
+    
     /* Create vectors of disease parameters (by age) to use in derivatives - includes BCG effect */
-    double a_age[17];
-    a_age[0] = a0*(BCG_cov*(1-BCG_eff) + (1-BCG_cov));
-    a_age[1] = a5*(BCG_cov*(1-BCG_eff) + (1-BCG_cov));
-    a_age[2] = a10*(BCG_cov*(1-BCG_eff) + (1-BCG_cov));
-    double v_age[17];
-    v_age[0] = v*(BCG_cov*(1-BCG_eff) + (1-BCG_cov));
-    v_age[1] = v*(BCG_cov*(1-BCG_eff) + (1-BCG_cov));
-    v_age[2] = v*(BCG_cov*(1-BCG_eff) + (1-BCG_cov));
-    double sig_age[17];
-    sig_age[0] = sig0;
-    sig_age[1] = sig5;
-    sig_age[2] = sig10;
-    for (i=3; i<17; i++) {
-      a_age[i] = a_a;
-      sig_age[i] = sig_a;
-      v_age[i] = v;
-    }
- 
-    double muN_age[17];
-    double muI_age[17];
-    muN_age[0] = mu_N0;
-    muI_age[0] = mu_I0;
-    for (i=1; i<17; i++) {
-      muN_age[i] = mu_N;
-      muI_age[i] = mu_I;
-    }
+    double a_age[17] = {a0*(BCG_cov*(1-BCG_eff)+(1-BCG_cov)),a5*(BCG_cov*(1-BCG_eff)+(1-BCG_cov)),a10*(BCG_cov*(1-BCG_eff)+(1-BCG_cov)),
+                       a_a,a_a,a_a,a_a,a_a,a_a,a_a,a_a,a_a,a_a,a_a,a_a,a_a,a_a};
+    double v_age[17] = {v*(BCG_cov*(1-BCG_eff)+(1-BCG_cov)),v*(BCG_cov*(1-BCG_eff)+(1-BCG_cov)),v*(BCG_cov*(1-BCG_eff)+(1-BCG_cov)),
+                       v,v,v,v,v,v,v,v,v,v,v,v,v,v};
+    double sig_age[17] = {sig0,sig5,sig10,sig_a,sig_a,sig_a,sig_a,sig_a,sig_a,sig_a,sig_a,sig_a,sig_a,sig_a,sig_a,sig_a,sig_a};
+    double muN_age[17] = {mu_N0,mu_N,mu_N,mu_N,mu_N,mu_N,mu_N,mu_N,mu_N,mu_N,mu_N,mu_N,mu_N,mu_N,mu_N,mu_N,mu_N};
+    double muI_age[17] = {mu_I0,mu_I,mu_I,mu_I,mu_I,mu_I,mu_I,mu_I,mu_I,mu_I,mu_I,mu_I,mu_I,mu_I,mu_I,mu_I,mu_I};
 
     /* Now adjust parameters for HIV and ART
 
@@ -516,18 +490,24 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     /* Sum up over CD4 categories, with and without ART and calculate rates of ART initiation */
     double CD4_dist[7] = {0,0,0,0,0,0,0};     /* Not on ART by CD4 */
     double CD4_dist_ART[7] = {0,0,0,0,0,0,0}; /* On ART by CD4 */
+    double CD4_deaths[7] = {0,0,0,0,0,0,0};   /* Deaths by CD4 (no ART) */
     double Tot_ART = 0;                       /* Total on ART */ 
     double ART_need = 0;                      /* Number needing ART - this is all those below the eligibility threshold*/
     double ART_on = 0;                        /* Number who should be on ART based on reported % */
     double ART_new = 0;                       /* Number who need to start ART */
     double ART_el = 0;                        /* Number who are eligible but not on ART */
+    double ART_el_deaths = 0;                 /* Number eligible who will die */
     double ART_prop[7] = {0,0,0,0,0,0,0};     /* Proportion of CD4 category who should start ART */
+
     
     for (j=0; j<7; j++){
       for (i=0; i<17; i++){
         CD4_dist[j] = CD4_dist[j]+S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+
                       Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j]+ 
                       Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j];
+        CD4_deaths[j] = CD4_deaths[j]+H_mort[j][i]*(S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+
+                      Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j]+ 
+                      Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j]);
         for (l=0; l<3; l++){
           CD4_dist_ART[j] = CD4_dist_ART[j]+S_A[i][j][l]+Lsn_A[i][j][l]+Lsp_A[i][j][l]+Lmn_A[i][j][l]+Lmp_A[i][j][l]+
                             Nsn_A[i][j][l]+Nsp_A[i][j][l]+Nmn_A[i][j][l]+Nmp_A[i][j][l]+ 
@@ -539,15 +519,16 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
       ART_on = ART_on + (CD4_dist[j] + CD4_dist_ART[j])*forc[j+35];
     }
     ART_new = fmax(0,ART_on - (Tot_ART - ART_deaths_tot));
-    /* Then work out where these should go by CD4 */
+    /* Then work out where these should go by CD4 - NEED TO ADAPT THIS TO ACCOUNT FOR MORTALITY*/
     for (j=Athresh; j<7; j++) {
       ART_el = ART_el + CD4_dist[j];
+      ART_el_deaths = ART_el_deaths + CD4_deaths[j];
       ART_need = ART_need + CD4_dist[j] + CD4_dist_ART[j];
     }
     if (ART_el > 0){
       for (j=Athresh; j<7; j++) {
         if (CD4_dist[j] > 0) {
-          ART_prop[j] = (CD4_dist[j]/ART_el)*(ART_new/CD4_dist[j]);      
+          ART_prop[j] = (((CD4_dist[j]/ART_el)+(CD4_deaths[j]/ART_el_deaths))/2)*(ART_new/CD4_dist[j]);      
         }
       }
     }
@@ -556,8 +537,6 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     double FS = beta*(Total_Ns*rel_inf + Total_Is)/Total; 
     double FM = fit_cost*beta*(Total_Nm*rel_inf + Total_Im)/Total; 
     
-   
- 
     /* Derivatives */ 
  
     /* HIV-: loop through ages*/ 
@@ -675,12 +654,11 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                                       (r + k*l_m*dst_p*tau_m + k*l_s*(1-dst_p)*tau_s*eff_p + muI_age[i])*Imp[i] - 
                                       forc[i+18]*Imp[i] +
                                       (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Imp[i]/tot_age[i];
-    }
+    
+      /* HIV+: Loop through CD4 categories */
+    
+      for (j=0; j<7; j++){      /* CD4 */
 
-    /* HIV+: Loop through CD4 categories and age*/
-  
-    for (j=0; j<7; j++){      /* CD4 */
-      for (i=0; i<17; i++){   /* age */
         dS_H[i][j] = age_in[i]*forc[i+1]*S_H[i-1][j] - age_out[i]*S_H[i][j] - (FS + FM)*S_H[i][j] +
                      forc[i+18]*H_CD4[j][i]*S[i] - H_prog[j+1][i]*S_H[i][j] + H_prog[j][i]*S_H[i][j-1] - 
                      H_mort[j][i]*S_H[i][j] - ART_prop[j]*S_H[i][j] + 
@@ -797,14 +775,10 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                        forc[i+18]*H_CD4[j][i]*Imp[i] - H_prog[j+1][i]*Imp_H[i][j] + H_prog[j][i]*Imp_H[i][j-1] - 
                        H_mort[j][i]*Imp_H[i][j] - ART_prop[j]*Imp_H[i][j] + 
                        (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Imp_H[i][j]/tot_age[i];
-                     
-      }
-    }
-    
-    /* HIV+ on ART: loop through time on ART, CD4 at initiation, age - NEED TO ADD IN IMPACT OF ART ON TB PARAMETERS */
-    for (l=0; l<3; l++){
-      for (j=0; j<7; j++){
-        for (i=0; i<17; i++){
+       
+       /* HIV+ on ART: loop through time on ART, CD4 at initiation, age - NEED TO ADD IN IMPACT OF ART ON TB PARAMETERS */
+        for (l=0; l<3; l++){
+        
           dS_A[i][j][l] = age_in[i]*forc[i+1]*S_A[i-1][j][l] - age_out[i]*S_A[i][j][l] - (FS + FM)*S_A[i][j][l] +
                           ART_prop[j]*A_start[l]*S_H[i][j] + A_prog[l]*S_A[i][j][l-1] - A_prog[l+1]*S_A[i][j][l] - A_mort[l][j][i]*S_A[i][j][l] +
                           (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*S_A[i][j][l]/tot_age[i];
@@ -840,8 +814,6 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                             k*(l_m*dst_p*tau_m + l_s*(1-dst_p)*tau_s*eff_p)*(Imp_A[i][j][l]+d*Nmp_A[i][j][l]) +
                             ART_prop[j]*A_start[l]*Lmp_H[i][j] + A_prog[l]*Lmp_A[i][j][l-1] - A_prog[l+1]*Lmp_A[i][j][l] - A_mort[l][j][i]*Lmp_A[i][j][l] +
                             (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Lmp_A[i][j][l]/tot_age[i];
-           
-           /* GOT TO HERE REPLACING TB PARAMS WITH ART VALUES */
            
           dNsn_A[i][j][l] = age_in[i]*forc[i+1]*Nsn_A[i-1][j][l]- age_out[i]*Nsn_A[i][j][l] +
                             (v_age_A[i][j][l]*(1-sig_age[i]) + FS*a_age_A[i][j][l]*(1-p_A[j][l])*(1-sig_age[i]))*Lsn_A[i][j][l] +
@@ -909,8 +881,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                             k*l_s*e*(Isn_A[i][j][l]+Isp_A[i][j][l]) -
                             (r + k*l_m*dst_p*tau_m + k*l_s*(1-dst_p)*tau_s*eff_p + muI_H*ART_mort[l])*Imp_A[i][j][l] +                     
                             ART_prop[j]*A_start[l]*Imp_H[i][j] + A_prog[l]*Imp_A[i][j][l-1] - A_prog[l+1]*Imp_A[i][j][l] - A_mort[l][j][i]*Imp_A[i][j][l] + 
-                            (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Imp_A[i][j][l]/tot_age[i];
-               
+                            (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Imp_A[i][j][l]/tot_age[i];               
         }
       }
     }
