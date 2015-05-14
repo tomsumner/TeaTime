@@ -10,8 +10,6 @@ library(ggplot2)
 
 ## Compile and load the C code
 system("R CMD SHLIB TB_model_v4.c") # Compile
-
-system("MAKEFLAGS=CFLAGS=-O3 R CMD SHLIB TB_model_v4.c") # Compile
 dyn.load("TB_model_v4.dll") # Load
 dyn.unload("TB_model_v4.dll") # Unload - need to do this before recompiling
 
@@ -109,18 +107,23 @@ k <- cbind(seq(1970,2050),(30 + ((120-30)/((1+exp(-0.5*(seq(1970,2050)-2004)))^(
 
 #k <- cbind(c(1970,1990,2050),c(0.30,0.30,1.20))
 
+# DST coverage among new and previously treated cases
+dst_n <- cbind(seq(1970,2050),(0 + ((95-0)/((1+exp(-1*(seq(1970,2050)-1993)))^(1/2))))/100)
+dst_p <- cbind(seq(1970,2050),(0 + ((95-0)/((1+exp(-1*(seq(1970,2050)-1993)))^(1/2))))/100)
+
 # Combine forcing functions into a list
 force <- list(birth_rate,s_birth,s5,s10,s15,s20,s25,s30,s35,s40,s45,s50,s55,s60,s65,s70,s75,s80,
               h0,h5,h10,h15,h20,h25,h30,h35,h40,h45,h50,h55,h60,h65,h70,h75,h80,
               Ahigh,A500,A349,A249,A199,A99,A50,Athresh,
-              BCG_cov,pop_ad,k)
+              BCG_cov,pop_ad,k,dst_n,dst_p)
 
 # Set up TB parameters
 
 # Fitness of MDR, used to calculate parameter for superinfections
-# Both of these are passed into "parms"
+# Both of these are passed into "parms" together with e, the MDR acquisition rate (we set this to zero to exclude MDR in equilibirum phase)
 fit_cost=0.7
 g = fit_cost/(1+fit_cost) # superinfections 
+e = 0.01
 
 # proportion primary (a), proportion smear pos (sig) and mortality rates (muN and mu_I) take different values for 
 # adults (>15) (_a), 0-4 (_0), 5-9 (_5) and 10-14 (_10)
@@ -129,19 +132,21 @@ parms <- c(age1 = 1/5, age2 = 1/21, beta = 18,
            a_a = 0.14, a0 = 0.26432, a5 = 0.14056, a10 = 0.056,  
            p = 0.65, v = 0.001, 
            sig_a = 0.45, sig0 = 0.0684, sig5 = 0.0414, sig10 = 0.0846, rel_inf = 0.25, theta = 0.02, r = 0.25, 
-           mu_N = 0.25, mu_N0 = 0.426, mu_I = 0.35, mu_I0 = 0.59, fit_cost = fit_cost, e = 0, g=g, l_s = 0.83, l_m = 0.0, d = 0.8, tau_s = 0.76, tau_m = 0.0,
-           eff_n = 0.0, eff_p = 0.0, dst_n = 0.0, dst_p = 0.0, 
+           mu_N = 0.25, mu_N0 = 0.426, mu_I = 0.35, mu_I0 = 0.59, fit_cost = fit_cost, e = e, g=g, l_s = 0.83, l_m = 0.7, d = 0.8, tau_s = 0.76, tau_m = 0.5,
+           eff_n = 0.61, eff_p = 0.45, 
            muN_H = 0.45, muI_H = 0.6, RR1a = 2, RR2a = 1.288, RR1v = 3, RR2v = 3, RR1p = 0.5, RR2p = 1.1,
            ART_TB1 = 0.7, ART_TB2 = 0.5, ART_TB3 = 0.35, ART_mort1 = 0.5, ART_mort2 = 0.4, ART_mort3 = 0.3,
-           BCG_eff = 0.39)
+           BCG_eff = 0.39,
+           sig_H = 0.35,r_H=0.15)
 
 ##############################################################################################################################
-# Model initialisation
-# run the model from 1970 pop with 1970 birth/death rates and care and control parameters with 100 TB cases (no MDR or HIV) 
-# for 200 years to get stable age structure and disease state
+# Run the model 
+
+# First run the model from 1970 pop with 1970 birth/death rates and care and control parameters with 100 TB cases (no MDR or HIV) 
+# for 100 years to get stable age structure and disease state
 
 # Times to run model for
-times <- seq(0,200 , by=1)
+times <- seq(0,100, by=1)
 
 # Initial conditions - all susceptible
 temp <- c()
@@ -159,36 +164,40 @@ xstart <- c(S=c(temp),
             Nsn_A=rep(0,num_ages*7*3),Nsp_A=rep(0,num_ages*7*3),Nmn_A=rep(0,num_ages*7*3),Nmp_A=rep(0,num_ages*7*3),
             Isn_A=rep(0,num_ages*7*3),Isp_A=rep(0,num_ages*7*3),Imn_A=rep(0,num_ages*7*3),Imp_A=rep(0,num_ages*7*3))
 
+# For initialisation run turn off MDR by setting e = 0
+parms["e"]=0
+
 # Run the model
 time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
             parms = parms, dllname = "TB_model_v4",initforc = "forcc",
-            forcings=force, initfunc = "parmsc", nout = 40,
+            forcings=force, initfunc = "parmsc", nout = 44,
             outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                          "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                          "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
                          "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
-                         "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on"), method = rkMethod("rk34f")))
+                         "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on","TB_deaths",
+                         "Cases_neg","Cases_pos","Cases_ART"), method = rkMethod("rk34f")))
 
 # Adjust pop down to 1970 values and reassign initial conditions - model can now be run from 1970 with TB and HIV
 temp <- out_eq[dim(out_eq)[1],2:6410]
 temp <- temp/(sum(temp)/22502) # 22502 is total pop from UN estimates in 1970)
 xstart <- temp
 
-##############################################################################################################################
-
-# Now run the model for TB and HIV
+# Reset e to allow MDR
+parms["e"]=e
 
 # Set times to run for
 times <- seq(1970,2050 , by=1)
 # Run the model
 time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
            parms = parms, dllname = "TB_model_v4",initforc = "forcc",
-           forcings=force, initfunc = "parmsc", nout = 40,
+           forcings=force, initfunc = "parmsc", nout = 44,
            outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                         "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                         "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
                         "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
-                        "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on"), method = rkMethod("rk34f")))
+                        "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on","TB_deaths",
+                        "Cases_neg","Cases_pos","Cases_ART"), method = rkMethod("rk34f")))
 
 ######## Some plots for testing things against spectrum
 
@@ -237,9 +246,18 @@ plot(out[,"time"],100*out[,"Total_DS"]/out[,"Total"],ylim=c(0,1))
 
 
 # Arrange some outputs to take out to excel
-cbind(out[,"time"],1000*out[,"Total_DS"]) # Prev in numbers
-cbind(out[,"time"],100*out[,"Total_DS"]/out[,"Total"]) # Prev in %
+cbind(out[,"time"],1000*out[,"Total_DS"],1000*out[,"Total_MDR"]) # Prev in numbers
+cbind(out[,"time"],100*out[,"Total_DS"]/out[,"Total"],100*out[,"Total_MDR"]/out[,"Total"],
+                   100*(out[,"Total_DS"]+out[,"Total_MDR"])/out[,"Total"]) # Prev in %
+
 cbind(out[,"time"],1000*out[,"Total"]) # Total population
+
+cbind(out[,"time"],100*out[,"TB_deaths"]/out[,"Total"]) # Mortality in %
+
+cbind(out[,"time"],100*out[,"Total_L"]/out[,"Total"]) # LTBI in %
+
+cbind(out[,"time"],1000*out[,"Cases_neg"],1000*out[,"Cases_pos"],1000*out[,"Cases_ART"]) # TB cases
+
 
 # distribution CD4 no ART
 temp <- rbind(out[,"time"],1000*out[,"CD4500"],1000*out[,"CD4350_500"],1000*out[,"CD4250_349"],1000*out[,"CD4200_249"],
