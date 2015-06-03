@@ -87,6 +87,8 @@ h80 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X80/1000)
 ART_data <- as.data.frame(read.table("ART_data.txt",header=TRUE)) # Load data
 # Create forcing function of threshold category
 Athresh <- cbind(ART_data[,"Year"],ART_data[,"CD4_cat"])
+
+
 # Create forcing functions which account for threshold and coverage
 A50 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>50,1,0)/100)
 A99 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>99,1,0)/100)
@@ -136,6 +138,7 @@ parms <- c(age1 = 1/5, age2 = 1/21, beta = 18,
            eff_n = 0.61, eff_p = 0.45, 
            muN_H = 0.45, muI_H = 0.6, RR1a = 2, RR2a = 1.288, RR1v = 3, RR2v = 3, RR1p = 0.5, RR2p = 1.1,
            ART_TB1 = 0.7, ART_TB2 = 0.5, ART_TB3 = 0.35, ART_mort1 = 0.5, ART_mort2 = 0.4, ART_mort3 = 0.3,
+           #ART_TB1 = 1, ART_TB2 = 1, ART_TB3 = 1, ART_mort1 = 1, ART_mort2 = 1, ART_mort3 = 1,
            BCG_eff = 0.39,
            sig_H = 0.35,r_H=0.15)
 
@@ -154,7 +157,7 @@ for (i in 1:num_ages){temp[i]<-UN_pop_age[21,i+1]}
 xstart <- c(S=c(temp),
             Lsn=rep(0,num_ages),Lsp=rep(0,num_ages),Lmn=rep(0,num_ages),Lmp=rep(0,num_ages),
             Nsn=rep(0,num_ages),Nsp=rep(0,num_ages),Nmn=rep(0,num_ages),Nmp=rep(0,num_ages),
-            Isn=c(rep(0,5),100,rep(0,11)),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
+            Isn=c(rep(0,5),0,rep(0,11)),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
             S_H=rep(0,num_ages*7),
             Lsn_H=rep(0,num_ages*7),Lsp_H=rep(0,num_ages*7),Lmn_H=rep(0,num_ages*7),Lmp_H=rep(0,num_ages*7),
             Nsn_H=rep(0,num_ages*7),Nsp_H=rep(0,num_ages*7),Nmn_H=rep(0,num_ages*7),Nmp_H=rep(0,num_ages*7),
@@ -241,24 +244,20 @@ plot_pop <- ggplot(temp_model,aes(x=Year,y=value))+
   facet_wrap(~variable,scales="free")+
   xlim(c(1970,2100))
 
-# Plot TB prevalence ################################
-plot(out[,"time"],100*out[,"Total_DS"]/out[,"Total"],ylim=c(0,1))
 
 
-# Arrange some outputs to take out to excel
-cbind(out[,"time"],1000*out[,"Total_DS"],1000*out[,"Total_MDR"]) # Prev in numbers
-cbind(out[,"time"],100*out[,"Total_DS"]/out[,"Total"],100*out[,"Total_MDR"]/out[,"Total"],
-                   100*(out[,"Total_DS"]+out[,"Total_MDR"])/out[,"Total"]) # Prev in %
+# Arrange some outputs to take out to excel (all in numbers)
 
-cbind(out[,"time"],1000*out[,"Total"]) # Total population
-
-cbind(out[,"time"],100*out[,"TB_deaths"]/out[,"Total"]) # Mortality in %
-
-cbind(out[,"time"],100*out[,"Total_L"]/out[,"Total"]) # LTBI in %
-
-cbind(out[,"time"],1000*out[,"Cases_neg"],1000*out[,"Cases_pos"],1000*out[,"Cases_ART"]) # TB cases
-
-
+cbind(out[,"time"],
+      1000*out[,"Total"],
+      1000*(out[,"Total_DS"]),  # Prev (DS)
+      1000*(out[,"Total_MDR"]), # Prev (MDR)
+      1000*(out[,"Cases_neg"]), # Inc (neg)         
+      1000*(out[,"Cases_pos"]), # Inc (pos)  
+      1000*(out[,"Cases_ART"]), # Inc (art)  
+      1000*(out[,"TB_deaths"]), # Mort (all)
+      1000*(out[,"Total_L"]))   # LTBI (all)
+      
 # distribution CD4 no ART
 temp <- rbind(out[,"time"],1000*out[,"CD4500"],1000*out[,"CD4350_500"],1000*out[,"CD4250_349"],1000*out[,"CD4200_249"],
                    1000*out[,"CD4100_199"],1000*out[,"CD450_99"],1000*out[,"CD450"])
@@ -274,8 +273,9 @@ cbind(out[,"time"],100*(1000*out[,"CD4500"]+1000*out[,"CD4350_500"]+1000*out[,"C
       1000*out[,"CD4100_199"]+1000*out[,"CD450_99"]+1000*out[,"CD450"]+1000*out[,"ART500"]+1000*out[,"ART350_500"]+
       1000*out[,"ART250_349"]+1000*out[,"ART200_249"]+1000*out[,"ART100_199"]+1000*out[,"ART50_99"]+1000*out[,"ART50"])/(1000*rowSums(tot[,4:17])))
 
-# Number of HIV positives - we currently ignore childhood HIV
+# Number of HIV positives on and off ART - we currently ignore childhood HIV so equivalent to 15+ in TIME
 cbind(out[,"time"],1000*out[,"CD4500"]+1000*out[,"CD4350_500"]+1000*out[,"CD4250_349"]+1000*out[,"CD4200_249"]+
-                          1000*out[,"CD4100_199"]+1000*out[,"CD450_99"]+1000*out[,"CD450"]+1000*out[,"ART500"]+1000*out[,"ART350_500"]+
+                          1000*out[,"CD4100_199"]+1000*out[,"CD450_99"]+1000*out[,"CD450"],1000*out[,"ART500"]+1000*out[,"ART350_500"]+
                           1000*out[,"ART250_349"]+1000*out[,"ART200_249"]+1000*out[,"ART100_199"]+1000*out[,"ART50_99"]+1000*out[,"ART50"])
 
+cbind(out[,"time"],1000*out[,"ART_new"])
