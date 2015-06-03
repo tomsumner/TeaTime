@@ -7,7 +7,7 @@
            HIV testing and ART inititation
 */
 
-/* compile within R with system("R CMD SHLIB TB_model_v3.c") */
+/* compile within R with system("R CMD SHLIB TB_model_v4.c") */
 
 #include <R.h>
 #include <math.h>
@@ -17,53 +17,55 @@ static double parms[47];
 static double forc[48];
 
 /* A trick to keep up with the parameters and forcings */
-#define age1 parms[0]
-#define age2 parms[1]
-#define beta parms[2]
-#define a_a parms[3]
-#define a0 parms[4]
-#define a5 parms[5]
-#define a10 parms[6]
-#define p parms[7]
-#define v parms[8]
-#define sig_a parms[9]
-#define sig0 parms[10]
-#define sig5 parms[11]
-#define sig10 parms[12]
-#define rel_inf parms[13]
-#define theta parms[14]
-#define r parms[15]
-#define mu_N parms[16]
-#define mu_N0 parms[17]
-#define mu_I parms[18]
-#define mu_I0 parms[19]
-#define fit_cost parms[20]
-#define e parms[21]
-#define g parms[22]
-#define l_s parms[23]
-#define l_m parms[24]
-#define d parms[25]
-#define tau_s parms[26]
-#define tau_m parms[27]
-#define eff_n parms[28]
-#define eff_p parms[29]
-#define muN_H parms[30]
-#define muI_H parms[31]
-#define RR1a parms[32]
-#define RR2a parms[33]
-#define RR1v parms[34]
-#define RR2v parms[35]
-#define RR1p parms[36]
-#define RR2p parms[37]
-#define ART_TB1 parms[38]
-#define ART_TB2 parms[39]
-#define ART_TB3 parms[40]
-#define ART_mort1 parms[41]
-#define ART_mort2 parms[42]
-#define ART_mort3 parms[43]
-#define BCG_eff parms[44]
-#define sig_H parms[45]
-#define r_H parms[46]
+#define age1 parms[0]       /* rate of entry/exit to/from age group = 1/width */
+#define age2 parms[1]       /* exit rate is higher from final age group  as bin is wider */
+#define beta parms[2]       /* effective contact rate */
+#define a_a parms[3]        /* proportion developing primary disease in adults (>15) */
+#define a0 parms[4]         /* proportion developing primary disease in 0-4 year olds */ 
+#define a5 parms[5]         /* proportion developing primary disease in 5-9 year olds */
+#define a10 parms[6]        /* proportion developing primary disease in 10-14 year olds */
+#define p parms[7]          /* protection against disease due to prior infection */
+#define v parms[8]          /* reactivation rate */
+#define sig_a parms[9]      /* proportion developing smear positive disease in adults (>15) */
+#define sig0 parms[10]      /* proportion developing smear positive disease in 0-4 year olds */
+#define sig5 parms[11]      /* proportion developing smear positive disease in 5-9 year olds */
+#define sig10 parms[12]     /* proportion developing smear positive disease in 10-14 year olds */
+#define rel_inf parms[13]   /* relative infectiousness of smear negative TB */
+#define theta parms[14]     /* rate of conversion from smear negative to smear positive TB */
+#define r parms[15]         /* rate of self cure from TB */
+#define mu_N parms[16]      /* mortality rate from smear negative TB (>5 years old) */
+#define mu_N0 parms[17]     /* mortality rate from smear negative TB in 0-4 year olds */
+#define mu_I parms[18]      /* mortality rate from smear positive TB (>5 years old) */
+#define mu_I0 parms[19]     /* mortality rate from smear positive TB in 0-4 year olds */
+#define fit_cost parms[20]  /* relative fitness of MDR strains (transmission only) */
+#define e parms[21]         /* rate of acquisition of MDR */
+#define g parms[22]         /* superinfections */
+#define l_s parms[23]       /* linkage to care for diagnosed DS TB */
+#define l_m parms[24]       /* linkage to care for diagnosed MDR TB */
+#define d parms[25]         /* relative detection rate of smear negative TB */ 
+#define tau_s parms[26]     /* treatment success for DS TB */
+#define tau_m parms[27]     /* treatment success for MDR TB */
+#define eff_n parms[28]     /* efficacy of first line drugs in treating new MDR cases */
+#define eff_p parms[29]     /* efficacy of first line drugs in treating retreatment MDR cases */
+#define muN_H parms[30]     /* mortaltiy rate from smear negative TB in HIV+ */
+#define muI_H parms[31]     /* mortaltiy rate from smear positive TB in HIV+ */
+#define RR1a parms[32]      /* Relative risk for primary disease following HIV infection */
+#define RR2a parms[33]      /* Relative risk for primary disease by CD4 */
+#define RR1v parms[34]      /* Relative risk for reactivation following HIV infection */
+#define RR2v parms[35]      /* Relative risk for reactivation by CD4 */
+#define RR1p parms[36]      /* Relative risk of protection against reinfection following HIV infection */
+#define RR2p parms[37]      /* Relative risk of protection against reinfection by CD4 */
+#define ART_TB1 parms[38]   /* Reduction in TB parameters on ART (<6m) */
+#define ART_TB2 parms[39]   /* Reduction in TB parameters on ART (7-12m) */
+#define ART_TB3 parms[40]   /* Reduction in TB parameters on ART (>12m) */
+#define ART_mort1 parms[41] /* Reduction in TB mortality on ART (<6m) */
+#define ART_mort2 parms[42] /* Reduction in TB mortality on ART (7-12m) */
+#define ART_mort3 parms[43] /* Reduction in TB mortality on ART (>12m) */
+#define BCG_eff parms[44]   /* Efficacy of BCG (reduces primary and reactivation risks) */
+#define sig_H parms[45]     /* proportion developing smear positive disease in HIV+ */
+#define r_H parms[46]       /* rate of self cure from TB in HIV+ */
+
+/* These are time dependant functions */
 
 #define birth_rate forc[0] /* Birth rate */
 #define s_birth forc[1]    /* Survival at birth */
@@ -112,7 +114,7 @@ static double forc[48];
 #define Athresh forc[42] /* ART eligibility threshold in terms of model CD4 categories i.e. 1 means anyone <500 */
 
 #define BCG_cov forc[43] /* BCG coverage */
-#define pop_ad forc[44]  /* used to turn on/off adjustment of population to account for disease induced mortality */
+#define pop_ad forc[44]  /* used to turn on/off adjustment of population to account for disease induced mortality - idea is to turn it off from 2015 onwards*/
 #define k forc[45]       /* detection rate */
 #define dst_n forc[46]   /* dst coverage in new cases */
 #define dst_p forc[47]   /* dst coverage in previoulsy treated cases */
@@ -141,7 +143,6 @@ void forcc(void (* odeforcs)(int *, double *))
     int N=48;
     odeforcs(&N, forc);
 }
-
 
 /* derivative function */
 void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip)
@@ -234,6 +235,8 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     int l;
     int ij;
      
+    /* Then assign these to the correct bit of y */  
+     
     /* HIV- */ 
     for (i=0; i<17; i++) S[i] = y[i];             /* S: 0-17 */
     for (i=17; i<34; i++) Lsn[i-17] = y[i];       /* Lsn: 17-33 */
@@ -322,7 +325,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
         a_age_H[i][j] = a_age[i]*RR1a*pow(RR2a,(500-mid_CD4[j])/100);
         v_age_H[i][j] = v_age[i]*RR1v*pow(RR2v,(500-mid_CD4[j])/100);
         for (l=0; l<3; l++){
-          a_age_A[i][j][l] = fmax(a_age_H[i][j]*ART_TB[l],a_age[i]);
+          a_age_A[i][j][l] = fmax(a_age_H[i][j]*ART_TB[l],a_age[i]);   /* fmax or fmin ensures being on ART can't be better than being HIV- */
           v_age_A[i][j][l] = fmax(v_age_H[i][j]*ART_TB[l],v_age[i]);
           p_A[j][l] = fmin(p_H[j]/ART_TB[l],p);
         }
@@ -330,6 +333,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     }
     
     /* Set up parameters for HIV model - these are taken from AIM */
+    /* Looks like only ART mortality depends on country - ohers can remain hard coded but this will need to be an input (and need to remember to take average by gender) */
 
     double H_CD4[7][17] = { /* Distribution of new HIV infections (age,CD4) */
       {0,0,0,0.643,0.643,0.607,0.607,0.585,0.585,0.552,0.552,0.552,0.552,0.552,0.552,0.552,0.552},
@@ -340,7 +344,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
       {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
       {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
     };
-    
+     
     double H_prog[8][17] = {  /* Progression through CD4 categories (age, CD4) - has extra row to avoid progression in/out of first/last groups */
       {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
       {0,0,0,0.111,0.111,0.137,0.137,0.168,0.168,0.192,0.192,0.192,0.192,0.192,0.192,0.192,0.192},
@@ -361,31 +365,32 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
       {0,0,0,0.321,0.321,0.499,0.499,0.691,0.691,0.513,0.513,0.513,0.513,0.513,0.513,0.513,0.513},
       {0,0,0,0.737,0.737,1.342,1.342,1.851,1.851,1.295,1.295,1.295,1.295,1.295,1.295,1.295,1.295}
     };
-    
-    double A_mort[3][7][17] = { /* On ART mortality (age,starting CD4, time on ART) */
+
+    double A_mort[3][7][17] = { /* On ART mortality (age,starting CD4, time on ART)  - this is an average of male and female values */
       {{0,0,0,0.0050,0.0050,0.0035,0.0035,0.0050,0.0050,0.0050,0.0050,0.0050,0.0050,0.0050,0.0050,0.0050,0.0050},
        {0,0,0,0.0115,0.0115,0.0095,0.0095,0.0134,0.0134,0.0126,0.0126,0.0126,0.0126,0.0126,0.0126,0.0126,0.0126},
        {0,0,0,0.0264,0.0264,0.0256,0.0256,0.0359,0.0359,0.0319,0.0319,0.0319,0.0319,0.0319,0.0319,0.0319,0.0319},
-       {0,0,0,0.0607,0.0607,0.0563,0.0563,0.0587,0.0587,0.0594,0.0594,0.0594,0.0594,0.0594,0.0594,0.0594,0.0594},
-       {0,0,0,0.1113,0.1113,0.0929,0.0929,0.0980,0.0980,0.1039,0.1039,0.1039,0.1039,0.1039,0.1039,0.1039,0.1039},
-       {0,0,0,0.1810,0.1810,0.1525,0.1525,0.1619,0.1619,0.1762,0.1762,0.1762,0.1762,0.1762,0.1762,0.1762,0.1762},
-       {0,0,0,0.3974,0.3974,0.3373,0.3373,0.3605,0.3605,0.4009,0.4009,0.4009,0.4009,0.4009,0.4009,0.4009,0.4009}},
+       {0,0,0,0.0557,0.0557,0.0477,0.0477,0.0495,0.0495,0.0489,0.0489,0.0489,0.0489,0.0489,0.0489,0.0489,0.0489},
+       {0,0,0,0.0953,0.0953,0.0792,0.0792,0.0833,0.0833,0.0872,0.0872,0.0872,0.0872,0.0872,0.0872,0.0872,0.0872},
+       {0,0,0,0.1553,0.1553,0.1305,0.1305,0.1384,0.1384,0.1496,0.1496,0.1496,0.1496,0.1496,0.1496,0.1496,0.1496},
+       {0,0,0,0.3418,0.3418,0.2897,0.2897,0.3094,0.3094,0.3431,0.3431,0.3431,0.3431,0.3431,0.3431,0.3431,0.3431}},
       {{0,0,0,0.0050,0.0050,0.0035,0.0035,0.0050,0.0050,0.0050,0.0050,0.0050,0.0050,0.0050,0.0050,0.0050,0.0050},
        {0,0,0,0.0115,0.0115,0.0095,0.0095,0.0134,0.0134,0.0126,0.0126,0.0126,0.0126,0.0126,0.0126,0.0126,0.0126},
-       {0,0,0,0.0244,0.0244,0.0256,0.0256,0.0323,0.0323,0.0319,0.0319,0.0319,0.0319,0.0319,0.0319,0.0319,0.0319},
-       {0,0,0,0.0258,0.0258,0.0332,0.0332,0.0341,0.0341,0.0451,0.0451,0.0451,0.0451,0.0451,0.0451,0.0451,0.0451},
-       {0,0,0,0.0323,0.0323,0.0417,0.0417,0.0433,0.0433,0.0584,0.0584,0.0584,0.0584,0.0584,0.0584,0.0584,0.0584},
-       {0,0,0,0.0405,0.0405,0.0523,0.0523,0.0548,0.0548,0.0751,0.0751,0.0751,0.0751,0.0751,0.0751,0.0751,0.0751},
-       {0,0,0,0.0583,0.0583,0.0753,0.0753,0.0797,0.0797,0.1112,0.1112,0.1112,0.1112,0.1112,0.1112,0.1112,0.1112}},
-      {{0,0,0,0.0050,0.0050,0.0035,0.0035,0.0050,0.0050,0.0050,0.0050,0.0050,0.0050,0.0050,0.0050,0.0050,0.0050},
-       {0,0,0,0.0086,0.0086,0.0095,0.0095,0.0101,0.0101,0.0102,0.0102,0.0102,0.0102,0.0102,0.0102,0.0102,0.0102},
-       {0,0,0,0.0092,0.0092,0.0117,0.0117,0.0109,0.0109,0.0114,0.0114,0.0114,0.0114,0.0114,0.0114,0.0114,0.0114},
-       {0,0,0,0.0098,0.0098,0.0125,0.0125,0.0118,0.0118,0.0127,0.0127,0.0127,0.0127,0.0127,0.0127,0.0127,0.0127},
-       {0,0,0,0.0129,0.0129,0.0165,0.0165,0.0161,0.0161,0.0190,0.0190,0.0190,0.0190,0.0190,0.0190,0.0190,0.0190},
-       {0,0,0,0.0168,0.0168,0.0216,0.0126,0.0216,0.0216,0.0268,0.0268,0.0268,0.0268,0.0268,0.0268,0.0268,0.0268},
-       {0,0,0,0.0251,0.0251,0.0324,0.0324,0.0333,0.0333,0.0438,0.0438,0.0438,0.0438,0.0438,0.0438,0.0438,0.0438}}
+       {0,0,0,0.0204,0.0204,0.0242,0.0242,0.0267,0.0267,0.0306,0.0306,0.0306,0.0306,0.0306,0.0306,0.0306,0.0306},
+       {0,0,0,0.0216,0.0216,0.0278,0.0278,0.0283,0.0283,0.0366,0.0366,0.0366,0.0366,0.0366,0.0366,0.0366,0.0366},
+       {0,0,0,0.0272,0.0272,0.0351,0.0351,0.0362,0.0362,0.0481,0.0481,0.0481,0.0481,0.0481,0.0481,0.0481,0.0481},
+       {0,0,0,0.0343,0.0343,0.0442,0.0442,0.0461,0.0461,0.0625,0.0625,0.0625,0.0625,0.0625,0.0625,0.0625,0.0625},
+       {0,0,0,0.0496,0.0496,0.0640,0.0640,0.0675,0.0675,0.0935,0.0935,0.0935,0.0935,0.0935,0.0935,0.0935,0.0935}},
+      {{0,0,0,0.0050,0.0050,0.0035,0.0035,0.0050,0.0050,0.0045,0.0045,0.0045,0.0045,0.0045,0.0045,0.0045,0.0045},
+       {0,0,0,0.0068,0.0068,0.0081,0.0081,0.0076,0.0076,0.0066,0.0066,0.0066,0.0066,0.0066,0.0066,0.0066,0.0066},
+       {0,0,0,0.0073,0.0073,0.0093,0.0093,0.0083,0.0083,0.0076,0.0076,0.0076,0.0076,0.0076,0.0076,0.0076,0.0076},
+       {0,0,0,0.0079,0.0079,0.0100,0.0100,0.0091,0.0091,0.0087,0.0087,0.0087,0.0087,0.0087,0.0087,0.0087,0.0087},
+       {0,0,0,0.0105,0.0105,0.0134,0.0134,0.0128,0.0128,0.0141,0.0141,0.0141,0.0141,0.0141,0.0141,0.0141,0.0141},
+       {0,0,0,0.0139,0.0139,0.0177,0.0177,0.0174,0.0174,0.0209,0.0209,0.0209,0.0209,0.0209,0.0209,0.0209,0.0209},
+       {0,0,0,0.0211,0.0211,0.0271,0.0271,0.0275,0.0275,0.0355,0.0355,0.0355,0.0355,0.0355,0.0355,0.0355,0.0355}}
     };      
-    
+
+
     double A_prog[4] = {0,2,2,0}; /* Progression through time on ART, 6 monthly time blocks */
     
     double A_start[3] = {1,0,0};  /* Used to make sure ART initiations are only added to the fist time on ART box */ 
@@ -507,9 +512,10 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
         CD4_dist[j] = CD4_dist[j]+S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+
                       Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j]+ 
                       Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j];
-        CD4_deaths[j] = CD4_deaths[j]+H_mort[j][i]*(S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+
-                      Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j]+ 
-                      Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j]);
+        CD4_deaths[j] = CD4_deaths[j]+
+                        H_mort[j][i]*(S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+
+                        Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j]+ 
+                        Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j]);
         for (l=0; l<3; l++){
           CD4_dist_ART[j] = CD4_dist_ART[j]+S_A[i][j][l]+Lsn_A[i][j][l]+Lsp_A[i][j][l]+Lmn_A[i][j][l]+Lmp_A[i][j][l]+
                             Nsn_A[i][j][l]+Nsp_A[i][j][l]+Nmn_A[i][j][l]+Nmp_A[i][j][l]+ 
@@ -532,6 +538,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
       for (j=Athresh; j<7; j++) {
         if (CD4_dist[j] > 0) {
           ART_prop[j] = (((CD4_dist[j]/ART_el)+(CD4_deaths[j]/ART_el_deaths))/2)*(ART_new/CD4_dist[j]); /* applies weighting and size of CD4 group to work out % of CD4 group that should move */
+           /* ART_prop[j] = (CD4_dist[j]/ART_el)*(ART_new/CD4_dist[j]); */
         }
       }
     }
@@ -830,7 +837,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                             k*l_s*(1-e)*tau_s*(Isn_A[i][j][l]+Isp_A[i][j][l]) + 
                             k*l_s*(1-e)*tau_s*d*(Nsn_A[i][j][l]+Nsp_A[i][j][l]) +
                             ART_prop[j]*A_start[l]*Lsp_H[i][j] + A_prog[l]*Lsp_A[i][j][l-1] - A_prog[l+1]*Lsp_A[i][j][l] - A_mort[l][j][i]*Lsp_A[i][j][l] +
-                            (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Lsp_A[i][j][j]/tot_age[i];
+                            (HIV_deaths[i] + ART_deaths[i] + TB_deaths[i])*Lsp_A[i][j][l]/tot_age[i];
                              
           dLmn_A[i][j][l] = age_in[i]*forc[i+1]*Lmn_A[i-1][j][l] - age_out[i]*Lmn_A[i][j][l] +
                             FM*((1-a_age_A[i][j][l])*S_A[i][j][l] + (1-a_age_A[i][j][l])*(1-p_A[j][l])*g*Lsn_A[i][j][l]) -
