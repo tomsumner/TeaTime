@@ -157,7 +157,7 @@ for (i in 1:num_ages){temp[i]<-UN_pop_age[21,i+1]}
 xstart <- c(S=c(temp),
             Lsn=rep(0,num_ages),Lsp=rep(0,num_ages),Lmn=rep(0,num_ages),Lmp=rep(0,num_ages),
             Nsn=rep(0,num_ages),Nsp=rep(0,num_ages),Nmn=rep(0,num_ages),Nmp=rep(0,num_ages),
-            Isn=c(rep(0,5),0,rep(0,11)),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
+            Isn=c(rep(0,5),100,rep(0,11)),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
             S_H=rep(0,num_ages*7),
             Lsn_H=rep(0,num_ages*7),Lsp_H=rep(0,num_ages*7),Lmn_H=rep(0,num_ages*7),Lmp_H=rep(0,num_ages*7),
             Nsn_H=rep(0,num_ages*7),Nsp_H=rep(0,num_ages*7),Nmn_H=rep(0,num_ages*7),Nmp_H=rep(0,num_ages*7),
@@ -173,17 +173,20 @@ parms["e"]=0
 # Run the model
 time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
             parms = parms, dllname = "TB_model_v4",initforc = "forcc",
-            forcings=force, initfunc = "parmsc", nout = 44,
+            forcings=force, initfunc = "parmsc", nout = 61,
             outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                          "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                          "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
                          "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
                          "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on","TB_deaths",
-                         "Cases_neg","Cases_pos","Cases_ART"), method = rkMethod("rk34f")))
+                         "Cases_neg","Cases_pos","Cases_ART",
+                         "DD1","DD2","DD3","DD4","DD5","DD6","DD7","DD8","DD9","DD10","DD11","DD12","DD13","DD14","DD15","DD16","DD17"), 
+            method = rkMethod("rk34f")))
 
 # Adjust pop down to 1970 values and reassign initial conditions - model can now be run from 1970 with TB and HIV
 temp <- out_eq[dim(out_eq)[1],2:6410]
-temp <- temp/(sum(temp)/22502) # 22502 is total pop from UN estimates in 1970)
+temp_tot <- UN_pop_age_t[UN_pop_age_t$Year==1970,"Total"] # total pop from UN estimates in 1970
+temp <- temp/(sum(temp)/temp_tot)
 xstart <- temp
 
 # Reset e to allow MDR
@@ -194,29 +197,17 @@ times <- seq(1970,2050 , by=1)
 # Run the model
 time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
            parms = parms, dllname = "TB_model_v4",initforc = "forcc",
-           forcings=force, initfunc = "parmsc", nout = 44,
+           forcings=force, initfunc = "parmsc", nout = 61,
            outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                         "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                         "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
                         "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
                         "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on","TB_deaths",
-                        "Cases_neg","Cases_pos","Cases_ART"), method = rkMethod("rk34f")))
+                        "Cases_neg","Cases_pos","Cases_ART",
+                        "DD1","DD2","DD3","DD4","DD5","DD6","DD7","DD8","DD9","DD10","DD11","DD12","DD13","DD14","DD15","DD16","DD17"), 
+           method = rkMethod("rk34f")))
 
-######## Some plots for testing things against spectrum
-
-# Plot of CD4 distribution #####################
-
-temp1 <- as.data.frame(cbind(seq(1970,2050),out[,6426:6432],"No ART"))
-colnames(temp1) <- c("Year",colnames(temp1[,2:8]),"Type")
-temp2 <- as.data.frame(cbind(seq(1970,2050),out[,6433:6439],"ART"))
-colnames(temp2) <- c("Year",colnames(temp1[,2:8]),"Type")
-temp <- rbind(temp1,temp2)
-temp_CD4 <- melt(temp,id=c("Year","Type"))
-
-plot_CD4 <- ggplot(temp_CD4,aes(x=as.numeric(as.character(Year)),y=as.numeric(as.character(value)),fill=variable))+
-  geom_area(colour="black", size=.2, alpha=.4) +
-  facet_wrap(~Type)+
-  xlim(c(1970,2050))
+######## Some plots for testing things against spectrum and other data
 
 # Plot pop against UN data ###################
 
@@ -244,10 +235,78 @@ plot_pop <- ggplot(temp_model,aes(x=Year,y=value))+
   facet_wrap(~variable,scales="free")+
   xlim(c(1970,2100))
 
+# Plot of CD4 distribution against Spectrum - this is normalised by total population to account for differences in population size #####################
+
+# Load TIME outputs
+TIME_no_ART <- as.data.frame(read.table("TIME_no_ART_out.txt",header=TRUE))
+TIME_no_ART <- cbind(TIME_no_ART,"No_ART","TIME")
+colnames(TIME_no_ART) <- c(colnames(TIME_no_ART[1:8]),"Type","Model")
+
+TIME_ART <- as.data.frame(read.table("TIME_ART_out.txt",header=TRUE))
+TIME_ART <- cbind(TIME_ART,"ART","TIME")
+colnames(TIME_ART) <- c(colnames(TIME_ART[1:8]),"Type","Model")
+
+temp1 <- as.data.frame(cbind(out[,"time"],100*out[,6426:6432]/out[,"Total"]))
+temp1 <- cbind(temp1,"No_ART","R")
+colnames(temp1) <- c("Year",colnames(temp1[,2:8]),"Type","Model")
+
+temp2 <- as.data.frame(cbind(seq(1970,2050),100*out[,6433:6439]/out[,"Total"]))
+temp2 <- cbind(temp2,"ART","R")
+colnames(temp2) <- c("Year",colnames(temp1[,2:8]),"Type","Model")
+
+temp_CD4 <- rbind(temp1,temp2,TIME_no_ART,TIME_ART)
+temp_CD4 <- melt(temp_CD4,id=c("Year","Type","Model"))
+
+plot_CD4 <- ggplot(temp_CD4[temp_CD4$Model=="R",],aes(x=as.numeric(as.character(Year)),y=as.numeric(as.character(value)),colour=variable))+
+  geom_line() +
+  geom_line(data=temp_CD4[temp_CD4$Model=="TIME",],aes(x=as.numeric(as.character(Year)),y=as.numeric(as.character(value)),colour=variable),linetype="dashed")+
+  facet_wrap(~Type)+
+  xlim(c(1970,2050))
+
+
+
+#### Compare to TIME output
+
+# Load the TIME results (Incidence, Prevalence, Mortality)
+TIME_out <- as.data.frame(read.table("TIME_out.txt",header=TRUE))
+TIME_out <- cbind(TIME_out,"TIME")
+colnames(TIME_out) <- c("Year","Prevalence","Incidence","Mortality","Model")
+# Load the WHO data 
+Data_out <- as.data.frame(read.table("Data_out.txt",header=TRUE))
+Data_out <- cbind(Data_out,"Data")
+colnames(Data_out) <- c("Year","Prevalence","Incidence","Mortality","Model")
+
+# Arrange model output
+R_out <- as.data.frame(cbind(out[,"time"],
+      100000*(out[,"Total_DS"]+out[,"Total_MDR"])/out[,"Total"],  # Prev
+      100000*(out[,"Cases_neg"]+out[,"Cases_pos"]+out[,"Cases_ART"])/out[,"Total"], # Inc 
+      100000*out[,"TB_deaths"]/out[,"Total"])) # Mort (all)
+R_out <- cbind(R_out,"R")
+colnames(R_out) <- c("Year","Prevalence","Incidence","Mortality","Model")
+# combine and melt
+Models_out <- rbind(TIME_out,R_out,Data_out)
+Models_out <- melt(Models_out,id=c("Year","Model"))
+
+plot_models <- ggplot(Models_out[Models_out$Model!="Data",],aes(x=Year,y=value,colour=Model))+
+  facet_wrap(~variable,scales="free")+
+  geom_line()+
+  geom_point(data=Models_out[Models_out$Model=="Data",],aes(x=Year,y=value),colour="black")+
+  xlim(c(1970,2050))
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Arrange some outputs to take out to excel (all in numbers)
-
 cbind(out[,"time"],
       1000*out[,"Total"],
       1000*(out[,"Total_DS"]),  # Prev (DS)
@@ -257,7 +316,8 @@ cbind(out[,"time"],
       1000*(out[,"Cases_ART"]), # Inc (art)  
       1000*(out[,"TB_deaths"]), # Mort (all)
       1000*(out[,"Total_L"]))   # LTBI (all)
-      
+
+
 # distribution CD4 no ART
 temp <- rbind(out[,"time"],1000*out[,"CD4500"],1000*out[,"CD4350_500"],1000*out[,"CD4250_349"],1000*out[,"CD4200_249"],
                    1000*out[,"CD4100_199"],1000*out[,"CD450_99"],1000*out[,"CD450"])
