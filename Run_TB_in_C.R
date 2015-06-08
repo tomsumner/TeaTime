@@ -9,9 +9,13 @@ library(reshape2)
 library(ggplot2)
 
 ## Compile and load the C code
+dyn.unload("TB_model_v4.dll") # Unload - need to do this before recompiling
 system("R CMD SHLIB TB_model_v4.c") # Compile
 dyn.load("TB_model_v4.dll") # Load
-dyn.unload("TB_model_v4.dll") # Unload - need to do this before recompiling
+
+dyn.unload("TB_model_v5.dll") # Unload - need to do this before recompiling
+system("R CMD SHLIB TB_model_v5.c") # Compile
+dyn.load("TB_model_v5.dll") # Load
 
 ##############################################################################################################################
 
@@ -87,7 +91,6 @@ h80 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X80/1000)
 ART_data <- as.data.frame(read.table("ART_data.txt",header=TRUE)) # Load data
 # Create forcing function of threshold category
 Athresh <- cbind(ART_data[,"Year"],ART_data[,"CD4_cat"])
-
 
 # Create forcing functions which account for threshold and coverage
 A50 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>50,1,0)/100)
@@ -172,7 +175,7 @@ parms["e"]=0
 
 # Run the model
 time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
-            parms = parms, dllname = "TB_model_v4",initforc = "forcc",
+            parms = parms, dllname = "TB_model_v5",initforc = "forcc",
             forcings=force, initfunc = "parmsc", nout = 61,
             outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                          "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
@@ -196,7 +199,7 @@ parms["e"]=e
 times <- seq(1970,2050 , by=1)
 # Run the model
 time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
-           parms = parms, dllname = "TB_model_v4",initforc = "forcc",
+           parms = parms, dllname = "TB_model_v5",initforc = "forcc",
            forcings=force, initfunc = "parmsc", nout = 61,
            outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                         "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
@@ -308,14 +311,14 @@ plot_models <- ggplot(Models_out[Models_out$Model!="Data",],aes(x=Year,y=value,c
 
 # Arrange some outputs to take out to excel (all in numbers)
 cbind(out[,"time"],
-      1000*out[,"Total"],
       1000*(out[,"Total_DS"]),  # Prev (DS)
       1000*(out[,"Total_MDR"]), # Prev (MDR)
       1000*(out[,"Cases_neg"]), # Inc (neg)         
       1000*(out[,"Cases_pos"]), # Inc (pos)  
       1000*(out[,"Cases_ART"]), # Inc (art)  
       1000*(out[,"TB_deaths"]), # Mort (all)
-      1000*(out[,"Total_L"]))   # LTBI (all)
+      1000*(out[,"Total_L"]),   # LTBI (all)
+      1000*out[,"Total"])
 
 
 # distribution CD4 no ART
@@ -328,14 +331,12 @@ temp <- rbind(out[,"time"],1000*out[,"ART500"],1000*out[,"ART350_500"],1000*out[
               1000*out[,"ART100_199"],1000*out[,"ART50_99"],1000*out[,"ART50"])
 write.table(temp,file="CD4_ART.txt",sep=" ")
 
-# HIV prevalence 15+
-cbind(out[,"time"],100*(1000*out[,"CD4500"]+1000*out[,"CD4350_500"]+1000*out[,"CD4250_349"]+1000*out[,"CD4200_249"]+
+# Population, Number of HIV positives on and off ART (we currently ignore childhood HIV so equivalent to 15+ in TIME), HIV prevalence 15+, new ART
+cbind(out[,"time"],1000*out[,"Total"],1000*out[,"CD4500"]+1000*out[,"CD4350_500"]+1000*out[,"CD4250_349"]+1000*out[,"CD4200_249"]+
+        1000*out[,"CD4100_199"]+1000*out[,"CD450_99"]+1000*out[,"CD450"],1000*out[,"ART500"]+1000*out[,"ART350_500"]+
+        1000*out[,"ART250_349"]+1000*out[,"ART200_249"]+1000*out[,"ART100_199"]+1000*out[,"ART50_99"]+1000*out[,"ART50"],100*(1000*out[,"CD4500"]+1000*out[,"CD4350_500"]+1000*out[,"CD4250_349"]+1000*out[,"CD4200_249"]+
       1000*out[,"CD4100_199"]+1000*out[,"CD450_99"]+1000*out[,"CD450"]+1000*out[,"ART500"]+1000*out[,"ART350_500"]+
-      1000*out[,"ART250_349"]+1000*out[,"ART200_249"]+1000*out[,"ART100_199"]+1000*out[,"ART50_99"]+1000*out[,"ART50"])/(1000*rowSums(tot[,4:17])))
+      1000*out[,"ART250_349"]+1000*out[,"ART200_249"]+1000*out[,"ART100_199"]+1000*out[,"ART50_99"]+1000*out[,"ART50"])/(1000*rowSums(tot[,4:17])),1000*out[,"ART_new"])
 
-# Number of HIV positives on and off ART - we currently ignore childhood HIV so equivalent to 15+ in TIME
-cbind(out[,"time"],1000*out[,"CD4500"]+1000*out[,"CD4350_500"]+1000*out[,"CD4250_349"]+1000*out[,"CD4200_249"]+
-                          1000*out[,"CD4100_199"]+1000*out[,"CD450_99"]+1000*out[,"CD450"],1000*out[,"ART500"]+1000*out[,"ART350_500"]+
-                          1000*out[,"ART250_349"]+1000*out[,"ART200_249"]+1000*out[,"ART100_199"]+1000*out[,"ART50_99"]+1000*out[,"ART50"])
 
-cbind(out[,"time"],1000*out[,"ART_new"])
+
