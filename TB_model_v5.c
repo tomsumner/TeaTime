@@ -362,8 +362,8 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
       {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
       {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
     };
-    double H_prog[8][17] = {  /* Progression through CD4 categories (age, CD4) - has extra row to avoid progression in/out of first/last groups */
-      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    /*double H_prog[8][17] = {  /* Progression through CD4 categories (age, CD4) - has extra row to avoid progression in/out of first/last groups */
+    /*  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
       {0,0,0,0.111,0.111,0.137,0.137,0.168,0.168,0.192,0.192,0.192,0.192,0.192,0.192,0.192,0.192},
       {0,0,0,0.200,0.200,0.213,0.213,0.299,0.299,0.414,0.414,0.414,0.414,0.414,0.414,0.414,0.414},
       {0,0,0,0.255,0.255,0.364,0.364,0.441,0.441,0.575,0.575,0.575,0.575,0.575,0.575,0.575,0.575},
@@ -371,7 +371,19 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
       {0,0,0,0.193,0.193,0.471,0.471,0.491,0.491,0.614,0.614,0.614,0.614,0.614,0.614,0.614,0.614},
       {0,0,0,0.294,0.294,0.765,0.765,0.765,0.765,0.865,0.865,0.865,0.865,0.865,0.865,0.865,0.865},
       {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+    };  */  
+    /* Have updated these values based on the durations in the AIM manual (rate = 1/duration) as they are different from rates in AIM editor in software */
+    double H_prog[8][17] = {  /* Progression through CD4 categories (age, CD4) - has extra row to avoid progression in/out of first/last groups */
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0.117,0.117,0.147,0.147,0.183,0.183,0.213,0.212,0.212,0.212,0.212,0.212,0.212,0.212},
+      {0,0,0,0.223,0.223,0.240,0.240,0.355,0.355,0.535,0.535,0.535,0.535,0.535,0.535,0.535,0.535},
+      {0,0,0,0.294,0.294,0.452,0.452,0.581,0.581,0.855,0.855,0.855,0.855,0.855,0.855,0.855,0.855},
+      {0,0,0,0.508,0.508,1.087,1.087,1.250,1.250,1.818,1.818,1.818,1.818,1.818,1.818,1.818,1.818},
+      {0,0,0,0.214,0.214,0.637,0.637,0.676,0.676,0.952,0.952,0.952,0.952,0.952,0.952,0.952,0.952},
+      {0,0,0,0.348,0.348,1.449,1.449,1.449,1.449,2.000,2.000,2.000,2.000,2.000,2.000,2.000,2.000},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
     };    
+
     double H_mort[7][17] = { /* Mortality due to HIV (no ART) (age, CD4) */
       {0,0,0,0.005,0.005,0.004,0.004,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005},
       {0,0,0,0.011,0.011,0.010,0.010,0.013,0.013,0.013,0.013,0.013,0.013,0.013,0.013,0.013,0.013},
@@ -544,7 +556,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     }
     ART_new = fmax(0,ART_on - (Tot_ART - ART_deaths_tot));   /* number who need to start is number who should be on minus those already on plus those on ART who will die in current time */ 
     
-  /*   for (j=0; j<7; j++) ART_prop[j] = 0; /* THIS LINE IS HERE TO ALLOW ART TO BE TURNED OFF */
+     /*for (j=0; j<7; j++) ART_prop[j] = 0; /* THIS LINE IS HERE TO ALLOW ART TO BE TURNED OFF */
     
     /* Then work out where these should go by CD4 - based on proportion of eligible population in CD4 group and proportion of deaths which occuring in CD4 group */
     for (j=Athresh; j<7; j++) {
@@ -557,7 +569,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
         if (CD4_dist[j] > 0) {
           ART_prop[j] = (((CD4_dist[j]/ART_el)+(CD4_deaths[j]/ART_el_deaths))/2)*(ART_new/CD4_dist[j]); /* applies weighting and size of CD4 group to work out % of CD4 group that should move */
            /* ART_prop[j] = (CD4_dist[j]/ART_el)*(ART_new/CD4_dist[j]); */
-        }
+       }
       }
     }
     
