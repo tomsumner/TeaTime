@@ -9,9 +9,9 @@ library(reshape2)
 library(ggplot2)
 
 ## Compile and load the C code
-dyn.unload("TB_model_v4.dll") # Unload - need to do this before recompiling
-system("R CMD SHLIB TB_model_v4.c") # Compile
-dyn.load("TB_model_v4.dll") # Load
+#dyn.unload("TB_model_v4.dll") # Unload - need to do this before recompiling
+#system("R CMD SHLIB TB_model_v4.c") # Compile
+#dyn.load("TB_model_v4.dll") # Load
 
 dyn.unload("TB_model_v5.dll") # Unload - need to do this before recompiling
 system("R CMD SHLIB TB_model_v5.c") # Compile
@@ -32,7 +32,7 @@ UN_pop_age_high_t <- cbind(UN_pop_age_high,rowSums(UN_pop_age_high[,2:18]))
 colnames(UN_pop_age_high_t) <- c(colnames(UN_pop_age_high),"Total")
 
 # Set up age structure
-ages <- c(4,9,14,19,24,29,34,39,44,49,54,59,64,69,74,79,100) # upper end of age classes
+ages <- c(4,9,14,19,24,29,34,39,44,49,54,59,64,69,74,79,84) # upper end of age classes
 num_ages <- length(ages) # calculates the number of age classes
 
 # Set up the forcing functions for birth and death - all from 1970 onwards
@@ -45,9 +45,6 @@ birth_rate <- cbind(seq(1972.5,2047.5,5),
 
 ## Survival
 Survive_age <- as.data.frame(read.table("SA_survival_age.txt",header=TRUE)) # Load survival proportions calculated from life tables
-# Proportion surviving from age 0 to 1 - used to determine entry to first age group
-s_birth <- cbind(Survive_age$Year,Survive_age$X1)
-# and to other ages
 s5 <- cbind(Survive_age$Year,Survive_age$X5)
 s10 <- cbind(Survive_age$Year,Survive_age$X10)
 s15 <- cbind(Survive_age$Year,Survive_age$X15)
@@ -117,7 +114,7 @@ dst_n <- cbind(seq(1970,2050),(0 + ((95-0)/((1+exp(-1*(seq(1970,2050)-1993)))^(1
 dst_p <- cbind(seq(1970,2050),(0 + ((95-0)/((1+exp(-1*(seq(1970,2050)-1993)))^(1/2))))/100)
 
 # Combine forcing functions into a list
-force <- list(birth_rate,s_birth,s5,s10,s15,s20,s25,s30,s35,s40,s45,s50,s55,s60,s65,s70,s75,s80,
+force <- list(birth_rate,s5,s10,s15,s20,s25,s30,s35,s40,s45,s50,s55,s60,s65,s70,s75,s80,
               h0,h5,h10,h15,h20,h25,h30,h35,h40,h45,h50,h55,h60,h65,h70,h75,h80,
               Ahigh,A500,A349,A249,A199,A99,A50,Athresh,
               BCG_cov,pop_ad,k,dst_n,dst_p)
@@ -133,7 +130,7 @@ e = 0.01
 # proportion primary (a), proportion smear pos (sig) and mortality rates (muN and mu_I) take different values for 
 # adults (>15) (_a), 0-4 (_0), 5-9 (_5) and 10-14 (_10)
 
-parms <- c(age1 = 1/5, age2 = 1/21, beta = 18, 
+parms <- c(age1 = 1/5, age2 = 1/5, beta = 18, 
            a_a = 0.14, a0 = 0.26432, a5 = 0.14056, a10 = 0.056,  
            p = 0.65, v = 0.001, 
            sig_a = 0.45, sig0 = 0.0684, sig5 = 0.0414, sig10 = 0.0846, rel_inf = 0.25, theta = 0.02, r = 0.25, 
@@ -160,7 +157,7 @@ for (i in 1:num_ages){temp[i]<-UN_pop_age[21,i+1]}
 xstart <- c(S=c(temp),
             Lsn=rep(0,num_ages),Lsp=rep(0,num_ages),Lmn=rep(0,num_ages),Lmp=rep(0,num_ages),
             Nsn=rep(0,num_ages),Nsp=rep(0,num_ages),Nmn=rep(0,num_ages),Nmp=rep(0,num_ages),
-            Isn=c(rep(0,5),100,rep(0,11)),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
+            Isn=c(rep(0,5),0,rep(0,11)),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
             S_H=rep(0,num_ages*7),
             Lsn_H=rep(0,num_ages*7),Lsp_H=rep(0,num_ages*7),Lmn_H=rep(0,num_ages*7),Lmp_H=rep(0,num_ages*7),
             Nsn_H=rep(0,num_ages*7),Nsp_H=rep(0,num_ages*7),Nmn_H=rep(0,num_ages*7),Nmp_H=rep(0,num_ages*7),
@@ -186,10 +183,14 @@ time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
                          "DD1","DD2","DD3","DD4","DD5","DD6","DD7","DD8","DD9","DD10","DD11","DD12","DD13","DD14","DD15","DD16","DD17"), 
             method = rkMethod("rk34f")))
 
-# Adjust pop down to 1970 values and reassign initial conditions - model can now be run from 1970 with TB and HIV
+# Adjust pop down to 1970 values (by age) and reassign initial conditions - model can now be run from 1970 with TB and HIV
+
 temp <- out_eq[dim(out_eq)[1],2:6410]
-temp_tot <- UN_pop_age_t[UN_pop_age_t$Year==1970,"Total"] # total pop from UN estimates in 1970
-temp <- temp/(sum(temp)/temp_tot)
+
+for(i in 1:17){ 
+  temp[seq(i,6409,17)] <- temp[seq(i,6409,17)]/(sum(temp[seq(i,6409,17)])/UN_pop_age_t[UN_pop_age_t$Year==1970,i+1])
+}
+
 xstart <- temp
 
 # Reset e to allow MDR
@@ -227,16 +228,43 @@ for(i in 1:17){
 
 temp_model <- as.data.frame(cbind(seq(1970,2050),tot,out[,"Total"]))
 colnames(temp_model) <- colnames(UN_pop_age_t)
-temp_model <- melt(temp_model,id="Year")
+temp_model_m <- melt(temp_model,id="Year")
+
+# Load TIME population 
+TIME_pop <- as.data.frame(read.table("TIME_age_pop.txt",header=TRUE))
+TIME_pop_m <- melt(TIME_pop,id="Year")
 
 # and plot
-plot_pop <- ggplot(temp_model,aes(x=Year,y=value))+
+plot_pop <- ggplot(temp_model_m,aes(x=Year,y=value))+
   geom_line(colour="red")+
   geom_line(data=temp_data,aes(x=Year,y=value),colour="black")+
   geom_line(data=temp_data_l,aes(x=Year,y=value),colour="black",linetype="dashed")+
   geom_line(data=temp_data_h,aes(x=Year,y=value),colour="black",linetype="dashed")+
+  geom_line(data=TIME_pop_m,aes(x=Year,y=value/1000),colour="green",linetype="dashed")+
   facet_wrap(~variable,scales="free")+
   xlim(c(1970,2100))
+
+# Compare population age structure (i.e % of total pop)
+temp_data_s <- as.data.frame(cbind(UN_pop_age_t[,1],100*UN_pop_age_t[,2:19]/UN_pop_age_t[,19]))
+colnames(temp_data_s)<-colnames(UN_pop_age_t)
+temp_data_s <- melt(temp_data_s,id="Year")
+
+temp_model_s <- as.data.frame(cbind(seq(1970,2050),100*temp_model[,2:19]/temp_model[,19]))
+colnames(temp_model_s)<-colnames(UN_pop_age_t)
+temp_model_s <- melt(temp_model_s,id="Year")
+
+temp_TIME_s <- as.data.frame(cbind(seq(1970,2050),100*TIME_pop[,2:19]/TIME_pop[,19]))
+colnames(temp_TIME_s)<-colnames(UN_pop_age_t)
+temp_TIME_s <- melt(temp_TIME_s,id="Year")
+
+# and plot
+plot_pop_s <- ggplot(temp_model_s,aes(x=Year,y=value))+
+  geom_line(colour="red")+
+  geom_line(data=temp_data_s,aes(x=Year,y=value),colour="black")+
+  geom_line(data=temp_TIME_s,aes(x=Year,y=value),colour="green",linetype="dashed")+
+  facet_wrap(~variable,scales="free")+
+  xlim(c(1970,2100))
+
 
 # Plot of CD4 distribution against Spectrum - this is normalised by total population to account for differences in population size #####################
 
