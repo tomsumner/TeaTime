@@ -5,30 +5,70 @@
 #include <R.h>
 
 static double parms[2];
-static double forc[18];
+static double forc[42];
 
 /* A trick to keep up with the parameters and forcings */
+/* progression through age groups */
 #define d parms[0]
 #define d2 parms[1]
 
-#define birth_rate forc[0]
-#define s_birth forc[1]
-#define s5 forc[2]
-#define s10 forc[3]
-#define s15 forc[4]
-#define s20 forc[5]
-#define s25 forc[6]
-#define s30 forc[7]
-#define s35 forc[8]
-#define s40 forc[9]
-#define s45 forc[10]
-#define s50 forc[11]
-#define s55 forc[12]
-#define s60 forc[13]
-#define s65 forc[14]
-#define s70 forc[15]
-#define s75 forc[16]
-#define s80 forc[17]
+#define b20 forc[0]
+#define b25 forc[1]
+#define b30 forc[2]
+#define b35 forc[3]
+#define b40 forc[4]
+#define b45 forc[5]
+#define b50 forc[6]
+
+#define s5f forc[7]
+#define s10f forc[8]
+#define s15f forc[9]
+#define s20f forc[10]
+#define s25f forc[11]
+#define s30f forc[12]
+#define s35f forc[13]
+#define s40f forc[14]
+#define s45f forc[15]
+#define s50f forc[16]
+#define s55f forc[17]
+#define s60f forc[18]
+#define s65f forc[19]
+#define s70f forc[20]
+#define s75f forc[21]
+#define s80f forc[22]
+#define s100f forc[23]
+
+#define s5m forc[24]
+#define s10m forc[25]
+#define s15m forc[26]
+#define s20m forc[27]
+#define s25m forc[28]
+#define s30m forc[29]
+#define s35m forc[30]
+#define s40m forc[31]
+#define s45m forc[32]
+#define s50m forc[33]
+#define s55m forc[34]
+#define s60m forc[35]
+#define s65m forc[36]
+#define s70m forc[37]
+#define s75m forc[38]
+#define s80m forc[39]
+#define s100m forc[40]
+
+#define TFR forc[41]
+
+/* ###### FUNCTION TO SUM ARRAY FROM ELEMENT i_start TO i_end ###### */
+double sumsum(double ar[], int i_start, int i_end)
+{
+   int i=0;
+   double sum=0;
+   for (i=i_start; i<=i_end; i++)
+   {
+    sum = sum + ar[i];
+   }
+   return(sum);
+}
 
 /* initializers*/
 void parmsc(void (* odeparms)(int *, double *))
@@ -39,54 +79,54 @@ void parmsc(void (* odeparms)(int *, double *))
 
 void forcc(void (* odeforcs)(int *, double *))
 {
-    int N=18;
+    int N=42;
     odeforcs(&N, forc);
 }
-
-/* derivative function */
-/*void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip)
-{
-    if (ip[0] <2) error("nout should be at least 2");
-    
-    double Total = y[0]+y[1]+y[2]+y[3]+y[4]+y[5]+y[6]+y[7]+y[8]+y[9]+y[10]+y[11]+y[12]+y[13]+y[14]+y[15]+y[16];
- 
-    ydot[0] = s_birth*birth_rate*Total/1000 - d*y[0];
-    ydot[1] = d*s5*y[0] - d*y[1];
-    ydot[2] = d*s10*y[1] - d*y[2];
-    ydot[3] = d*s15*y[2] - d*y[3];
-    ydot[4] = d*s20*y[3] - d*y[4];
-    ydot[5] = d*s25*y[4] - d*y[5];
-    ydot[6] = d*s30*y[5] - d*y[6];
-    ydot[7] = d*s35*y[6] - d*y[7];
-    ydot[8] = d*s40*y[7] - d*y[8];
-    ydot[9] = d*s45*y[8] - d*y[9];
-    ydot[10] = d*s50*y[9] - d*y[10];
-    ydot[11] = d*s55*y[10] - d*y[11];
-    ydot[12] = d*s60*y[11] - d*y[12];
-    ydot[13] = d*s65*y[12] - d*y[13];
-    ydot[14] = d*s70*y[13] - d*y[14];
-    ydot[15] = d*s75*y[14] - d*y[15];
-    ydot[16] = d*s80*y[15] - d2*y[16];
-
-    yout[0] = Total;
-
-}*/
 
 /* derivative function */
 void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip)
 {
     if (ip[0] <2) error("nout should be at least 2");
-    
+
     int i=0; 
-    double Total = y[0]+y[1]+y[2]+y[3]+y[4]+y[5]+y[6]+y[7]+y[8]+y[9]+y[10]+y[11]+y[12]+y[13]+y[14]+y[15]+y[16];
+    double Total[3];
+
+    /* sum up totals by sex and overall */
+    Total[0] = sumsum(y,0,16);
+    Total[1] = sumsum(y,17,33);
+    Total[2] = Total[0] + Total[1];
+
+    /* Calculate the number of births by gender */
+    double births=0;
+    for(i=3; i<10; i++){
+      births = births + y[i]*forc[i-3]*TFR/(100*5);
+    }
+    double m_to_f = 1.03;
+    double births_m = births*1.03/2.03;
+    double births_f = births/2.03;
+
+    /* Then calculate the proportion of people who should die per year by age */
+    double m_b[34];
+    double d_age[34] = {d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d2,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d2};
+    for (i=0; i<34; i++){
+      m_b[i] = ((1-forc[i+7])/(1/d_age[i]));
+    }
  
-    ydot[0] = s_birth*birth_rate*Total/1000 - d*y[0];
+    /* Female */
+ 
+    ydot[0] = births_f - d_age[0]*y[0] - m_b[0]*y[0];
 
-    for (i=1; i<16; i++) ydot[i] = d*forc[i+1]*y[i-1] - d*y[i];
-      
-    ydot[16] = d*s80*y[15] - d2*y[16];
+    for (i=1; i<17; i++) ydot[i] = d_age[i-1]*y[i-1] - d_age[i]*y[i] - m_b[i]*y[i];
 
-    yout[0] = Total;
+    /* Male */
+
+    ydot[17] = births_m - d_age[17]*y[17] - m_b[17]*y[17];
+
+    for (i=18; i<34; i++) ydot[i] = d_age[i-1]*y[i-1] - d_age[i]*y[i] - m_b[i]*y[i];
+
+    yout[0] = Total[0];
+    yout[1] = Total[1];
+    yout[2] = Total[2];
 
 }
 
