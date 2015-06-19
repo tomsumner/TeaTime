@@ -5,7 +5,7 @@
 #include <R.h>
 
 static double parms[2];
-static double forc[42];
+static double forc[43];
 
 /* A trick to keep up with the parameters and forcings */
 /* progression through age groups */
@@ -58,6 +58,8 @@ static double forc[42];
 
 #define TFR forc[41]
 
+#define m_to_f forc[42]
+
 /* ###### FUNCTION TO SUM ARRAY FROM ELEMENT i_start TO i_end ###### */
 double sumsum(double ar[], int i_start, int i_end)
 {
@@ -79,7 +81,7 @@ void parmsc(void (* odeparms)(int *, double *))
 
 void forcc(void (* odeforcs)(int *, double *))
 {
-    int N=42;
+    int N=43;
     odeforcs(&N, forc);
 }
 
@@ -98,12 +100,12 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
 
     /* Calculate the number of births by gender */
     double births=0;
+    
     for(i=3; i<10; i++){
       births = births + y[i]*forc[i-3]*TFR/(100*5);
     }
-    double m_to_f = 1.03;
-    double births_m = births*1.03/2.03;
-    double births_f = births/2.03;
+    double births_m = births/(1+(1/m_to_f));
+    double births_f = births_m/m_to_f;
 
     /* Then calculate the proportion of people who should die per year by age */
     double m_b[34];
@@ -127,6 +129,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     yout[0] = Total[0];
     yout[1] = Total[1];
     yout[2] = Total[2];
+    yout[3] = births;
 
 }
 
