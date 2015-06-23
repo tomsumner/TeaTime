@@ -20,12 +20,12 @@ dyn.load("TB_model_v5.dll") # Load
 
 ##############################################################################################################################
 
-cn <- "SA"
+cn <- "Vietnam"
 
 ## Load UN population data
 UN_pop_age <- as.data.frame(read.table(paste("Demog/",cn,"_pop_age.txt",sep=""),header=TRUE)) # Load UN Population data
-UN_pop_age_low <- as.data.frame(read.table(paste("Demog/",cn,"_pop_age_low.txt",sep=""),header=TRUE)) # Load UN Population data
-UN_pop_age_high <- as.data.frame(read.table(paste("Demog/",cn,"_pop_age_high.txt",sep=""),header=TRUE)) # Load UN Population data
+#UN_pop_age_low <- as.data.frame(read.table(paste("Demog/",cn,"_pop_age_low.txt",sep=""),header=TRUE)) # Load UN Population data
+#UN_pop_age_high <- as.data.frame(read.table(paste("Demog/",cn,"_pop_age_high.txt",sep=""),header=TRUE)) # Load UN Population data
 # Load number of births
 births <- as.data.frame(read.table(paste("Demog/",cn,"_births_number.txt",sep=""),header=TRUE))
 # Load number of deaths
@@ -33,10 +33,10 @@ deaths <- as.data.frame(read.table(paste("Demog/",cn,"_deaths.txt",sep=""),heade
 # add total, births and deaths to data
 UN_pop_age_t <- cbind(births,UN_pop_age[,2:18],rowSums(UN_pop_age[,2:18]),deaths[,2])
 colnames(UN_pop_age_t) <- c("Year","births",colnames(UN_pop_age[2:18]),"Total","Deaths")
-UN_pop_age_low_t <- cbind(UN_pop_age_low,rowSums(UN_pop_age_low[,2:18]))
-colnames(UN_pop_age_low_t) <- c(colnames(UN_pop_age_low),"Total")
-UN_pop_age_high_t <- cbind(UN_pop_age_high,rowSums(UN_pop_age_high[,2:18]))
-colnames(UN_pop_age_high_t) <- c(colnames(UN_pop_age_high),"Total")
+#UN_pop_age_low_t <- cbind(UN_pop_age_low,rowSums(UN_pop_age_low[,2:18]))
+#colnames(UN_pop_age_low_t) <- c(colnames(UN_pop_age_low),"Total")
+#UN_pop_age_high_t <- cbind(UN_pop_age_high,rowSums(UN_pop_age_high[,2:18]))
+#colnames(UN_pop_age_high_t) <- c(colnames(UN_pop_age_high),"Total")
 
 # Set up age structure
 ages <- c(4,9,14,19,24,29,34,39,44,49,54,59,64,69,74,79,84) # upper end of age classes
@@ -64,7 +64,7 @@ for(i in 1:16){
 }
 mort[,17]<-mort[,16]
 
-s5 <- cbind(seq(1971,2050),0.4*mort[,1])
+s5 <- cbind(seq(1971,2050),mort[,1])
 s10 <- cbind(seq(1971,2050),mort[,2])
 s15 <- cbind(seq(1971,2050),mort[,3])
 s20 <- cbind(seq(1971,2050),mort[,4])
@@ -83,7 +83,7 @@ s80 <- cbind(seq(1971,2050),mort[,16])
 s100 <- cbind(seq(1971,2050),mort[,17])
 
 # HIV Incidence by age and year - based on AIM output, but ignoring childhood infections (this is what Carel does in TIME)
-HIV_Inc_age <- as.data.frame(read.table("HIV/HIV_Inc_age.txt",header=TRUE)) # Load HIV incidence data taken from AIM                                       # Data from AIM is rate per 1000 
+HIV_Inc_age <- as.data.frame(read.table(paste("HIV/",cn,"_HIV_Inc_age.txt",sep=""),header=TRUE)) # Load HIV incidence data taken from AIM                                       # Data from AIM is rate per 1000 
 #HIV_Inc_age[,2:18]=HIV_Inc_age[,2:18]*0
 
 h0 <- 0*cbind(HIV_Inc_age$Year,HIV_Inc_age$X0/1000)
