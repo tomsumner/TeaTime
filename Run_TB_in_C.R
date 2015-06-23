@@ -7,6 +7,7 @@ setwd("C:/Users/TOM SUMMER/Documents/TIME_research/TeaTime")
 library(deSolve)
 library(reshape2)
 library(ggplot2)
+library(gdata)
 
 ## Compile and load the C code
 #dyn.unload("TB_model_v4.dll") # Unload - need to do this before recompiling
@@ -19,13 +20,19 @@ dyn.load("TB_model_v5.dll") # Load
 
 ##############################################################################################################################
 
+cn <- "SA"
+
 ## Load UN population data
-UN_pop_age <- as.data.frame(read.table("SA_pop_age.txt",header=TRUE)) # Load UN Population data
-UN_pop_age_low <- as.data.frame(read.table("SA_pop_age_low.txt",header=TRUE)) # Load UN Population data
-UN_pop_age_high <- as.data.frame(read.table("SA_pop_age_high.txt",header=TRUE)) # Load UN Population data
-# add total to data
-UN_pop_age_t <- cbind(UN_pop_age,rowSums(UN_pop_age[,2:18]))
-colnames(UN_pop_age_t) <- c(colnames(UN_pop_age),"Total")
+UN_pop_age <- as.data.frame(read.table(paste("Demog/",cn,"_pop_age.txt",sep=""),header=TRUE)) # Load UN Population data
+UN_pop_age_low <- as.data.frame(read.table(paste("Demog/",cn,"_pop_age_low.txt",sep=""),header=TRUE)) # Load UN Population data
+UN_pop_age_high <- as.data.frame(read.table(paste("Demog/",cn,"_pop_age_high.txt",sep=""),header=TRUE)) # Load UN Population data
+# Load number of births
+births <- as.data.frame(read.table(paste("Demog/",cn,"_births_number.txt",sep=""),header=TRUE))
+# Load number of deaths
+deaths <- as.data.frame(read.table(paste("Demog/",cn,"_deaths.txt",sep=""),header=TRUE))
+# add total, births and deaths to data
+UN_pop_age_t <- cbind(births,UN_pop_age[,2:18],rowSums(UN_pop_age[,2:18]),deaths[,2])
+colnames(UN_pop_age_t) <- c("Year","births",colnames(UN_pop_age[2:18]),"Total","Deaths")
 UN_pop_age_low_t <- cbind(UN_pop_age_low,rowSums(UN_pop_age_low[,2:18]))
 colnames(UN_pop_age_low_t) <- c(colnames(UN_pop_age_low),"Total")
 UN_pop_age_high_t <- cbind(UN_pop_age_high,rowSums(UN_pop_age_high[,2:18]))
@@ -40,30 +47,43 @@ num_ages <- length(ages) # calculates the number of age classes
 ## Fertility
 # Uses crude birth rate (per 1000 population) from UN pop for South Africa which has values for 5 year periods
 # values post 2010 based on medium fertiliy
-birth_rate <- cbind(seq(1972.5,2047.5,5),
-                    c(38,36,34,31,27,25,24,22,21,20,18,17,17,16,15,14))
+temp <- as.data.frame(read.table(paste("Demog/",cn,"_crude_birth.txt",sep=""),header=TRUE)) # Load crude birth rate
+birth_rate <- cbind(temp[,1],temp[,2])
 
-## Survival
-Survive_age <- as.data.frame(read.table("SA_survival_age.txt",header=TRUE)) # Load survival proportions calculated from life tables
-s5 <- cbind(Survive_age$Year,Survive_age$X5)
-s10 <- cbind(Survive_age$Year,Survive_age$X10)
-s15 <- cbind(Survive_age$Year,Survive_age$X15)
-s20 <- cbind(Survive_age$Year,Survive_age$X20)
-s25 <- cbind(Survive_age$Year,Survive_age$X25)
-s30 <- cbind(Survive_age$Year,Survive_age$X30)
-s35 <- cbind(Survive_age$Year,Survive_age$X35)
-s40 <- cbind(Survive_age$Year,Survive_age$X40)
-s45 <- cbind(Survive_age$Year,Survive_age$X45)
-s50 <- cbind(Survive_age$Year,Survive_age$X50)
-s55 <- cbind(Survive_age$Year,Survive_age$X55)
-s60 <- cbind(Survive_age$Year,Survive_age$X60)
-s65 <- cbind(Survive_age$Year,Survive_age$X65)
-s70 <- cbind(Survive_age$Year,Survive_age$X70)
-s75 <- cbind(Survive_age$Year,Survive_age$X75)
-s80 <- cbind(Survive_age$Year,Survive_age$X80)
+# Load mortaltiy rates taken from demproj
+# These are by single year age so need to average across 5 columns
+mort_age <- as.data.frame(read.table(paste("Demog/",cn,"_mort_age.txt",sep=""),header=FALSE)) 
+
+mort <- mat.or.vec(80,17) 
+for(i in 1:16){
+  temp <- 0
+  for (j in ((i-1)*5+2):((i-1)*5+6)){
+    temp <- temp+as.numeric(mort_age[,j])
+  }
+  mort[,i] <- temp/5
+}
+mort[,17]<-mort[,16]
+
+s5 <- cbind(seq(1971,2050),0.4*mort[,1])
+s10 <- cbind(seq(1971,2050),mort[,2])
+s15 <- cbind(seq(1971,2050),mort[,3])
+s20 <- cbind(seq(1971,2050),mort[,4])
+s25 <- cbind(seq(1971,2050),mort[,5])
+s30 <- cbind(seq(1971,2050),mort[,6])
+s35 <- cbind(seq(1971,2050),mort[,7])
+s40 <- cbind(seq(1971,2050),mort[,8])
+s45 <- cbind(seq(1971,2050),mort[,9])
+s50 <- cbind(seq(1971,2050),mort[,10])
+s55 <- cbind(seq(1971,2050),mort[,11])
+s60 <- cbind(seq(1971,2050),mort[,12])
+s65 <- cbind(seq(1971,2050),mort[,13])
+s70 <- cbind(seq(1971,2050),mort[,14])
+s75 <- cbind(seq(1971,2050),mort[,15])
+s80 <- cbind(seq(1971,2050),mort[,16])
+s100 <- cbind(seq(1971,2050),mort[,17])
 
 # HIV Incidence by age and year - based on AIM output, but ignoring childhood infections (this is what Carel does in TIME)
-HIV_Inc_age <- as.data.frame(read.table("HIV_Inc_age.txt",header=TRUE)) # Load HIV incidence data taken from AIM                                       # Data from AIM is rate per 1000 
+HIV_Inc_age <- as.data.frame(read.table("HIV/HIV_Inc_age.txt",header=TRUE)) # Load HIV incidence data taken from AIM                                       # Data from AIM is rate per 1000 
 #HIV_Inc_age[,2:18]=HIV_Inc_age[,2:18]*0
 
 h0 <- 0*cbind(HIV_Inc_age$Year,HIV_Inc_age$X0/1000)
@@ -85,10 +105,9 @@ h75 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X75/1000)
 h80 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X80/1000)
 
 # ART coverage - based on AIM, use CD4 eligibility threshold and % of those in need on ART
-ART_data <- as.data.frame(read.table("ART_data.txt",header=TRUE)) # Load data
+ART_data <- as.data.frame(read.table("HIV/ART_data.txt",header=TRUE)) # Load data
 # Create forcing function of threshold category
 Athresh <- cbind(ART_data[,"Year"],ART_data[,"CD4_cat"])
-
 # Create forcing functions which account for threshold and coverage
 A50 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>50,1,0)/100)
 A99 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>99,1,0)/100)
@@ -114,7 +133,7 @@ dst_n <- cbind(seq(1970,2050),(0 + ((95-0)/((1+exp(-1*(seq(1970,2050)-1993)))^(1
 dst_p <- cbind(seq(1970,2050),(0 + ((95-0)/((1+exp(-1*(seq(1970,2050)-1993)))^(1/2))))/100)
 
 # Combine forcing functions into a list
-force <- list(birth_rate,s5,s10,s15,s20,s25,s30,s35,s40,s45,s50,s55,s60,s65,s70,s75,s80,
+force <- list(birth_rate,s5,s10,s15,s20,s25,s30,s35,s40,s45,s50,s55,s60,s65,s70,s75,s80,s100,
               h0,h5,h10,h15,h20,h25,h30,h35,h40,h45,h50,h55,h60,h65,h70,h75,h80,
               Ahigh,A500,A349,A249,A199,A99,A50,Athresh,
               BCG_cov,pop_ad,k,dst_n,dst_p)
@@ -130,7 +149,8 @@ e = 0.01
 # proportion primary (a), proportion smear pos (sig) and mortality rates (muN and mu_I) take different values for 
 # adults (>15) (_a), 0-4 (_0), 5-9 (_5) and 10-14 (_10)
 
-parms <- c(age1 = 1/5, age2 = 1/5, beta = 18, 
+# the age1 and age2 parameters govern the width of the age bins (5 years for all except the final bin which we take to be 10 years (80-90))
+parms <- c(age1 = 1/5, age2 = 1/10, beta = 18, 
            a_a = 0.14, a0 = 0.26432, a5 = 0.14056, a10 = 0.056,  
            p = 0.65, v = 0.001, 
            sig_a = 0.45, sig0 = 0.0684, sig5 = 0.0414, sig10 = 0.0846, rel_inf = 0.25, theta = 0.02, r = 0.25, 
@@ -173,14 +193,14 @@ parms["e"]=0
 # Run the model
 time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
             parms = parms, dllname = "TB_model_v5",initforc = "forcc",
-            forcings=force, initfunc = "parmsc", nout = 61,
+            forcings=force, initfunc = "parmsc", nout = 62,
             outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                          "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                          "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
                          "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
                          "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on","TB_deaths",
                          "Cases_neg","Cases_pos","Cases_ART",
-                         "DD1","DD2","DD3","DD4","DD5","DD6","DD7","DD8","DD9","DD10","DD11","DD12","DD13","DD14","DD15","DD16","DD17"), 
+                         "DD1","DD2","DD3","DD4","DD5","DD6","DD7","DD8","DD9","DD10","DD11","DD12","DD13","DD14","DD15","DD16","DD17","births","deaths"), 
             method = rkMethod("rk34f")))
 
 # Adjust pop down to 1970 values (by age) and reassign initial conditions - model can now be run from 1970 with TB and HIV
@@ -188,7 +208,7 @@ time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
 temp <- out_eq[dim(out_eq)[1],2:6410]
 
 for(i in 1:17){ 
-  temp[seq(i,6409,17)] <- temp[seq(i,6409,17)]/(sum(temp[seq(i,6409,17)])/UN_pop_age_t[UN_pop_age_t$Year==1970,i+1])
+  temp[seq(i,6409,17)] <- temp[seq(i,6409,17)]/(sum(temp[seq(i,6409,17)])/UN_pop_age_t[UN_pop_age_t$Year==1970,i+2])
 }
 
 xstart <- temp
@@ -201,14 +221,14 @@ times <- seq(1970,2050 , by=1)
 # Run the model
 time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
            parms = parms, dllname = "TB_model_v5",initforc = "forcc",
-           forcings=force, initfunc = "parmsc", nout = 61,
+           forcings=force, initfunc = "parmsc", nout = 63,
            outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                         "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                         "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
                         "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
                         "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on","TB_deaths",
                         "Cases_neg","Cases_pos","Cases_ART",
-                        "DD1","DD2","DD3","DD4","DD5","DD6","DD7","DD8","DD9","DD10","DD11","DD12","DD13","DD14","DD15","DD16","DD17"), 
+                        "DD1","DD2","DD3","DD4","DD5","DD6","DD7","DD8","DD9","DD10","DD11","DD12","DD13","DD14","DD15","DD16","DD17","births","deaths"), 
            method = rkMethod("rk34f")))
 
 ######## Some plots for testing things against spectrum and other data
@@ -226,12 +246,27 @@ for(i in 1:17){
   tot[,i] <- apply(out,1,function(x) sum(x[seq(i+1,6410,17)]))
 }
 
-temp_model <- as.data.frame(cbind(seq(1970,2050),tot,out[,"Total"]))
+temp_model <- as.data.frame(cbind(seq(1970,2050),out[,"births"],tot,out[,"Total"],out[,"deaths"]))
 colnames(temp_model) <- colnames(UN_pop_age_t)
 temp_model_m <- melt(temp_model,id="Year")
 
-# Load TIME population 
-TIME_pop <- as.data.frame(read.table("TIME_age_pop.txt",header=TRUE))
+# Load TIME population and births and deaths
+# TIME population output
+setwd("C:/Users/TOM SUMMER/Filr/My Files/sync/TIME/TIME Research/Demographics_files")
+fname = paste(cn,".xlsx",sep="")
+temp <- read.xls(fname, sheet="TIME_age_population", verbose=FALSE, "1970",header=FALSE,stringsAsFactors=FALSE)
+TIME_pop <- mat.or.vec(81,19)
+TIME_pop[,1] <- seq(1970,2050)
+for (i in 1:81){
+  j <- (i-1)*19+2
+  TIME_pop[i,2:19]=as.numeric(temp[j:(j+17),2])
+}
+TIME_pop <- as.data.frame(TIME_pop)
+setwd("C:/Users/TOM SUMMER/Documents/TIME_research/TeaTime")
+TIME_births <- as.data.frame(read.table(paste("Demog/",cn,"_TIME_births.txt",sep=""),header=TRUE))
+TIME_deaths <- as.data.frame(read.table(paste("Demog/",cn,"_TIME_deaths.txt",sep=""),header=TRUE))
+TIME_pop <- cbind(TIME_births,TIME_pop[,2:19],TIME_deaths[,2])
+colnames(TIME_pop) <- colnames(UN_pop_age_t)
 TIME_pop_m <- melt(TIME_pop,id="Year")
 
 # and plot
@@ -245,16 +280,16 @@ plot_pop <- ggplot(temp_model_m,aes(x=Year,y=value))+
   xlim(c(1970,2100))
 
 # Compare population age structure (i.e % of total pop)
-temp_data_s <- as.data.frame(cbind(UN_pop_age_t[,1],100*UN_pop_age_t[,2:19]/UN_pop_age_t[,19]))
-colnames(temp_data_s)<-colnames(UN_pop_age_t)
+temp_data_s <- as.data.frame(cbind(UN_pop_age_t[,1],100*UN_pop_age_t[,3:20]/UN_pop_age_t[,20]))
+colnames(temp_data_s)<-c("Year","x4","X9","X14","X19","X24","X29","X34","X39","X44","X49","X54","X59","X64","X69","X74","X79","X100","Total")
 temp_data_s <- melt(temp_data_s,id="Year")
 
-temp_model_s <- as.data.frame(cbind(seq(1970,2050),100*temp_model[,2:19]/temp_model[,19]))
-colnames(temp_model_s)<-colnames(UN_pop_age_t)
+temp_model_s <- as.data.frame(cbind(seq(1970,2050),100*temp_model[,3:20]/temp_model[,20]))
+colnames(temp_model_s)<-c("Year","x4","X9","X14","X19","X24","X29","X34","X39","X44","X49","X54","X59","X64","X69","X74","X79","X100","Total")
 temp_model_s <- melt(temp_model_s,id="Year")
 
 temp_TIME_s <- as.data.frame(cbind(seq(1970,2050),100*TIME_pop[,2:19]/TIME_pop[,19]))
-colnames(temp_TIME_s)<-colnames(UN_pop_age_t)
+colnames(temp_TIME_s)<-c("Year","x4","X9","X14","X19","X24","X29","X34","X39","X44","X49","X54","X59","X64","X69","X74","X79","X100","Total")
 temp_TIME_s <- melt(temp_TIME_s,id="Year")
 
 # and plot
@@ -264,6 +299,14 @@ plot_pop_s <- ggplot(temp_model_s,aes(x=Year,y=value))+
   geom_line(data=temp_TIME_s,aes(x=Year,y=value),colour="green",linetype="dashed")+
   facet_wrap(~variable,scales="free")+
   xlim(c(1970,2100))
+
+
+
+
+
+
+
+
 
 
 # Plot of CD4 distribution against Spectrum - this is normalised by total population to account for differences in population size #####################
