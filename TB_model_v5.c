@@ -521,8 +521,18 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     /* Then calculate the proportion of people who should die per year by age and reduce it by the disease mortality */
     double m_b[17];
     for (i=0; i<17; i++){
-      m_b[i] = ((1-forc[i+1])/(1/age_out[i]))-prop_dis_death[i];
+      /*m_b[i] = ((1-forc[i+1])/(1/age_out[i]))-prop_dis_death[i];*/
+      m_b[i] = forc[i+1]-prop_dis_death[i];
     }
+    
+    
+    /* Calculate total deaths */
+    double Tot_deaths = 0;
+    for (i=0; i<17; i++){
+      Tot_deaths = Tot_deaths + m_b[i]*tot_age[i] + TB_deaths[i] + HIV_deaths[i] + ART_deaths[i];      
+    }
+    
+    
     
     /* Sum up populations over CD4 categories, with and without ART and calculate rates of ART initiation */
     double CD4_dist[7] = {0,0,0,0,0,0,0};     /* Not on ART by CD4 */
@@ -590,9 +600,11 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
  
     /* HIV-: loop through ages*/ 
     
+    double births = birth_rate*Total/1000;
+    
     /* Susceptible - note this is done separately to deal with births */
    /* dS[0] = s_birth*birth_rate*Total/1000 - age1*S[0] - (FS + FM)*S[0] - forc[18]*S[0] - m_b[0]*S[0];*/
-    dS[0] = birth_rate*Total/1000 - age1*S[0] - (FS + FM)*S[0] - forc[18]*S[0] - m_b[0]*S[0];
+    dS[0] = births - age1*S[0] - (FS + FM)*S[0] - forc[18]*S[0] - m_b[0]*S[0];
     for (i=1; i<17; i++) dS[i] = age_in[i]*S[i-1] - age_out[i]*S[i] - (FS + FM)*S[i] - forc[i+18]*S[i] - m_b[i]*S[i];
     /* Other TB states */
     for (i=0; i<17; i++){
@@ -1040,6 +1052,8 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     yout[58] = prop_dis_death[14];
     yout[59] = prop_dis_death[15];
     yout[60] = prop_dis_death[16];
+    yout[61] = births;
+    yout[62] = Tot_deaths;
 }
 
 
