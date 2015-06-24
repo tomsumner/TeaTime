@@ -20,7 +20,7 @@ dyn.load("TB_model_v5.dll") # Load
 
 ##############################################################################################################################
 
-cn <- "Vietnam"
+cn <- "SA"
 
 ## Load UN population data
 UN_pop_age <- as.data.frame(read.table(paste("Demog/",cn,"_pop_age.txt",sep=""),header=TRUE)) # Load UN Population data
@@ -45,7 +45,7 @@ num_ages <- length(ages) # calculates the number of age classes
 # Set up the forcing functions for birth and death - all from 1970 onwards
 
 ## Fertility
-# Uses crude birth rate (per 1000 population) from UN pop for South Africa which has values for 5 year periods
+# Uses crude birth rate (per 1000 population) from UN pop 
 # values post 2010 based on medium fertiliy
 temp <- as.data.frame(read.table(paste("Demog/",cn,"_crude_birth.txt",sep=""),header=TRUE)) # Load crude birth rate
 birth_rate <- cbind(temp[,1],temp[,2])
@@ -64,7 +64,7 @@ for(i in 1:16){
 }
 mort[,17]<-mort[,16]
 
-s5 <- cbind(seq(1971,2050),mort[,1])
+s5 <- cbind(seq(1971,2050),0.4*mort[,1])  ######## !!!!!! Note here I'm reducing the mortality rate in under 5s to better match the demography !!!!! #####
 s10 <- cbind(seq(1971,2050),mort[,2])
 s15 <- cbind(seq(1971,2050),mort[,3])
 s20 <- cbind(seq(1971,2050),mort[,4])
@@ -82,30 +82,39 @@ s75 <- cbind(seq(1971,2050),mort[,15])
 s80 <- cbind(seq(1971,2050),mort[,16])
 s100 <- cbind(seq(1971,2050),mort[,17])
 
-# HIV Incidence by age and year - based on AIM output, but ignoring childhood infections (this is what Carel does in TIME)
-HIV_Inc_age <- as.data.frame(read.table(paste("HIV/",cn,"_HIV_Inc_age.txt",sep=""),header=TRUE)) # Load HIV incidence data taken from AIM                                       # Data from AIM is rate per 1000 
+# HIV Incidence by age and year - based on AIM output, but ignoring childhood infections (this is what Carel does in TIME I think!)
+temp <- as.data.frame(read.table(paste("HIV/",cn,"_HIV_Inc_age.txt",sep=""),header=TRUE,fill=TRUE)) # Load HIV incidence data taken from AIM   
+# Need to re-arrage to get in year vs age format
+HIV_Inc_age <- mat.or.vec(81,18)
+HIV_Inc_age[,1] <- seq(1970,2050)
+for (i in 1:81){
+  j <- (i-1)*19+4
+  HIV_Inc_age[i,2:18]=as.numeric(levels(temp[j:(j+16),2]))[temp[j:(j+16),2]]
+}
+
+# Data from AIM is rate per 1000 
 #HIV_Inc_age[,2:18]=HIV_Inc_age[,2:18]*0
 
-h0 <- 0*cbind(HIV_Inc_age$Year,HIV_Inc_age$X0/1000)
-h5 <- 0*cbind(HIV_Inc_age$Year,HIV_Inc_age$X5/1000)
-h10 <- 0*cbind(HIV_Inc_age$Year,HIV_Inc_age$X10/1000)
-h15 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X15/1000)
-h20 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X20/1000)
-h25 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X25/1000)
-h30 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X30/1000)
-h35 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X35/1000)
-h40 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X40/1000)
-h45 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X45/1000)
-h50 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X50/1000)
-h55 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X55/1000)
-h60 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X60/1000)
-h65 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X65/1000)
-h70 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X70/1000)
-h75 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X75/1000)
-h80 <- cbind(HIV_Inc_age$Year,HIV_Inc_age$X80/1000)
+h0 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,2]/1000)
+h5 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,3]/1000)
+h10 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,4]/1000)
+h15 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,5]/1000)
+h20 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,6]/1000)
+h25 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,7]/1000)
+h30 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,8]/1000)
+h35 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,9]/1000)
+h40 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,10]/1000)
+h45 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,11]/1000)
+h50 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,12]/1000)
+h55 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,13]/1000)
+h60 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,14]/1000)
+h65 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,15]/1000)
+h70 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,16]/1000)
+h75 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,17]/1000)
+h80 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,18]/1000)
 
 # ART coverage - based on AIM, use CD4 eligibility threshold and % of those in need on ART
-ART_data <- as.data.frame(read.table("HIV/ART_data.txt",header=TRUE)) # Load data
+ART_data <- as.data.frame(read.table(paste("HIV/",cn,"_ART_data.txt",sep=""),header=TRUE)) # Load data
 # Create forcing function of threshold category
 Athresh <- cbind(ART_data[,"Year"],ART_data[,"CD4_cat"])
 # Create forcing functions which account for threshold and coverage
@@ -237,8 +246,8 @@ time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
 
 # convert UN data to long format
 temp_data <- melt(UN_pop_age_t,id="Year")
-temp_data_l <- melt(UN_pop_age_low_t,id="Year")
-temp_data_h <- melt(UN_pop_age_high_t,id="Year")
+#temp_data_l <- melt(UN_pop_age_low_t,id="Year")
+#temp_data_h <- melt(UN_pop_age_high_t,id="Year")
 
 # sum up model outputs over age groups and turn into long format
 tot<-mat.or.vec(81,17)
@@ -250,7 +259,7 @@ temp_model <- as.data.frame(cbind(seq(1970,2050),out[,"births"],tot,out[,"Total"
 colnames(temp_model) <- colnames(UN_pop_age_t)
 temp_model_m <- melt(temp_model,id="Year")
 
-# Load TIME population and births and deaths
+# Load TIME population and births and deaths _NEED TO TURN THIS INTO READ FROM TEXT FILE - ITS MUCH QUICKER!
 # TIME population output
 setwd("C:/Users/TOM SUMMER/Filr/My Files/sync/TIME/TIME Research/Demographics_files")
 fname = paste(cn,".xlsx",sep="")
@@ -273,8 +282,8 @@ TIME_pop_m <- melt(TIME_pop,id="Year")
 plot_pop <- ggplot(temp_model_m,aes(x=Year,y=value))+
   geom_line(colour="red")+
   geom_line(data=temp_data,aes(x=Year,y=value),colour="black")+
-  geom_line(data=temp_data_l,aes(x=Year,y=value),colour="black",linetype="dashed")+
-  geom_line(data=temp_data_h,aes(x=Year,y=value),colour="black",linetype="dashed")+
+  #geom_line(data=temp_data_l,aes(x=Year,y=value),colour="black",linetype="dashed")+
+  #geom_line(data=temp_data_h,aes(x=Year,y=value),colour="black",linetype="dashed")+
   geom_line(data=TIME_pop_m,aes(x=Year,y=value/1000),colour="green",linetype="dashed")+
   facet_wrap(~variable,scales="free")+
   xlim(c(1970,2100))
@@ -288,7 +297,7 @@ temp_model_s <- as.data.frame(cbind(seq(1970,2050),100*temp_model[,3:20]/temp_mo
 colnames(temp_model_s)<-c("Year","x4","X9","X14","X19","X24","X29","X34","X39","X44","X49","X54","X59","X64","X69","X74","X79","X100","Total")
 temp_model_s <- melt(temp_model_s,id="Year")
 
-temp_TIME_s <- as.data.frame(cbind(seq(1970,2050),100*TIME_pop[,2:19]/TIME_pop[,19]))
+temp_TIME_s <- as.data.frame(cbind(seq(1970,2050),100*TIME_pop[,3:20]/TIME_pop[,20]))
 colnames(temp_TIME_s)<-c("Year","x4","X9","X14","X19","X24","X29","X34","X39","X44","X49","X54","X59","X64","X69","X74","X79","X100","Total")
 temp_TIME_s <- melt(temp_TIME_s,id="Year")
 
@@ -300,10 +309,54 @@ plot_pop_s <- ggplot(temp_model_s,aes(x=Year,y=value))+
   facet_wrap(~variable,scales="free")+
   xlim(c(1970,2100))
 
+####### Compare HIV distribution by age with TIME
 
+# Load TIME values
+temp <- as.data.frame(read.table(paste("HIV/",cn,"_HIV_numbers_age.txt",sep=""),header=TRUE,fill=TRUE)) # Load HIV numbers (output in TIME)  
+# Need to re-arrage to get in year vs age format
+HIV_number_age <- mat.or.vec(81,18)
+HIV_number_age[,1] <- seq(1970,2050)
+for (i in 1:81){
+  j <- (i-1)*19+2
+  HIV_number_age[i,2:18]=temp[j:(j+16),2]
+}
+HIV_number_age <- as.data.frame(HIV_number_age)
+colnames(HIV_number_age) <- colnames(UN_pop_age)
+HIV_TIME <- melt(HIV_number_age,id="Year")
 
+# Sum up model outputs for HIV+ categories by age
+tot_HIV<-mat.or.vec(81,17)
+for(i in 1:17){
+  tot_HIV[,i] <- apply(out,1,function(x) sum(x[seq(i+222,6410,17)]))
+}
 
+HIV_model <- as.data.frame(cbind(seq(1970,2050),tot_HIV))
+colnames(HIV_model) <- colnames(UN_pop_age)
+HIV_model_m <- melt(HIV_model,id="Year")
 
+# and plot
+plot_HIV <- ggplot(HIV_model_m,aes(x=Year,y=value))+
+  geom_line(colour="red")+
+  geom_line(data=HIV_TIME,aes(x=Year,y=value/1000),colour="black",linetype="dashed")+
+  facet_wrap(~variable,scales="free")+
+  xlim(c(1970,2100))
+
+### Compare HIV prevalence by age group
+
+# TIME
+H_p_TIME <- as.data.frame(cbind(HIV_model[,1],100*HIV_number_age[,2:18]/TIME_pop[,3:19]))
+colnames(H_p_TIME) <- colnames(UN_pop_age)
+H_p_TIME_m <- melt(H_p_TIME,id="Year")
+# Model
+H_p_model <- as.data.frame(cbind(HIV_model[,1],100*tot_HIV/tot))
+colnames(H_p_model) <- colnames(UN_pop_age)
+H_p_model_m <- melt(H_p_model,id="Year")
+
+plot_HIV_p <- ggplot(H_p_model_m,aes(x=Year,y=value))+
+  geom_line(colour="red")+
+  geom_line(data=H_p_TIME_m,aes(x=Year,y=value),colour="black",linetype="dashed")+
+  facet_wrap(~variable,scales="free")+
+  xlim(c(1970,2100))
 
 
 
