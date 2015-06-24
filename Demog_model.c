@@ -108,23 +108,23 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     double births_f = births_m/m_to_f;
 
     /* Then calculate the proportion of people who should die per year by age */
-    double m_b[34];
+    /*double m_b[34];*/
     double d_age[34] = {d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d2,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d2};
-    for (i=0; i<34; i++){
+    /*for (i=0; i<34; i++){
       m_b[i] = ((1-forc[i+7])/(1/d_age[i]));
-    }
+    }*/
  
     /* Female */
  
-    ydot[0] = births_f - d_age[0]*y[0] - m_b[0]*y[0];
+    ydot[0] = births_f - d_age[0]*y[0] - forc[i+7]*y[0];/*m_b[0]*y[0];*/
 
-    for (i=1; i<17; i++) ydot[i] = d_age[i-1]*y[i-1] - d_age[i]*y[i] - m_b[i]*y[i];
+    for (i=1; i<17; i++) ydot[i] = d_age[i-1]*y[i-1] - d_age[i]*y[i] - forc[i+7]*y[i];/*m_b[i]*y[i];*/
 
     /* Male */
 
-    ydot[17] = births_m - d_age[17]*y[17] - m_b[17]*y[17];
+    ydot[17] = births_m - d_age[17]*y[17] - forc[i+7]*y[0]; /*m_b[17]*y[17];*/
 
-    for (i=18; i<34; i++) ydot[i] = d_age[i-1]*y[i-1] - d_age[i]*y[i] - m_b[i]*y[i];
+    for (i=18; i<34; i++) ydot[i] = d_age[i-1]*y[i-1] - d_age[i]*y[i] - forc[i+7]*y[i]; /*m_b[i]*y[i];*/
 
     yout[0] = Total[0];
     yout[1] = Total[1];
