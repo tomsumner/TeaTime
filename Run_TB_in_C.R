@@ -9,11 +9,6 @@ library(reshape2)
 library(ggplot2)
 library(gdata)
 
-## Compile and load the C code
-#dyn.unload("TB_model_v4.dll") # Unload - need to do this before recompiling
-#system("R CMD SHLIB TB_model_v4.c") # Compile
-#dyn.load("TB_model_v4.dll") # Load
-
 dyn.unload("TB_model_v5.dll") # Unload - need to do this before recompiling
 system("R CMD SHLIB TB_model_v5.c") # Compile
 dyn.load("TB_model_v5.dll") # Load
@@ -64,7 +59,7 @@ for(i in 1:16){
 }
 mort[,17]<-mort[,16]
 
-s5 <- cbind(seq(1971,2050),0.4*mort[,1])  ######## !!!!!! Note here I'm reducing the mortality rate in under 5s to better match the demography !!!!! #####
+s5 <- cbind(seq(1971,2050),0.4*mort[,1])
 s10 <- cbind(seq(1971,2050),mort[,2])
 s15 <- cbind(seq(1971,2050),mort[,3])
 s20 <- cbind(seq(1971,2050),mort[,4])
@@ -82,7 +77,7 @@ s75 <- cbind(seq(1971,2050),mort[,15])
 s80 <- cbind(seq(1971,2050),mort[,16])
 s100 <- cbind(seq(1971,2050),mort[,17])
 
-# HIV Incidence by age and year - based on AIM output, but ignoring childhood infections (this is what Carel does in TIME I think!)
+# HIV Incidence by age and year
 temp <- as.data.frame(read.table(paste("HIV/",cn,"_HIV_Inc_age.txt",sep=""),header=TRUE,fill=TRUE)) # Load HIV incidence data taken from AIM   
 # Need to re-arrage to get in year vs age format
 HIV_Inc_age <- mat.or.vec(81,18)
@@ -202,7 +197,7 @@ parms["e"]=0
 # Run the model
 time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
             parms = parms, dllname = "TB_model_v5",initforc = "forcc",
-            forcings=force, initfunc = "parmsc", nout = 62,
+            forcings=force, initfunc = "parmsc", nout = 63,
             outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                          "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                          "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
@@ -240,9 +235,9 @@ time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
                         "DD1","DD2","DD3","DD4","DD5","DD6","DD7","DD8","DD9","DD10","DD11","DD12","DD13","DD14","DD15","DD16","DD17","births","deaths"), 
            method = rkMethod("rk34f")))
 
-######## Some plots for testing things against spectrum and other data
+######## Some plots for testing things against spectrum and other data ##############################################
 
-# Plot pop against UN data ###################
+###################### POPULATION ###################################################################################
 
 # convert UN data to long format
 temp_data <- melt(UN_pop_age_t,id="Year")
@@ -286,7 +281,8 @@ plot_pop <- ggplot(temp_model_m,aes(x=Year,y=value))+
   #geom_line(data=temp_data_h,aes(x=Year,y=value),colour="black",linetype="dashed")+
   geom_line(data=TIME_pop_m,aes(x=Year,y=value/1000),colour="green",linetype="dashed")+
   facet_wrap(~variable,scales="free")+
-  xlim(c(1970,2100))
+  ggtitle("Population, births and deaths")+
+  xlim(c(1970,2050))
 
 # Compare population age structure (i.e % of total pop)
 temp_data_s <- as.data.frame(cbind(UN_pop_age_t[,1],100*UN_pop_age_t[,3:20]/UN_pop_age_t[,20]))
@@ -307,9 +303,55 @@ plot_pop_s <- ggplot(temp_model_s,aes(x=Year,y=value))+
   geom_line(data=temp_data_s,aes(x=Year,y=value),colour="black")+
   geom_line(data=temp_TIME_s,aes(x=Year,y=value),colour="green",linetype="dashed")+
   facet_wrap(~variable,scales="free")+
-  xlim(c(1970,2100))
+  ggtitle("age structure of population (% in age group)")+
+  xlim(c(1970,2050))
 
-####### Compare HIV distribution by age with TIME
+############# DEATHS ################################################################################################
+
+# TIME values
+temp <- as.data.frame(read.table(paste("Demog/",cn,"_TIME_deaths_age.txt",sep=""),header=TRUE,fill=TRUE)) # Load HIV numbers (output in TIME)  
+# Need to re-arrage to get in year vs age format
+deaths_number_age <- mat.or.vec(81,18)
+deaths_number_age[,1] <- seq(1970,2050)
+for (i in 1:81){
+  j <- (i-1)*19+2
+  deaths_number_age[i,2:18]=temp[j:(j+16),2]
+}
+deaths_number_age <- as.data.frame(deaths_number_age)
+colnames(deaths_number_age) <- colnames(UN_pop_age)
+deaths_TIME <- melt(deaths_number_age,id="Year")
+
+# Arrange model output
+model_deaths <- as.data.frame(cbind(out[,1],out[,6455:6471]))
+colnames(model_deaths) <- colnames(UN_pop_age)
+model_deaths_m <- melt(model_deaths,id="Year")
+
+# and plot
+plot_deaths <- ggplot(model_deaths_m,aes(x=Year,y=value))+
+  geom_line(colour="red")+
+  geom_line(data=deaths_TIME,aes(x=Year,y=value/1000),colour="black",linetype="dashed")+
+  facet_wrap(~variable,scales="free")+
+  ggtitle("Deaths")+
+  xlim(c(1970,2050))
+
+# and also look at rates
+# TIME
+m_TIME <- as.data.frame(cbind(seq(1970,2050),100*deaths_number_age[,2:18]/TIME_pop[,3:19]))
+colnames(m_TIME) <- colnames(UN_pop_age)
+m_TIME_m <- melt(m_TIME,id="Year")
+# Model
+m_model <- as.data.frame(cbind(seq(1970,2050),100*model_deaths[,2:18]/tot))
+colnames(m_model) <- colnames(UN_pop_age)
+m_model_m <- melt(m_model,id="Year")
+
+plot_death_p <- ggplot(m_model_m,aes(x=Year,y=value))+
+  geom_line(colour="red")+
+  geom_line(data=m_TIME_m,aes(x=Year,y=value),colour="black",linetype="dashed")+
+  facet_wrap(~variable,scales="free")+
+  ggtitle("Death_rate")+
+  xlim(c(1970,2050))
+
+####### HIV by ######################################################################################################
 
 # Load TIME values
 temp <- as.data.frame(read.table(paste("HIV/",cn,"_HIV_numbers_age.txt",sep=""),header=TRUE,fill=TRUE)) # Load HIV numbers (output in TIME)  
@@ -339,7 +381,8 @@ plot_HIV <- ggplot(HIV_model_m,aes(x=Year,y=value))+
   geom_line(colour="red")+
   geom_line(data=HIV_TIME,aes(x=Year,y=value/1000),colour="black",linetype="dashed")+
   facet_wrap(~variable,scales="free")+
-  xlim(c(1970,2100))
+  ggtitle("HIV_numbers")+
+  xlim(c(1970,2050))
 
 ### Compare HIV prevalence by age group
 
@@ -356,10 +399,24 @@ plot_HIV_p <- ggplot(H_p_model_m,aes(x=Year,y=value))+
   geom_line(colour="red")+
   geom_line(data=H_p_TIME_m,aes(x=Year,y=value),colour="black",linetype="dashed")+
   facet_wrap(~variable,scales="free")+
-  xlim(c(1970,2100))
+  ggtitle("HIV_prevalence (age)")+
+  xlim(c(1970,2050))
+
+########  SAVE PLOTS TO A PDF FILE ##################################################################################
+pdf_name <- paste("C:/Users/TOM SUMMER/Filr/My Files/sync/TIME/TIME Research/",cn,"_s5_mort_lowered.pdf",sep="")
+pdf(pdf_name,width=10,height=7)
+print(plot_pop)
+print(plot_pop_s)
+print(plot_deaths)
+print(plot_death_p)
+print(plot_HIV)
+print(plot_HIV_p)
+dev.off()
+
+#####################################################################################################################
 
 
-
+### EXTRA STUFF TO USE WHEN CHECKING TB AND CD4 OUTPUTS
 
 
 # Plot of CD4 distribution against Spectrum - this is normalised by total population to account for differences in population size #####################
