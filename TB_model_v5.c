@@ -519,8 +519,10 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     
     /* Calculate total deaths */
     double Tot_deaths = 0;
+    double Tot_deaths_age[17];
     for (i=0; i<17; i++){
-      Tot_deaths = Tot_deaths + m_b[i]*tot_age[i] + TB_deaths[i] + HIV_deaths[i] + ART_deaths[i];      
+      Tot_deaths_age[i] = m_b[i]*tot_age[i] + TB_deaths[i] + HIV_deaths[i] + ART_deaths[i];     
+      Tot_deaths = Tot_deaths + Tot_deaths_age[i];
     }
     
     /* Sum up populations over CD4 categories, with and without ART and calculate rates of ART initiation */
@@ -592,8 +594,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     double births = birth_rate*Total/1000;
     
     /* Susceptible - note this is done separately to deal with births */
-   /* dS[0] = s_birth*birth_rate*Total/1000 - age1*S[0] - (FS + FM)*S[0] - forc[18]*S[0] - m_b[0]*S[0];*/
-    dS[0] = births - age1*S[0] - (FS + FM)*S[0] - forc[18]*S[0] - m_b[0]*S[0];
+    dS[0] = births - age_out[0]*S[0] - (FS + FM)*S[0] - forc[18]*S[0] - m_b[0]*S[0];
     for (i=1; i<17; i++) dS[i] = age_in[i]*S[i-1] - age_out[i]*S[i] - (FS + FM)*S[i] - forc[i+18]*S[i] - m_b[i]*S[i];
     /* Other TB states */
     for (i=0; i<17; i++){
@@ -1024,25 +1025,26 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     yout[41] = TB_cases_neg;
     yout[42] = TB_cases_pos;
     yout[43] = TB_cases_ART;
-    yout[44] = prop_dis_death[0];
-    yout[45] = prop_dis_death[1];
-    yout[46] = prop_dis_death[2];
-    yout[47] = prop_dis_death[3];
-    yout[48] = prop_dis_death[4];
-    yout[49] = prop_dis_death[5];
-    yout[50] = prop_dis_death[6];
-    yout[51] = prop_dis_death[7];
-    yout[52] = prop_dis_death[8];
-    yout[53] = prop_dis_death[9];
-    yout[54] = prop_dis_death[10];
-    yout[55] = prop_dis_death[11];
-    yout[56] = prop_dis_death[12];
-    yout[57] = prop_dis_death[13];
-    yout[58] = prop_dis_death[14];
-    yout[59] = prop_dis_death[15];
-    yout[60] = prop_dis_death[16];
+    yout[44] = Tot_deaths_age[0];
+    yout[45] = Tot_deaths_age[1];
+    yout[46] = Tot_deaths_age[2];
+    yout[47] = Tot_deaths_age[3];
+    yout[48] = Tot_deaths_age[4];
+    yout[49] = Tot_deaths_age[5];
+    yout[50] = Tot_deaths_age[6];
+    yout[51] = Tot_deaths_age[7];
+    yout[52] = Tot_deaths_age[8];
+    yout[53] = Tot_deaths_age[9];
+    yout[54] = Tot_deaths_age[10];
+    yout[55] = Tot_deaths_age[11];
+    yout[56] = Tot_deaths_age[12];
+    yout[57] = Tot_deaths_age[13];
+    yout[58] = Tot_deaths_age[14];
+    yout[59] = Tot_deaths_age[15];
+    yout[60] = Tot_deaths_age[16];
     yout[61] = births;
     yout[62] = Tot_deaths;
+    
 }
 
 
