@@ -86,6 +86,18 @@ ja.multistage.model <- function (t, x, ...) {
 # Run it for 400 years
 sol <- ode(y=yinit,times=seq(0,400,by=1),func=ja.multistage.model)
 
+temp2 <- sol[,2:18]/sol[,19]
+temp2 <- as.data.frame(cbind(sol[,1],temp2))
+colnames(temp2) <- colnames(UN_pop_age_t[1:18])
+temp_2 <- melt(temp2,id="Year")
+
+plot_prop <- ggplot(temp_2,aes(x=Year,y=value))+
+  geom_line(colour="red")+
+  #geom_point(data=temp_data,aes(x=Year,y=value))+
+  facet_wrap(~variable,scales="free")+
+  xlim(c(0,400))+
+  ylim(c(0,0.2))
+
 # Adjust pop down to 1970 values and reassign initial conditions
 temp <- sol[dim(sol)[1],2:18]
 temp <- temp/(sum(temp)/sol[1,19])
@@ -97,7 +109,6 @@ sindex <- 1:num_ages
 
 # Run from 1970 onwards
 sol <- ode(y=yinit,times=seq(1970,2050,by=1),func=ja.multistage.model)
-
 
 ## Plot populations in each age group over time
 
@@ -117,16 +128,11 @@ colnames(temp2) <- colnames(UN_pop_age_t[1:18])
 temp_2 <- melt(temp2,id="Year")
 
 # and plot
-plot_temp <- ggplot(temp_model,aes(x=Year,y=value))+
+plot_pop <- ggplot(temp_model,aes(x=Year,y=value))+
                     geom_line(colour="red")+
                     geom_point(data=temp_data,aes(x=Year,y=value))+
                     facet_wrap(~variable,scales="free")+
                     xlim(c(1950,2050))
 
-plot_temp <- ggplot(temp_model,aes(x=Year,y=value/sum(value)))+
-  geom_line(colour="red")+
-  #geom_point(data=temp_data,aes(x=Year,y=value))+
-  facet_wrap(~variable,scales="free")+
-  xlim(c(0,400))+
-  ylim(c(0,0.0005))
+
 

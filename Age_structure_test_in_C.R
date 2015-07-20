@@ -88,44 +88,71 @@ for (cn in 1:length(cn_list)){
   # Male to female birth ratio
   temp <- read.xls(fname, sheet="M_F_births", verbose=FALSE, "Birth",header=FALSE,stringsAsFactors=FALSE)
   m_to_f <- cbind(seq(1970,2050),as.numeric(t(temp[2:82]))/100)
+  
+  # Load number of births for comparison
+  temp <- read.xls(fname, sheet="births", verbose=FALSE,header=FALSE,stringsAsFactors=FALSE)
+  births <- cbind(seq(1950,2099),as.numeric(temp[,2]))
+  
+ 
+  # Load mortaltiy rates taken from demproj
+  # These are by single year age so need to average across 5 columns
+  temp_m <- read.xls(fname, sheet="Mort_m", verbose=FALSE, "1971",header=FALSE,stringsAsFactors=FALSE)
+  temp_f <- read.xls(fname, sheet="Mort_f", verbose=FALSE, "1971",header=FALSE,stringsAsFactors=FALSE)
+  
+  mort_m <- mat.or.vec(80,17) 
+  mort_f <- mat.or.vec(80,17) 
+  for(i in 1:16){
+    temp2m <- 0
+    temp2f <- 0
+    
+    for (j in ((i-1)*5+2):((i-1)*5+6)){
+      temp2m <- temp2m+as.numeric(temp_m[,j])
+      temp2f <- temp2f+as.numeric(temp_f[,j])
+    }
+    mort_m[,i] <- temp2m/5
+    mort_f[,i] <- temp2f/5
+  }
+  mort_m[,17]<-mort_m[,16]
+  mort_f[,17]<-mort_f[,16]
+  
+  
+  m_adj <- 0.1
+  
+  s5m <- cbind(seq(1971,2050),m_adj*mort_m[,1])
+  s10m <- cbind(seq(1971,2050),mort_m[,2])
+  s15m <- cbind(seq(1971,2050),mort_m[,3])
+  s20m <- cbind(seq(1971,2050),mort_m[,4])
+  s25m <- cbind(seq(1971,2050),mort_m[,5])
+  s30m <- cbind(seq(1971,2050),mort_m[,6])
+  s35m <- cbind(seq(1971,2050),mort_m[,7])
+  s40m <- cbind(seq(1971,2050),mort_m[,8])
+  s45m <- cbind(seq(1971,2050),mort_m[,9])
+  s50m <- cbind(seq(1971,2050),mort_m[,10])
+  s55m <- cbind(seq(1971,2050),mort_m[,11])
+  s60m <- cbind(seq(1971,2050),mort_m[,12])
+  s65m <- cbind(seq(1971,2050),mort_m[,13])
+  s70m <- cbind(seq(1971,2050),mort_m[,14])
+  s75m <- cbind(seq(1971,2050),mort_m[,15])
+  s80m <- cbind(seq(1971,2050),mort_m[,16])
+  s100m <- cbind(seq(1971,2050),mort_m[,17])
 
-  ## Survival - by age and sex based on UN life tables
-  temp <- read.xls(fname, sheet="Life_table_m", verbose=FALSE,header=FALSE,stringsAsFactors=FALSE) 
-  s5m <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,4])/as.numeric(temp[,2]))
-  s10m <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,5])/as.numeric(temp[,4]))
-  s15m <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,6])/as.numeric(temp[,5]))
-  s20m <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,7])/as.numeric(temp[,6]))
-  s25m <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,8])/as.numeric(temp[,7]))
-  s30m <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,9])/as.numeric(temp[,8]))
-  s35m <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,10])/as.numeric(temp[,9]))
-  s40m <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,11])/as.numeric(temp[,10]))
-  s45m <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,12])/as.numeric(temp[,11]))
-  s50m <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,13])/as.numeric(temp[,12]))
-  s55m <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,14])/as.numeric(temp[,13]))
-  s60m <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,15])/as.numeric(temp[,14]))
-  s65m <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,16])/as.numeric(temp[,15]))
-  s70m <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,17])/as.numeric(temp[,16]))
-  s75m <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,18])/as.numeric(temp[,17]))
-  s80m <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,19])/as.numeric(temp[,18]))
-  s100m <- cbind(seq(1952.5,2097.5,5),0)
-  temp <- read.xls(fname, sheet="Life_table_f", verbose=FALSE,header=FALSE,stringsAsFactors=FALSE) 
-  s5f <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,4])/as.numeric(temp[,2]))
-  s10f <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,5])/as.numeric(temp[,4]))
-  s15f <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,6])/as.numeric(temp[,5]))
-  s20f <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,7])/as.numeric(temp[,6]))
-  s25f <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,8])/as.numeric(temp[,7]))
-  s30f <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,9])/as.numeric(temp[,8]))
-  s35f <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,10])/as.numeric(temp[,9]))
-  s40f <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,11])/as.numeric(temp[,10]))
-  s45f <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,12])/as.numeric(temp[,11]))
-  s50f <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,13])/as.numeric(temp[,12]))
-  s55f <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,14])/as.numeric(temp[,13]))
-  s60f <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,15])/as.numeric(temp[,14]))
-  s65f <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,16])/as.numeric(temp[,15]))
-  s70f <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,17])/as.numeric(temp[,16]))
-  s75f <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,18])/as.numeric(temp[,17]))
-  s80f <- cbind(seq(1952.5,2097.5,5),as.numeric(temp[,19])/as.numeric(temp[,18]))
-  s100f <- cbind(seq(1952.5,2097.5,5),0)
+  s5f <- cbind(seq(1971,2050),m_adj*mort_f[,1])
+  s10f <- cbind(seq(1971,2050),mort_f[,2])
+  s15f <- cbind(seq(1971,2050),mort_f[,3])
+  s20f <- cbind(seq(1971,2050),mort_f[,4])
+  s25f <- cbind(seq(1971,2050),mort_f[,5])
+  s30f <- cbind(seq(1971,2050),mort_f[,6])
+  s35f <- cbind(seq(1971,2050),mort_f[,7])
+  s40f <- cbind(seq(1971,2050),mort_f[,8])
+  s45f <- cbind(seq(1971,2050),mort_f[,9])
+  s50f <- cbind(seq(1971,2050),mort_f[,10])
+  s55f <- cbind(seq(1971,2050),mort_f[,11])
+  s60f <- cbind(seq(1971,2050),mort_f[,12])
+  s65f <- cbind(seq(1971,2050),mort_f[,13])
+  s70f <- cbind(seq(1971,2050),mort_f[,14])
+  s75f <- cbind(seq(1971,2050),mort_f[,15])
+  s80f <- cbind(seq(1971,2050),mort_f[,16])
+  s100f <- cbind(seq(1971,2050),mort_f[,17])
 
 #########################################################################
 # Now run the model
@@ -159,7 +186,9 @@ for (cn in 1:length(cn_list)){
   # add total to UN data and convert to long format
   temp_data_f <- melt(as.data.frame(UN_pop_age_f),id="Year")
   temp_data_m <- melt(as.data.frame(UN_pop_age_m),id="Year")
-  temp_data <- melt(as.data.frame(UN_pop_age),id="Year")
+  temp_data <- cbind(UN_pop_age,births[1:101,2])
+  colnames(temp_data) <- c(colnames(UN_pop_age),"Births")
+  temp_data <- melt(as.data.frame(temp_data),id="Year")
 
   # then turn the model output into long format
   temp_model_f <- as.data.frame(out[,c(seq(1,18),36)])
@@ -170,8 +199,8 @@ for (cn in 1:length(cn_list)){
   colnames(temp_model_m) <- colnames(UN_pop_age_m)
   temp_model_m <- melt(temp_model_m,id="Year")
 
-  temp_model <- as.data.frame(cbind(out[,1],out[,2:18]+out[,19:35],out[,38]))
-  colnames(temp_model) <- colnames(UN_pop_age)
+  temp_model <- as.data.frame(cbind(out[,1],out[,2:18]+out[,19:35],out[,38],out[,"Births"]))
+  colnames(temp_model) <- c(colnames(UN_pop_age),"Births")
   temp_model <- melt(temp_model,id="Year")
 
   # and do the same for TIME estimates
