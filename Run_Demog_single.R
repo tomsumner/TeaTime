@@ -16,7 +16,7 @@ dyn.load("Demog_single.dll") # Load
 
 ##############################################################################################################################
 
-cn <- "SA"
+cn <- "Vietnam"
 
 ## Load UN population data
 UN_pop_age <- as.data.frame(read.table(paste("Demog/",cn,"_pop_single.txt",sep=""),header=FALSE)) # Load UN Population data
@@ -80,7 +80,7 @@ time_eq <- system.time(out <- ode(y=xstart, times, func = "derivsc",
             parms = parms, dllname = "Demog_single",initforc = "forcc",
             forcings=force, initfunc = "parmsc", nout = 3,
             outnames = c("Total","Births","Deaths"), 
-            events = list(func="event",time=seq(1971,2050)),
+            events = list(func="event",time=seq(1970,2050)),
             method = rkMethod("rk34f")))
 
 ######## Some plots for testing things against data ##############################################
@@ -163,21 +163,12 @@ plot_pop <- ggplot(temp_model_m,aes(x=Year,y=value))+
   ggtitle("Population, births and deaths")+
   xlim(c(1970,2050))
 
-
-
-
-
-
-
-
-
-
 # Compare population age structure (i.e % of total pop)
 temp_data_s <- as.data.frame(cbind(UN_pop_age_t[,1],100*UN_pop_age_t[,3:20]/UN_pop_age_t[,20]))
 colnames(temp_data_s)<-c("Year","x4","X9","X14","X19","X24","X29","X34","X39","X44","X49","X54","X59","X64","X69","X74","X79","X100","Total")
 temp_data_s <- melt(temp_data_s,id="Year")
 
-temp_model_s <- as.data.frame(cbind(seq(1970,2050),100*temp_model[,3:20]/temp_model[,20]))
+temp_model_s <- as.data.frame(cbind(seq(1970,2050),100*model_temp[,3:20]/model_temp[,20]))
 colnames(temp_model_s)<-c("Year","x4","X9","X14","X19","X24","X29","X34","X39","X44","X49","X54","X59","X64","X69","X74","X79","X100","Total")
 temp_model_s <- melt(temp_model_s,id="Year")
 
@@ -193,6 +184,18 @@ plot_pop_s <- ggplot(temp_model_s,aes(x=Year,y=value))+
   facet_wrap(~variable,scales="free")+
   ggtitle("age structure of population (% in age group)")+
   xlim(c(1970,2050))
+
+
+
+
+
+
+
+
+
+
+
+
 
 ############# DEATHS ################################################################################################
 
