@@ -9,9 +9,9 @@ library(reshape2)
 library(ggplot2)
 library(gdata)
 
-dyn.unload("TB_model_v5.dll") # Unload - need to do this before recompiling
-system("R CMD SHLIB TB_model_v5.c") # Compile
-dyn.load("TB_model_v5.dll") # Load
+dyn.unload("TB_model_v6.dll") # Unload - need to do this before recompiling
+system("R CMD SHLIB TB_model_v6.c") # Compile
+dyn.load("TB_model_v6.dll") # Load
 
 ##############################################################################################################################
 
@@ -45,37 +45,12 @@ num_ages <- length(ages) # calculates the number of age classes
 temp <- as.data.frame(read.table(paste("Demog/",cn,"_crude_birth.txt",sep=""),header=TRUE)) # Load crude birth rate
 birth_rate <- cbind(temp[,1],temp[,2])
 
-# Load mortaltiy rates taken from demproj
-# These are by single year age so need to average across 5 columns
+# Load mortality rates taken from demproj
+
 mort_age <- as.data.frame(read.table(paste("Demog/",cn,"_mort_age.txt",sep=""),header=FALSE)) 
-
-mort <- mat.or.vec(80,17) 
-for(i in 1:16){
-  temp <- 0
-  for (j in ((i-1)*5+2):((i-1)*5+6)){
-    temp <- temp+as.numeric(mort_age[,j])
-  }
-  mort[,i] <- temp/5
+for (i in 1:81){  
+  assign(paste("s",i,sep=""), cbind(seq(1971,2050),mort_age[,i+1]))
 }
-mort[,17]<-mort[,16]
-
-s5 <- cbind(seq(1971,2050),0.4*mort[,1])
-s10 <- cbind(seq(1971,2050),mort[,2])
-s15 <- cbind(seq(1971,2050),mort[,3])
-s20 <- cbind(seq(1971,2050),mort[,4])
-s25 <- cbind(seq(1971,2050),mort[,5])
-s30 <- cbind(seq(1971,2050),mort[,6])
-s35 <- cbind(seq(1971,2050),mort[,7])
-s40 <- cbind(seq(1971,2050),mort[,8])
-s45 <- cbind(seq(1971,2050),mort[,9])
-s50 <- cbind(seq(1971,2050),mort[,10])
-s55 <- cbind(seq(1971,2050),mort[,11])
-s60 <- cbind(seq(1971,2050),mort[,12])
-s65 <- cbind(seq(1971,2050),mort[,13])
-s70 <- cbind(seq(1971,2050),mort[,14])
-s75 <- cbind(seq(1971,2050),mort[,15])
-s80 <- cbind(seq(1971,2050),mort[,16])
-s100 <- cbind(seq(1971,2050),mort[,17])
 
 # HIV Incidence by age and year
 temp <- as.data.frame(read.table(paste("HIV/",cn,"_HIV_Inc_age.txt",sep=""),header=TRUE,fill=TRUE)) # Load HIV incidence data taken from AIM   
@@ -88,25 +63,11 @@ for (i in 1:81){
 }
 
 # Data from AIM is rate per 1000 
-#HIV_Inc_age[,2:18]=HIV_Inc_age[,2:18]*0
-
-h0 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,2]/1000)
-h5 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,3]/1000)
-h10 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,4]/1000)
-h15 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,5]/1000)
-h20 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,6]/1000)
-h25 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,7]/1000)
-h30 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,8]/1000)
-h35 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,9]/1000)
-h40 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,10]/1000)
-h45 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,11]/1000)
-h50 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,12]/1000)
-h55 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,13]/1000)
-h60 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,14]/1000)
-h65 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,15]/1000)
-h70 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,16]/1000)
-h75 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,17]/1000)
-h80 <- cbind(HIV_Inc_age[,1],HIV_Inc_age[,18]/1000)
+#HIV_Inc_age[,2:18]=HIV_Inc_age[,2:18]*0   ### This line will turn HIV off 
+temp <- c(rep(c(2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17),each=5),18)   # used to duplicate the HIV incidence (reported by 5 year age bins) for single years
+for (i in 0:80){
+  assign(paste("h",i,sep=""),cbind(seq(1970,2050),HIV_Inc_age[,temp[i+1]]))
+}
 
 # ART coverage - based on AIM, use CD4 eligibility threshold and % of those in need on ART
 ART_data <- as.data.frame(read.table(paste("HIV/",cn,"_ART_data.txt",sep=""),header=TRUE)) # Load data
@@ -138,7 +99,16 @@ dst_p <- cbind(seq(1970,2050),(0 + ((95-0)/((1+exp(-1*(seq(1970,2050)-1993)))^(1
 
 # Combine forcing functions into a list
 force <- list(birth_rate,s5,s10,s15,s20,s25,s30,s35,s40,s45,s50,s55,s60,s65,s70,s75,s80,s100,
-              h0,h5,h10,h15,h20,h25,h30,h35,h40,h45,h50,h55,h60,h65,h70,h75,h80,
+              
+force <- list(birth_rate,
+              s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15,s16,s17,s18,s19,s20,
+              s21,s22,s23,s24,s25,s26,s27,s28,s29,s30,s31,s32,s33,s34,s35,s36,s37,s38,s39,s40,
+              s41,s42,s43,s44,s45,s46,s47,s48,s49,s50,s51,s52,s53,s54,s55,s56,s57,s58,s59,s60,
+              s61,s62,s63,s64,s65,s66,s67,s68,s69,s70,s71,s72,s73,s74,s75,s76,s77,s78,s79,s80,s81,)
+              h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13,h14,h15,h16,h17,h18,h19,h20,
+              h21,h22,h23,h24,h25,h26,h27,h28,h29,h30,h31,h32,h33,h34,h35,h36,h37,h38,h39,h40,
+              h41,h42,h43,h44,h45,h46,h47,h48,h49,h50,h51,h52,h53,h54,h55,h56,h57,h58,h59,h60,
+              h61,h62,h63,h64,h65,h66,h67,h68,h69,h70,h71,h72,h73,h74,h75,h76,h77,h78,h79,h80,
               Ahigh,A500,A349,A249,A199,A99,A50,Athresh,
               BCG_cov,pop_ad,k,dst_n,dst_p)
 
