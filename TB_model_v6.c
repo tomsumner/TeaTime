@@ -287,25 +287,24 @@ void event(int *n, double *t, double *y)
 {
   int i;
   
+  /* Store current population in temp */
   double temp[30537];
   for (i=0; i<30537; i++) temp[i] = y[i];
   
-  /*####### SHIFT EVERY VALUE FORWARD ONE */
+  /* Shift every age group forward one - currently just doing for susceptibles */
+  for (i=1; i<30537; i++) y[i] = temp[i-1];
   
-  for (i=0; i<30537; i++) y[i] = temp[i-1];
-  
-  /*####### THEN CORRECT THE NEWBORN AND FINAL AGE GROUPS OF EACH DISEASE/HIV/ART CLASS */ 
+  /* Set every 0 age group to zero */
+  for (i=0; i<30537; i+=81) y[i] = 0;
+  /* Then add births into group 0 - only susceptibles get born */ 
+  y[0] = birth_rate*sumsum(temp,0,30536)/1000;
 
-  for (i=0; i<30537; i+=81) y[i] = 0;     /* starting at 0 set every 81st element to zero - these are the age 0 categories */
-  y[0] = birth_rate*sumsum(temp,0,30537);  /* then just add births to susceptibles */
-  
+  /* Set >80 age groups to the previous age group plus those still surviving */
   for (i=80; i<30537; i+=81) y[i] = temp[i] + temp[i-1]; /* the final age group is just the previous age plus those still left in */
 
 }
 
 /* ###### DERIVATIVE FUNCTION ###### */
-
-/* !!!!!!!  CHECK ALL FORC REFS TO MAKE SURE ARE USING CORRECT INDICES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~######################*/ 
 
 void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip)
 {
@@ -537,39 +536,39 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     double A_mort[3][7][81]; /* On ART mortality (age,starting CD4, time on ART)  - this is an average of male and female values weigthed by sex of those on ART  */
     
     for (i=0; i<5; i++){
-      A_mort[1][1][i] = 0.062; A_mort[1][2][i] = 0.282;  A_mort[1][3][i] = 0.214; A_mort[1][4][i] = 0.214; A_mort[1][5][i] = 0.749;  A_mort[1][6][i] = 0.749;  A_mort[1][7][i] = 0.749; 
-      A_mort[2][1][i] = 0.147; A_mort[2][2][i] = 0.210;  A_mort[2][3][i] = 0.199; A_mort[2][4][i] = 0.199; A_mort[2][5][i] = 0.376;  A_mort[2][6][i] = 0.376;  A_mort[2][7][i] = 0.376; 
-      A_mort[3][1][i] = 0.062; A_mort[3][2][i] = 0.089;  A_mort[3][3][i] = 0.084; A_mort[3][4][i] = 0.084; A_mort[3][5][i] = 0.159;  A_mort[3][6][i] = 0.159;  A_mort[3][7][i] = 0.159; 
+      A_mort[0][0][i] = 0.062; A_mort[0][1][i] = 0.282;  A_mort[0][2][i] = 0.214; A_mort[0][3][i] = 0.214; A_mort[0][4][i] = 0.749;  A_mort[0][5][i] = 0.749;  A_mort[0][6][i] = 0.749; 
+      A_mort[1][0][i] = 0.147; A_mort[1][1][i] = 0.210;  A_mort[1][2][i] = 0.199; A_mort[1][3][i] = 0.199; A_mort[1][4][i] = 0.376;  A_mort[1][5][i] = 0.376;  A_mort[1][6][i] = 0.376; 
+      A_mort[2][0][i] = 0.062; A_mort[2][1][i] = 0.089;  A_mort[2][2][i] = 0.084; A_mort[2][3][i] = 0.084; A_mort[2][4][i] = 0.159;  A_mort[2][5][i] = 0.159;  A_mort[2][6][i] = 0.159; 
     }
     for (i=5; i<10; i++){
-      A_mort[1][1][i] = 0.008; A_mort[1][2][i] = 0.035;  A_mort[1][3][i] = 0.027; A_mort[1][4][i] = 0.027; A_mort[1][5][i] = 0.094;  A_mort[1][6][i] = 0.094;  A_mort[1][7][i] = 0.094; 
-      A_mort[2][1][i] = 0.018; A_mort[2][2][i] = 0.026;  A_mort[2][3][i] = 0.025; A_mort[2][4][i] = 0.025; A_mort[2][5][i] = 0.047;  A_mort[2][6][i] = 0.047;  A_mort[2][7][i] = 0.047; 
-      A_mort[3][1][i] = 0.008; A_mort[3][2][i] = 0.011;  A_mort[3][3][i] = 0.011; A_mort[3][4][i] = 0.011; A_mort[3][5][i] = 0.020;  A_mort[3][6][i] = 0.020;  A_mort[3][7][i] = 0.020; 
+      A_mort[0][0][i] = 0.008; A_mort[0][1][i] = 0.035;  A_mort[0][2][i] = 0.027; A_mort[0][3][i] = 0.027; A_mort[0][4][i] = 0.094;  A_mort[0][5][i] = 0.094;  A_mort[0][6][i] = 0.094; 
+      A_mort[1][0][i] = 0.018; A_mort[1][1][i] = 0.026;  A_mort[1][2][i] = 0.025; A_mort[1][3][i] = 0.025; A_mort[1][4][i] = 0.047;  A_mort[1][5][i] = 0.047;  A_mort[1][6][i] = 0.047; 
+      A_mort[2][0][i] = 0.008; A_mort[2][1][i] = 0.011;  A_mort[2][2][i] = 0.011; A_mort[2][3][i] = 0.011; A_mort[2][4][i] = 0.020;  A_mort[2][5][i] = 0.020;  A_mort[2][6][i] = 0.020; 
     }
     for (i=10; i<15; i++){
-      A_mort[1][1][i] = 0.007; A_mort[1][2][i] = 0.033;  A_mort[1][3][i] = 0.025; A_mort[1][4][i] = 0.025; A_mort[1][5][i] = 0.088;  A_mort[1][6][i] = 0.088;  A_mort[1][7][i] = 0.088; 
-      A_mort[2][1][i] = 0.009; A_mort[2][2][i] = 0.012;  A_mort[2][3][i] = 0.012; A_mort[2][4][i] = 0.022; A_mort[2][5][i] = 0.022;  A_mort[2][6][i] = 0.022;  A_mort[2][7][i] = 0.022; 
-      A_mort[3][1][i] = 0.004; A_mort[3][2][i] = 0.005;  A_mort[3][3][i] = 0.005; A_mort[3][4][i] = 0.005; A_mort[3][5][i] = 0.009;  A_mort[3][6][i] = 0.009;  A_mort[3][7][i] = 0.009; 
+      A_mort[0][0][i] = 0.007; A_mort[0][1][i] = 0.033;  A_mort[0][2][i] = 0.025; A_mort[0][3][i] = 0.025; A_mort[0][4][i] = 0.088;  A_mort[0][5][i] = 0.088;  A_mort[0][6][i] = 0.088; 
+      A_mort[1][0][i] = 0.009; A_mort[1][1][i] = 0.012;  A_mort[1][2][i] = 0.012; A_mort[1][3][i] = 0.022; A_mort[1][4][i] = 0.022;  A_mort[1][5][i] = 0.022;  A_mort[1][6][i] = 0.022; 
+      A_mort[2][0][i] = 0.004; A_mort[2][1][i] = 0.005;  A_mort[2][2][i] = 0.005; A_mort[2][3][i] = 0.005; A_mort[2][4][i] = 0.009;  A_mort[2][5][i] = 0.009;  A_mort[2][6][i] = 0.009; 
     }
     for (i=15; i<25; i++){
-      A_mort[1][1][i] = 0.0050; A_mort[1][2][i] = 0.0115;  A_mort[1][3][i] = 0.0264; A_mort[1][4][i] = 0.0557; A_mort[1][5][i] = 0.0953;  A_mort[1][6][i] = 0.1553;  A_mort[1][7][i] = 0.3418; 
-      A_mort[2][1][i] = 0.0050; A_mort[2][2][i] = 0.0115;  A_mort[2][3][i] = 0.0204; A_mort[2][4][i] = 0.0216; A_mort[2][5][i] = 0.0272;  A_mort[2][6][i] = 0.0343;  A_mort[2][7][i] = 0.0496; 
-      A_mort[3][1][i] = 0.0050; A_mort[3][2][i] = 0.0068;  A_mort[3][3][i] = 0.0073; A_mort[3][4][i] = 0.0079; A_mort[3][5][i] = 0.0105;  A_mort[3][6][i] = 0.0139;  A_mort[3][7][i] = 0.0211; 
+      A_mort[0][0][i] = 0.0050; A_mort[0][1][i] = 0.0115;  A_mort[0][2][i] = 0.0264; A_mort[0][3][i] = 0.0557; A_mort[0][4][i] = 0.0953;  A_mort[0][5][i] = 0.1553;  A_mort[0][6][i] = 0.3418; 
+      A_mort[1][0][i] = 0.0050; A_mort[1][1][i] = 0.0115;  A_mort[1][2][i] = 0.0204; A_mort[1][3][i] = 0.0216; A_mort[1][4][i] = 0.0272;  A_mort[1][5][i] = 0.0343;  A_mort[1][6][i] = 0.0496; 
+      A_mort[2][0][i] = 0.0050; A_mort[2][1][i] = 0.0068;  A_mort[2][2][i] = 0.0073; A_mort[2][3][i] = 0.0079; A_mort[2][4][i] = 0.0105;  A_mort[2][5][i] = 0.0139;  A_mort[2][6][i] = 0.0211; 
     }
     for (i=25; i<35; i++){
-      A_mort[1][1][i] = 0.0035; A_mort[1][2][i] = 0.0095;  A_mort[1][3][i] = 0.0256; A_mort[1][4][i] = 0.0477; A_mort[1][5][i] = 0.0792;  A_mort[1][6][i] = 0.1305;  A_mort[1][7][i] = 0.2897; 
-      A_mort[2][1][i] = 0.0035; A_mort[2][2][i] = 0.0095;  A_mort[2][3][i] = 0.0242; A_mort[2][4][i] = 0.0278; A_mort[2][5][i] = 0.0351;  A_mort[2][6][i] = 0.0442;  A_mort[2][7][i] = 0.0640; 
-      A_mort[3][1][i] = 0.0035; A_mort[3][2][i] = 0.0081;  A_mort[3][3][i] = 0.0093; A_mort[3][4][i] = 0.0100; A_mort[3][5][i] = 0.0134;  A_mort[3][6][i] = 0.0177;  A_mort[3][7][i] = 0.0271; 
+      A_mort[0][0][i] = 0.0035; A_mort[0][1][i] = 0.0095;  A_mort[0][2][i] = 0.0256; A_mort[0][3][i] = 0.0477; A_mort[0][4][i] = 0.0792;  A_mort[0][5][i] = 0.1305;  A_mort[0][6][i] = 0.2897; 
+      A_mort[1][0][i] = 0.0035; A_mort[1][1][i] = 0.0095;  A_mort[1][2][i] = 0.0242; A_mort[1][3][i] = 0.0278; A_mort[1][4][i] = 0.0351;  A_mort[1][5][i] = 0.0442;  A_mort[1][6][i] = 0.0640; 
+      A_mort[2][0][i] = 0.0035; A_mort[2][1][i] = 0.0081;  A_mort[2][2][i] = 0.0093; A_mort[2][3][i] = 0.0100; A_mort[2][4][i] = 0.0134;  A_mort[2][5][i] = 0.0177;  A_mort[2][6][i] = 0.0271; 
     }
     for (i=35; i<45; i++){
-      A_mort[1][1][i] = 0.0050; A_mort[1][2][i] = 0.0134;  A_mort[1][3][i] = 0.0359; A_mort[1][4][i] = 0.0495; A_mort[1][5][i] = 0.0833;  A_mort[1][6][i] = 0.1384;  A_mort[1][7][i] = 0.3094; 
-      A_mort[2][1][i] = 0.0050; A_mort[2][2][i] = 0.0134;  A_mort[2][3][i] = 0.0267; A_mort[2][4][i] = 0.0283; A_mort[2][5][i] = 0.0362;  A_mort[2][6][i] = 0.0461;  A_mort[2][7][i] = 0.0675; 
-      A_mort[3][1][i] = 0.0050; A_mort[3][2][i] = 0.0076;  A_mort[3][3][i] = 0.0083; A_mort[3][4][i] = 0.0091; A_mort[3][5][i] = 0.0128;  A_mort[3][6][i] = 0.0174;  A_mort[3][7][i] = 0.0275; 
+      A_mort[0][0][i] = 0.0050; A_mort[0][1][i] = 0.0134;  A_mort[0][2][i] = 0.0359; A_mort[0][3][i] = 0.0495; A_mort[0][4][i] = 0.0833;  A_mort[0][5][i] = 0.1384;  A_mort[0][6][i] = 0.3094; 
+      A_mort[1][0][i] = 0.0050; A_mort[1][1][i] = 0.0134;  A_mort[1][2][i] = 0.0267; A_mort[1][3][i] = 0.0283; A_mort[1][4][i] = 0.0362;  A_mort[1][5][i] = 0.0461;  A_mort[1][6][i] = 0.0675; 
+      A_mort[2][0][i] = 0.0050; A_mort[2][1][i] = 0.0076;  A_mort[2][2][i] = 0.0083; A_mort[2][3][i] = 0.0091; A_mort[2][4][i] = 0.0128;  A_mort[2][5][i] = 0.0174;  A_mort[2][6][i] = 0.0275; 
     }
     for (i=45; i<81; i++){
-      A_mort[1][1][i] = 0.0050; A_mort[1][2][i] = 0.0126;  A_mort[1][3][i] = 0.0319; A_mort[1][4][i] = 0.0489; A_mort[1][5][i] = 0.0872;  A_mort[1][6][i] = 0.1496;  A_mort[1][7][i] = 0.3431; 
-      A_mort[2][1][i] = 0.0050; A_mort[2][2][i] = 0.0126;  A_mort[2][3][i] = 0.0306; A_mort[2][4][i] = 0.0366; A_mort[2][5][i] = 0.0481;  A_mort[2][6][i] = 0.0625;  A_mort[2][7][i] = 0.0935; 
-      A_mort[3][1][i] = 0.0045; A_mort[3][2][i] = 0.0066;  A_mort[3][3][i] = 0.0076; A_mort[3][4][i] = 0.0087; A_mort[3][5][i] = 0.0141;  A_mort[3][6][i] = 0.0209;  A_mort[3][7][i] = 0.0355; 
+      A_mort[0][0][i] = 0.0050; A_mort[0][1][i] = 0.0126;  A_mort[0][2][i] = 0.0319; A_mort[0][3][i] = 0.0489; A_mort[0][4][i] = 0.0872;  A_mort[0][5][i] = 0.1496;  A_mort[0][6][i] = 0.3431; 
+      A_mort[1][0][i] = 0.0050; A_mort[1][1][i] = 0.0126;  A_mort[1][2][i] = 0.0306; A_mort[1][3][i] = 0.0366; A_mort[1][4][i] = 0.0481;  A_mort[1][5][i] = 0.0625;  A_mort[1][6][i] = 0.0935; 
+      A_mort[2][0][i] = 0.0045; A_mort[2][1][i] = 0.0066;  A_mort[2][2][i] = 0.0076; A_mort[2][3][i] = 0.0087; A_mort[2][4][i] = 0.0141;  A_mort[2][5][i] = 0.0209;  A_mort[2][6][i] = 0.0355; 
     }
    
     double A_prog[4] = {0,2,2,0}; /* Progression through time on ART, 6 monthly time blocks - 0 ensure no progression into first catergory and no progression out of last category*/
@@ -725,10 +724,10 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     }
     ART_new = fmax(0,ART_on - (Tot_ART - ART_deaths_tot));   /* number who need to start is number who should be on minus those already on plus those on ART who will die in current time */ 
     
-     /*for (j=0; j<7; j++) ART_prop[j] = 0; /* THIS LINE IS HERE TO ALLOW ART TO BE TURNED OFF */
+     for (j=0; j<7; j++) ART_prop[j] = 0; /* THIS LINE IS HERE TO ALLOW ART TO BE TURNED OFF */
     
     /* Then work out where these should go by CD4 - based on proportion of eligible population in CD4 group and proportion of deaths which occuring in CD4 group */
-    for (j=Athresh; j<7; j++) {
+   /* for (j=Athresh; j<7; j++) {
       ART_el = ART_el + CD4_dist[j];
       ART_el_deaths = ART_el_deaths + CD4_deaths[j];
       ART_need = ART_need + CD4_dist[j] + CD4_dist_ART[j];
@@ -738,9 +737,9 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
         if (CD4_dist[j] > 0) {
           ART_prop[j] = (((CD4_dist[j]/ART_el)+(CD4_deaths[j]/ART_el_deaths))/2)*(ART_new/CD4_dist[j]); /* applies weighting and size of CD4 group to work out % of CD4 group that should move */
            /* ART_prop[j] = (CD4_dist[j]/ART_el)*(ART_new/CD4_dist[j]); */
-       }
+     /*  }
       }
-    }
+    }*/
     
     /* Force of infection */
     double FS = beta*(Total_Ns*rel_inf + Total_Is)/Total; 
@@ -1193,11 +1192,8 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     yout[41] = TB_cases_neg;
     yout[42] = TB_cases_pos;
     yout[43] = TB_cases_ART;
-    for (i=0; i<n_age; i++){
-      y[i+44] = Tot_deaths_age[i];
-    }
-    yout[125] = births;
-    yout[126] = Tot_deaths;
+    yout[44] = births;
+    yout[45] = Tot_deaths;
     
 }
 
