@@ -724,10 +724,10 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     }
     ART_new = fmax(0,ART_on - (Tot_ART - ART_deaths_tot));   /* number who need to start is number who should be on minus those already on plus those on ART who will die in current time */ 
     
-     for (j=0; j<7; j++) ART_prop[j] = 0; /* THIS LINE IS HERE TO ALLOW ART TO BE TURNED OFF */
+    /*for (j=0; j<7; j++) ART_prop[j] = 0; /* THIS LINE IS HERE TO ALLOW ART TO BE TURNED OFF */
     
     /* Then work out where these should go by CD4 - based on proportion of eligible population in CD4 group and proportion of deaths which occuring in CD4 group */
-   /* for (j=Athresh; j<7; j++) {
+    for (j=Athresh; j<7; j++) {
       ART_el = ART_el + CD4_dist[j];
       ART_el_deaths = ART_el_deaths + CD4_deaths[j];
       ART_need = ART_need + CD4_dist[j] + CD4_dist_ART[j];
@@ -736,10 +736,10 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
       for (j=Athresh; j<n_ART; j++) {
         if (CD4_dist[j] > 0) {
           ART_prop[j] = (((CD4_dist[j]/ART_el)+(CD4_deaths[j]/ART_el_deaths))/2)*(ART_new/CD4_dist[j]); /* applies weighting and size of CD4 group to work out % of CD4 group that should move */
-           /* ART_prop[j] = (CD4_dist[j]/ART_el)*(ART_new/CD4_dist[j]); */
-     /*  }
+           
+        }
       }
-    }*/
+    }
     
     /* Force of infection */
     double FS = beta*(Total_Ns*rel_inf + Total_Is)/Total; 
