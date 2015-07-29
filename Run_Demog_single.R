@@ -1,6 +1,13 @@
 ## Script to run the demog model with single year age groups
 # Adapted to use events to determine births and aging - all births occur at the start of a year and all move to next age group at start of year
 
+# This now runs the comparison of:
+
+# 5 year age bin model with aging via events - Demog_single_reverse.c
+# 5 year age bin model with continuous aging - Demog_model.c
+# 1 year age bin model with aging via events - Demog_single.c
+
+
 ## Set working directory
 setwd("C:/Users/TOM SUMMER/Documents/TIME_research/TeaTime")
 
@@ -14,12 +21,21 @@ dyn.unload("Demog_single.dll") # Unload - need to do this before recompiling
 system("R CMD SHLIB Demog_single.c") # Compile
 dyn.load("Demog_single.dll") # Load
 
+dyn.unload("Demog_single_reverse.dll") # Unload - need to do this before recompiling
+system("R CMD SHLIB Demog_single_reverse.c") # Compile
+dyn.load("Demog_single_reverse.dll") # Load
+
+dyn.unload("Demog_model.dll") # Unload - need to do this before recompiling
+system("R CMD SHLIB Demog_model.c") # Compile
+dyn.load("Demog_model.dll") # Load
+
 ##############################################################################################################################
 
 cn <- "Vietnam"
 
 ## Load UN population data
-UN_pop_age <- as.data.frame(read.table(paste("Demog/",cn,"_pop_single.txt",sep=""),header=FALSE)) # Load UN Population data
+UN_pop_age_1 <- as.data.frame(read.table(paste("Demog/",cn,"_pop_single.txt",sep=""),header=FALSE)) # Load UN Population data
+UN_pop_age_5 <- as.data.frame(read.table(paste("Demog/",cn,"_pop_age.txt",sep=""),header=TRUE)) # Load UN Population data
 #UN_pop_age_low <- as.data.frame(read.table(paste("Demog/",cn,"_pop_age_low.txt",sep=""),header=TRUE)) # Load UN Population data
 #UN_pop_age_high <- as.data.frame(read.table(paste("Demog/",cn,"_pop_age_high.txt",sep=""),header=TRUE)) # Load UN Population data
 # Load number of births
@@ -27,16 +43,11 @@ births <- as.data.frame(read.table(paste("Demog/",cn,"_births_number.txt",sep=""
 # Load number of deaths
 deaths <- as.data.frame(read.table(paste("Demog/",cn,"_deaths.txt",sep=""),header=TRUE))
 # add total, births and deaths to data
-UN_pop_age_t <- cbind(births,UN_pop_age[,2:82],rowSums(UN_pop_age[,2:82]),deaths[,2])
-colnames(UN_pop_age_t) <- c("Year","births",colnames(UN_pop_age[2:82]),"Total","Deaths")
-#UN_pop_age_low_t <- cbind(UN_pop_age_low,rowSums(UN_pop_age_low[,2:18]))
-#colnames(UN_pop_age_low_t) <- c(colnames(UN_pop_age_low),"Total")
-#UN_pop_age_high_t <- cbind(UN_pop_age_high,rowSums(UN_pop_age_high[,2:18]))
-#colnames(UN_pop_age_high_t) <- c(colnames(UN_pop_age_high),"Total")
+UN_pop_age_1_t <- cbind(births,UN_pop_age_1[,2:82],rowSums(UN_pop_age_1[,2:82]),deaths[,2])
+colnames(UN_pop_age_1_t) <- c("Year","births",colnames(UN_pop_age_1[2:82]),"Total","Deaths")
 
-# Set up age structure
-ages <- c(seq(1,80),100) # upper end of age classes
-num_ages <- length(ages) # calculates the number of age classes
+UN_pop_age_5_t <- cbind(births,UN_pop_age_5[,2:18],rowSums(UN_pop_age_5[,2:18]),deaths[,2])
+colnames(UN_pop_age_5_t) <- c("Year","births",colnames(UN_pop_age_5[2:18]),"Total","Deaths")
 
 # Set up the forcing functions for birth and death - all from 1970 onwards
 
@@ -49,39 +60,105 @@ birth_rate <- cbind(temp[,1],temp[,2])
 # Load mortality rates taken from demproj
 
 mort_age <- as.data.frame(read.table(paste("Demog/",cn,"_mort_age.txt",sep=""),header=FALSE)) 
+
+# the age1 and age2 parameters govern the width of the age bins (5 years for all except the final bin which we take to be 20 years (80-90))
+parms <- c(d = 1/5, d2 = 1/20) # NOTE THESE ARE ONLY ACTUALLY USED IN THE 3rd MODEL
+
+# Times to run model for
+times <- seq(1970,2050, by=1)
+
+n_runs <- 100
+time_eq_1 <- rep(0,n_runs)  
+time_eq_5 <- rep(0,n_runs)
+time_eq_old <- rep(0,n_runs)
+
+###### For single year age bin model #################################################################
+
+# Set up age structure
+ages <- c(seq(1,80),100) # upper end of age classes
+num_ages <- length(ages) # calculates the number of age classes
+
+# Push mort rates to s1 etc
 for (i in 1:81){  
   assign(paste("s",i,sep=""), cbind(seq(1971,2050),mort_age[,i+1]))
 }
 
 # Combine forcing functions into a list
-force <- list(birth_rate,
+force1 <- list(birth_rate,
               s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15,s16,s17,s18,s19,s20,
               s21,s22,s23,s24,s25,s26,s27,s28,s29,s30,s31,s32,s33,s34,s35,s36,s37,s38,s39,s40,
               s41,s42,s43,s44,s45,s46,s47,s48,s49,s50,s51,s52,s53,s54,s55,s56,s57,s58,s59,s60,
               s61,s62,s63,s64,s65,s66,s67,s68,s69,s70,s71,s72,s73,s74,s75,s76,s77,s78,s79,s80,
               s81)
 
-# the age1 and age2 parameters govern the width of the age bins (5 years for all except the final bin which we take to be 10 years (80-90))
-parms <- c(age_1 = 1/1, age_2 = 1/20)
+# Initial conditions - all susceptible
+temp <- c()
+for (i in 1:num_ages){temp[i]<-UN_pop_age_1[21,i+1]}
+xstart1 <- c(S=c(temp))
 
-##############################################################################################################################
-# Run the model 
+###### For 5 year age bin model #################################################################
 
-# Times to run model for
-times <- seq(1970,2050, by=1)
+# Set up age structure
+ages <- c(4,9,14,19,24,29,34,39,44,49,54,59,64,69,74,79,84) # upper end of age classes
+num_ages <- length(ages) # calculates the number of age classes
+
+# work out 5 year mort rates
+mort <- mat.or.vec(80,17) 
+for(i in 1:16){
+  temp <- 0
+  for (j in ((i-1)*5+2):((i-1)*5+6)){
+    temp <- temp+as.numeric(mort_age[,j])
+  }
+  mort[,i] <- temp/5
+}
+mort[,17]<-mort[,16]
+
+# Push mort rates to s5 etc
+for (i in 1:16){  
+  assign(paste("s",i*5,sep=""), cbind(seq(1971,2050),mort[,i]))
+}
+s100 <- cbind(seq(1971,2050),mort[,17])
+
+# Combine forcing functions into a list
+force5 <- list(birth_rate,
+               s5,s10,s15,s20,s25,s30,s35,s40,s45,s50,s55,s60,s65,s70,s75,s80,s100)
 
 # Initial conditions - all susceptible
 temp <- c()
-for (i in 1:num_ages){temp[i]<-UN_pop_age[21,i+1]}
-xstart <- c(S=c(temp))
+for (i in 1:num_ages){temp[i]<-UN_pop_age_5[21,i+1]}
+xstart5 <- c(S=c(temp))
+
+##### Now run the two models #########################################################
+
+for (i in 1:n_runs){
 
 # Run the model
-time_eq <- system.time(out <- ode(y=xstart, times, func = "derivsc",
+time_eq_1[i] <- system.time(out_1 <- ode(y=xstart1, times, func = "derivsc",
             parms = parms, dllname = "Demog_single",initforc = "forcc",
-            forcings=force, initfunc = "parmsc", nout = 3,
+            forcings=force1, initfunc = "parmsc", nout = 3,
             outnames = c("Total","Births","Deaths"), 
             events = list(func="event",time=seq(1970,2050)),
-            method = rkMethod("rk34f")))
+            method = rkMethod("rk34f")))[[3]]
+
+# Run the model
+time_eq_5[i] <- system.time(out_5 <- ode(y=xstart5, times, func = "derivsc",
+                                  parms = parms, dllname = "Demog_single_reverse",initforc = "forcc",
+                                  forcings=force5, initfunc = "parmsc", nout = 3,
+                                  outnames = c("Total","Births","Deaths"), 
+                                  events = list(func="event",time=seq(1970,2050)),
+                                  method = rkMethod("rk34f")))[[3]]
+
+time_eq_old[i] <- system.time(out_old <- ode(y=xstart5, times, func = "derivsc",
+                                         parms = parms, dllname = "Demog_model",initforc = "forcc",
+                                         forcings=force5, initfunc = "parmsc", nout = 3,
+                                         outnames = c("Total","Births","Deaths"), 
+                                         method = rkMethod("rk34f")))[[3]]
+
+}
+
+time1 <- sum(time_eq_1)/n_runs
+time5 <- sum(time_eq_5)/n_runs
+timeold <- sum(time_eq_old)/n_runs
 
 ######## Some plots for testing things against data ##############################################
 
@@ -118,24 +195,36 @@ UN_pop_age_t <- cbind(births,UN_pop_age[,2:18],rowSums(UN_pop_age[,2:18]),deaths
 colnames(UN_pop_age_t) <- c("Year","births",colnames(UN_pop_age[2:18]),"Total","Deaths")
 temp_data <- melt(UN_pop_age_t,id="Year")
 
+
+# single year model
 model_temp <- mat.or.vec(81,21)
 
 model_temp[,1] <- times
-model_temp[,2] <- out[,"Births"]
-model_temp[,20] <- out[,"Total"]
-model_temp[,21] <- out[,"Deaths"]
-model_temp[,19] <- out[,"S81"]
+model_temp[,2] <- out_1[,"Births"]
+model_temp[,20] <- out_1[,"Total"]
+model_temp[,21] <- out_1[,"Deaths"]
+model_temp[,19] <- out_1[,"S81"]
 
 for (i in 1:16){
   
   t1 <- (i+1)+(i-1)*4
   t2 <- t1+4
-  model_temp[,i+2] <- rowSums(out[,t1:t2])
+  model_temp[,i+2] <- rowSums(out_1[,t1:t2])
   
 }
-model_temp <- as.data.frame(model_temp)
-colnames(model_temp) <- colnames(UN_pop_age_t)
-temp_model_m <- melt(model_temp,id="Year")
+model_temp_1 <- as.data.frame(model_temp)
+colnames(model_temp_1) <- colnames(UN_pop_age_t)
+temp_model_m_1 <- melt(model_temp_1,id="Year")
+
+# 5 year model
+model_temp_5 <- as.data.frame(cbind(seq(1970,2050),out_5[,"Births"],out_5[,2:18],out_5[,"Total"],out_5[,"Deaths"]))
+colnames(model_temp_5) <- colnames(UN_pop_age_t)
+temp_model_m_5 <- melt(model_temp_5,id="Year")
+
+# old model
+model_temp_old <- as.data.frame(cbind(seq(1970,2050),out_old[,"Births"],out_old[,2:18],out_old[,"Total"],out_old[,"Deaths"]))
+colnames(model_temp_old) <- colnames(UN_pop_age_t)
+temp_model_m_old <- melt(model_temp_old,id="Year")
 
 # TIME values
 temp <- as.data.frame(read.table(paste("Demog/",cn,"_TIME_pop_age.txt",sep=""),header=TRUE,fill=TRUE)) 
@@ -153,8 +242,10 @@ colnames(TIME_pop) <- colnames(UN_pop_age_t)
 TIME_pop_m <- melt(TIME_pop,id="Year")
 
 # and plot
-plot_pop <- ggplot(temp_model_m,aes(x=Year,y=value))+
+plot_pop <- ggplot(temp_model_m_1,aes(x=Year,y=value))+
   geom_line(colour="red")+
+  geom_line(data=temp_model_m_5,aes(x=Year,y=value),colour="blue")+
+  geom_line(data=temp_model_m_old,aes(x=Year,y=value),colour="cyan")+
   geom_line(data=temp_data,aes(x=Year,y=value),colour="black")+
   #geom_line(data=temp_data_l,aes(x=Year,y=value),colour="black",linetype="dashed")+
   #geom_line(data=temp_data_h,aes(x=Year,y=value),colour="black",linetype="dashed")+
@@ -168,17 +259,27 @@ temp_data_s <- as.data.frame(cbind(UN_pop_age_t[,1],100*UN_pop_age_t[,3:20]/UN_p
 colnames(temp_data_s)<-c("Year","x4","X9","X14","X19","X24","X29","X34","X39","X44","X49","X54","X59","X64","X69","X74","X79","X100","Total")
 temp_data_s <- melt(temp_data_s,id="Year")
 
-temp_model_s <- as.data.frame(cbind(seq(1970,2050),100*model_temp[,3:20]/model_temp[,20]))
-colnames(temp_model_s)<-c("Year","x4","X9","X14","X19","X24","X29","X34","X39","X44","X49","X54","X59","X64","X69","X74","X79","X100","Total")
-temp_model_s <- melt(temp_model_s,id="Year")
+temp_model_s_1 <- as.data.frame(cbind(seq(1970,2050),100*model_temp_1[,3:20]/model_temp_1[,20]))
+colnames(temp_model_s_1)<-c("Year","x4","X9","X14","X19","X24","X29","X34","X39","X44","X49","X54","X59","X64","X69","X74","X79","X100","Total")
+temp_model_s_1 <- melt(temp_model_s_1,id="Year")
+
+temp_model_s_5 <- as.data.frame(cbind(seq(1970,2050),100*model_temp_5[,3:20]/model_temp_5[,20]))
+colnames(temp_model_s_5)<-c("Year","x4","X9","X14","X19","X24","X29","X34","X39","X44","X49","X54","X59","X64","X69","X74","X79","X100","Total")
+temp_model_s_5 <- melt(temp_model_s_5,id="Year")
+
+temp_model_s_old <- as.data.frame(cbind(seq(1970,2050),100*model_temp_old[,3:20]/model_temp_old[,20]))
+colnames(temp_model_s_old)<-c("Year","x4","X9","X14","X19","X24","X29","X34","X39","X44","X49","X54","X59","X64","X69","X74","X79","X100","Total")
+temp_model_s_old <- melt(temp_model_s_old,id="Year")
 
 temp_TIME_s <- as.data.frame(cbind(seq(1970,2050),100*TIME_pop[,3:20]/TIME_pop[,20]))
 colnames(temp_TIME_s)<-c("Year","x4","X9","X14","X19","X24","X29","X34","X39","X44","X49","X54","X59","X64","X69","X74","X79","X100","Total")
 temp_TIME_s <- melt(temp_TIME_s,id="Year")
 
 # and plot
-plot_pop_s <- ggplot(temp_model_s,aes(x=Year,y=value))+
+plot_pop_s <- ggplot(temp_model_s_1,aes(x=Year,y=value))+
   geom_line(colour="red")+
+  geom_line(data=temp_model_s_5,aes(x=Year,y=value),colour="blue")+
+  geom_line(data=temp_model_s_old,aes(x=Year,y=value),colour="cyan")+
   geom_line(data=temp_data_s,aes(x=Year,y=value),colour="black")+
   geom_line(data=temp_TIME_s,aes(x=Year,y=value),colour="green",linetype="dashed")+
   facet_wrap(~variable,scales="free")+
