@@ -139,7 +139,7 @@ parms <- c(beta = 18,
 # for 100 years to get stable age structure and disease state
 
 # Times to run model for
-times <- seq(0,100, by=1)
+times <- seq(0,60, by=1)
 
 # Initial conditions - all susceptible
 temp <- c()
@@ -171,8 +171,8 @@ time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
                          "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on","TB_deaths",
                          "Cases_neg","Cases_pos","Cases_ART",
                          "births","deaths"), 
-            events = list(func="event",time=seq(0,100)),
-            method = rkMethod("rk34f")))
+            events = list(func="event",time=seq(0,60)),
+            method = rkMethod("rk4")))
 
 # Adjust pop down to 1970 values (by age) and reassign initial conditions - model can now be run from 1970 with TB and HIV
 
@@ -188,7 +188,7 @@ xstart <- temp
 parms["e"]=e
 
 # Set times to run for
-times <- seq(1970,2050 , by=1)
+times <- seq(1970,2050 , by=0.5) # run with 6 month time step using a fixed time step solver - this is faster than adaptive methds but seems to give good accuracy
 # Run the model
 time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
            parms = parms, dllname = "TB_model_v6",initforc = "forcc",
@@ -201,7 +201,10 @@ time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
                         "Cases_neg","Cases_pos","Cases_ART",
                         "births","deaths"), 
            events = list(func="event",time=seq(1970,2050)),
-           method = rkMethod("rk34f")))
+           method = rkMethod("rk4")))
+
+# Just keep every other output now we are running with 6 month time step
+out <- out[seq(1,length(times),2),]
 
 ######## Some plots for testing things against spectrum and other data ##############################################
 
@@ -229,7 +232,7 @@ for(i in 1:81){
 
 model_temp <- mat.or.vec(81,21)
 
-model_temp[,1] <- times
+model_temp[,1] <- out[,"time"]
 model_temp[,2] <- out[,"births"]
 model_temp[,20] <- out[,"Total"]
 model_temp[,21] <- out[,"deaths"]
@@ -418,23 +421,23 @@ dev.off()
 # Plot of CD4 distribution against Spectrum - this is normalised by total population to account for differences in population size #####################
 
 # Load TIME outputs
-TIME_no_ART <- as.data.frame(read.table("TIME_no_ART_out.txt",header=TRUE))
-TIME_no_ART <- cbind(TIME_no_ART,"No_ART","TIME")
-colnames(TIME_no_ART) <- c(colnames(TIME_no_ART[1:8]),"Type","Model")
+TIME_no_ART <- as.data.frame(read.table(paste("HIV/",cn,"_TIME_no_ART.txt",sep=""),header=TRUE,fill=TRUE))
+TIME_no_ART <- cbind(TIME_no_ART[,1],100*TIME_no_ART[,2:8]/TIME_pop[,"Total"],"No_ART","TIME")
+colnames(TIME_no_ART) <- c("Year",colnames(TIME_no_ART[2:8]),"Type","Model")
 
-TIME_ART <- as.data.frame(read.table("TIME_ART_out.txt",header=TRUE))
-TIME_ART <- cbind(TIME_ART,"ART","TIME")
-colnames(TIME_ART) <- c(colnames(TIME_ART[1:8]),"Type","Model")
+TIME_ART <- as.data.frame(read.table(paste("HIV/",cn,"_TIME_on_ART.txt",sep=""),header=TRUE,fill=TRUE))
+TIME_ART <- cbind(TIME_ART[,1],100*TIME_ART[,2:8]/TIME_pop[,"Total"],"ART","TIME")
+colnames(TIME_ART) <- c("Year",colnames(TIME_ART[2:8]),"Type","Model")
 
-temp1 <- as.data.frame(cbind(out[,"time"],100*out[,6426:6432]/out[,"Total"]))
+temp1 <- as.data.frame(cbind(out[,"time"],100*out[,30554:30560]/out[,"Total"]))
 temp1 <- cbind(temp1,"No_ART","R")
 colnames(temp1) <- c("Year",colnames(temp1[,2:8]),"Type","Model")
 
-temp2 <- as.data.frame(cbind(seq(1970,2050),100*out[,6433:6439]/out[,"Total"]))
+temp2 <- as.data.frame(cbind(seq(1970,2050),100*out[,30561:30567]/out[,"Total"]))
 temp2 <- cbind(temp2,"ART","R")
 colnames(temp2) <- c("Year",colnames(temp1[,2:8]),"Type","Model")
 
-temp_CD4 <- rbind(temp1,temp2,TIME_no_ART,TIME_ART)
+temp_CD4 <- rbind(temp1,temp2,TIME_ART,TIME_no_ART)
 temp_CD4 <- melt(temp_CD4,id=c("Year","Type","Model"))
 
 plot_CD4 <- ggplot(temp_CD4[temp_CD4$Model=="R",],aes(x=as.numeric(as.character(Year)),y=as.numeric(as.character(value)),colour=variable))+
@@ -444,17 +447,12 @@ plot_CD4 <- ggplot(temp_CD4[temp_CD4$Model=="R",],aes(x=as.numeric(as.character(
   xlim(c(1970,2050))
 
 
-
-#### Compare to TIME output
+#### Compare to TIME TB output
 
 # Load the TIME results (Incidence, Prevalence, Mortality)
-TIME_out <- as.data.frame(read.table("TIME_out.txt",header=TRUE))
+TIME_out <- as.data.frame(read.table(paste("TB/",cn,"_TIME_TB.txt",sep=""),header=TRUE,fill=TRUE))
 TIME_out <- cbind(TIME_out,"TIME")
 colnames(TIME_out) <- c("Year","Prevalence","Incidence","Mortality","Model")
-# Load the WHO data 
-Data_out <- as.data.frame(read.table("Data_out.txt",header=TRUE))
-Data_out <- cbind(Data_out,"Data")
-colnames(Data_out) <- c("Year","Prevalence","Incidence","Mortality","Model")
 
 # Arrange model output
 R_out <- as.data.frame(cbind(out[,"time"],
@@ -464,14 +462,13 @@ R_out <- as.data.frame(cbind(out[,"time"],
 R_out <- cbind(R_out,"R")
 colnames(R_out) <- c("Year","Prevalence","Incidence","Mortality","Model")
 # combine and melt
-Models_out <- rbind(TIME_out,R_out,Data_out)
+Models_out <- rbind(TIME_out,R_out)
 Models_out <- melt(Models_out,id=c("Year","Model"))
 
-plot_models <- ggplot(Models_out[Models_out$Model!="Data",],aes(x=Year,y=value,colour=Model))+
-  facet_wrap(~variable,scales="free")+
+plot_models <- ggplot(Models_out[Models_out$Model!="Data",],aes(x=Year,y=value,colour=Model,linetype=variable))+
   geom_line()+
-  geom_point(data=Models_out[Models_out$Model=="Data",],aes(x=Year,y=value),colour="black")+
-  xlim(c(1970,2050))
+  xlim(c(1970,2050))+
+  ylim(c(0,1000))
 
 
 
