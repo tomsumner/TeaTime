@@ -52,6 +52,12 @@ for (i in 1:81){
   assign(paste("s",i,sep=""), cbind(seq(1971,2050),mort_age[,i+1]))
 }
 
+################### JUST PLAYING WITH MORTALITY PARAMETERS TO TRY AND IMPROVE FIT ############################
+################### NEED TO THINK ABOUT WHETHER TO CHANGE THESE ##############################################
+################### COULD FIT DEMOG MODEL WITHOUT TB TO GET THESE  ###########################################
+s81[,2] <- s81[,2]/2
+s1[,2] <- s1[,2]*0.5
+
 # HIV Incidence by age and year
 temp <- as.data.frame(read.table(paste("HIV/",cn,"_HIV_Inc_age.txt",sep=""),header=TRUE,fill=TRUE)) # Load HIV incidence data taken from AIM   
 # Need to re-arrage to get in year vs age format
@@ -127,8 +133,8 @@ parms <- c(beta = 18,
            mu_N = 0.25, mu_N0 = 0.426, mu_I = 0.35, mu_I0 = 0.59, fit_cost = fit_cost, e = e, g=g, l_s = 0.83, l_m = 0.7, d = 0.8, tau_s = 0.76, tau_m = 0.5,
            eff_n = 0.61, eff_p = 0.45, 
            muN_H = 0.45, muI_H = 0.6, RR1a = 2, RR2a = 1.288, RR1v = 3, RR2v = 3, RR1p = 0.5, RR2p = 1.1,
-           ART_TB1 = 0.7, ART_TB2 = 0.5, ART_TB3 = 0.35, ART_mort1 = 0.5, ART_mort2 = 0.4, ART_mort3 = 0.3,
-           #ART_TB1 = 1, ART_TB2 = 1, ART_TB3 = 1, ART_mort1 = 1, ART_mort2 = 1, ART_mort3 = 1,
+           ART_TB1 = 0.3, ART_TB2 = 0.5, ART_TB3 = 0.65, ART_mort1 = 0.5, ART_mort2 = 0.6, ART_mort3 = 0.7,
+           #ART_TB1 = 0.3, ART_TB2 = 0.5, ART_TB3 = 0.65, ART_mort1 = 0, ART_mort2 = 0, ART_mort3 = 0,
            BCG_eff = 0.39,
            sig_H = 0.35,r_H=0.15)
 
@@ -208,6 +214,31 @@ out <- out[seq(1,length(times),2),]
 
 ######## Some plots for testing things against spectrum and other data ##############################################
 
+#### Compare to TIME TB output
+
+# Load the TIME results (Incidence, Prevalence, Mortality)
+TIME_out <- as.data.frame(read.table(paste("TB/",cn,"_TIME_TB.txt",sep=""),header=TRUE,fill=TRUE))
+TIME_out <- cbind(TIME_out,"TIME")
+colnames(TIME_out) <- c("Year","Prevalence","Incidence","Mortality","Model")
+
+# Arrange model output
+R_out <- as.data.frame(cbind(out[,"time"],
+                             100000*(out[,"Total_DS"]+out[,"Total_MDR"])/out[,"Total"],  # Prev
+                             100000*(out[,"Cases_neg"]+out[,"Cases_pos"]+out[,"Cases_ART"])/out[,"Total"], # Inc 
+                             100000*out[,"TB_deaths"]/out[,"Total"])) # Mort (all)
+R_out <- cbind(R_out,"R")
+colnames(R_out) <- c("Year","Prevalence","Incidence","Mortality","Model")
+# combine and melt
+Models_out <- rbind(TIME_out,R_out)
+Models_out <- melt(Models_out,id=c("Year","Model"))
+
+plot_models <- ggplot(Models_out[Models_out$Model!="Data",],aes(x=Year,y=value,colour=Model,linetype=variable))+
+  geom_line()+
+  xlim(c(1970,2050))+
+  ylim(c(0,1000))
+
+
+
 ##### NEED TO UPDATE ALL OF THESE TO SUM UP SINGLE YEARS INTO CORRESPONDING 5 YEAR BINS
 
 ###################### POPULATION ###################################################################################
@@ -225,13 +256,11 @@ colnames(UN_pop_age_t) <- c("Year","births",colnames(UN_pop_age[2:18]),"Total","
 temp_data <- melt(UN_pop_age_t,id="Year")
 
 # sum up model outputs over age groups and turn into long format
-tot<-mat.or.vec(81,81)
-for(i in 1:81){
-  tot[,i] <- apply(out,1,function(x) sum(x[seq(i+1,30538,81)]))
-}
+tot <- mapply(function(x,y) sum(out[x,seq(y+1,30538,81)]),rep(seq(1,81),each=81),seq(1,81))
+dim(tot) <- c(81,81)
+tot <- t(tot)
 
 model_temp <- mat.or.vec(81,21)
-
 model_temp[,1] <- out[,"time"]
 model_temp[,2] <- out[,"births"]
 model_temp[,20] <- out[,"Total"]
@@ -296,52 +325,7 @@ plot_pop_s <- ggplot(temp_model_s,aes(x=Year,y=value))+
   ggtitle("age structure of population (% in age group)")+
   xlim(c(1970,2050))
 
-############# DEATHS ################################################################################################
-
-# # TIME values
-# temp <- as.data.frame(read.table(paste("Demog/",cn,"_TIME_deaths_age.txt",sep=""),header=TRUE,fill=TRUE)) # Load HIV numbers (output in TIME)  
-# # Need to re-arrage to get in year vs age format
-# deaths_number_age <- mat.or.vec(81,18)
-# deaths_number_age[,1] <- seq(1970,2050)
-# for (i in 1:81){
-#   j <- (i-1)*19+2
-#   deaths_number_age[i,2:18]=temp[j:(j+16),2]
-# }
-# deaths_number_age <- as.data.frame(deaths_number_age)
-# colnames(deaths_number_age) <- colnames(UN_pop_age)
-# deaths_TIME <- melt(deaths_number_age,id="Year")
-# 
-# # Arrange model output
-# model_deaths <- as.data.frame(cbind(out[,1],out[,6455:6471]))
-# colnames(model_deaths) <- colnames(UN_pop_age)
-# model_deaths_m <- melt(model_deaths,id="Year")
-# 
-# # and plot
-# plot_deaths <- ggplot(model_deaths_m,aes(x=Year,y=value))+
-#   geom_line(colour="red")+
-#   geom_line(data=deaths_TIME,aes(x=Year,y=value/1000),colour="black",linetype="dashed")+
-#   facet_wrap(~variable,scales="free")+
-#   ggtitle("Deaths")+
-#   xlim(c(1970,2050))
-# 
-# # and also look at rates
-# # TIME
-# m_TIME <- as.data.frame(cbind(seq(1970,2050),100*deaths_number_age[,2:18]/TIME_pop[,3:19]))
-# colnames(m_TIME) <- colnames(UN_pop_age)
-# m_TIME_m <- melt(m_TIME,id="Year")
-# # Model
-# m_model <- as.data.frame(cbind(seq(1970,2050),100*model_deaths[,2:18]/tot))
-# colnames(m_model) <- colnames(UN_pop_age)
-# m_model_m <- melt(m_model,id="Year")
-# 
-# plot_death_p <- ggplot(m_model_m,aes(x=Year,y=value))+
-#   geom_line(colour="red")+
-#   geom_line(data=m_TIME_m,aes(x=Year,y=value),colour="black",linetype="dashed")+
-#   facet_wrap(~variable,scales="free")+
-#   ggtitle("Death_rate")+
-#   xlim(c(1970,2050))
-
-####### HIV by ######################################################################################################
+####### HIV ######################################################################################################
 
 # Load TIME values
 temp <- as.data.frame(read.table(paste("HIV/",cn,"_HIV_numbers_age.txt",sep=""),header=TRUE,fill=TRUE)) # Load HIV numbers (output in TIME)  
@@ -356,11 +340,11 @@ HIV_number_age <- as.data.frame(HIV_number_age)
 colnames(HIV_number_age) <- colnames(UN_pop_age)
 HIV_TIME <- melt(HIV_number_age,id="Year")
 
+
 # Sum up model outputs for HIV+ categories by age
-tot_HIV<-mat.or.vec(81,81)
-for(i in 1:81){
-  tot_HIV[,i] <- apply(out,1,function(x) sum(x[seq(i+1054,30538,81)]))
-}
+tot_HIV <- mapply(function(x,y) sum(out[x,seq(y+1054,30538,81)]),rep(seq(1,81),each=81),seq(1,81))
+dim(tot_HIV) <- c(81,81)
+tot_HIV <- t(tot_HIV)
 
 HIV_model <- mat.or.vec(81,18)
 HIV_model[,1] <- seq(1970,2050)
@@ -401,6 +385,9 @@ plot_HIV_p <- ggplot(H_p_model_m,aes(x=Year,y=value))+
   ggtitle("HIV_prevalence (age)")+
   xlim(c(1970,2050))
 
+
+
+
 ########  SAVE PLOTS TO A PDF FILE ##################################################################################
 pdf_name <- paste("C:/Users/TOM SUMMER/Filr/My Files/sync/TIME/TIME Research/",cn,"_TB.pdf",sep="")
 pdf(pdf_name,width=10,height=7)
@@ -415,7 +402,7 @@ dev.off()
 #####################################################################################################################
 
 
-### EXTRA STUFF TO USE WHEN CHECKING TB AND CD4 OUTPUTS
+### EXTRA STUFF TO USE WHEN CHECKING CD4 OUTPUTS
 
 
 # Plot of CD4 distribution against Spectrum - this is normalised by total population to account for differences in population size #####################
@@ -444,31 +431,9 @@ plot_CD4 <- ggplot(temp_CD4[temp_CD4$Model=="R",],aes(x=as.numeric(as.character(
   geom_line() +
   geom_line(data=temp_CD4[temp_CD4$Model=="TIME",],aes(x=as.numeric(as.character(Year)),y=as.numeric(as.character(value)),colour=variable),linetype="dashed")+
   facet_wrap(~Type)+
-  xlim(c(1970,2050))
+  xlim(c(2000,2020))
 
 
-#### Compare to TIME TB output
-
-# Load the TIME results (Incidence, Prevalence, Mortality)
-TIME_out <- as.data.frame(read.table(paste("TB/",cn,"_TIME_TB.txt",sep=""),header=TRUE,fill=TRUE))
-TIME_out <- cbind(TIME_out,"TIME")
-colnames(TIME_out) <- c("Year","Prevalence","Incidence","Mortality","Model")
-
-# Arrange model output
-R_out <- as.data.frame(cbind(out[,"time"],
-      100000*(out[,"Total_DS"]+out[,"Total_MDR"])/out[,"Total"],  # Prev
-      100000*(out[,"Cases_neg"]+out[,"Cases_pos"]+out[,"Cases_ART"])/out[,"Total"], # Inc 
-      100000*out[,"TB_deaths"]/out[,"Total"])) # Mort (all)
-R_out <- cbind(R_out,"R")
-colnames(R_out) <- c("Year","Prevalence","Incidence","Mortality","Model")
-# combine and melt
-Models_out <- rbind(TIME_out,R_out)
-Models_out <- melt(Models_out,id=c("Year","Model"))
-
-plot_models <- ggplot(Models_out[Models_out$Model!="Data",],aes(x=Year,y=value,colour=Model,linetype=variable))+
-  geom_line()+
-  xlim(c(1970,2050))+
-  ylim(c(0,1000))
 
 
 
