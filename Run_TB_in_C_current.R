@@ -55,8 +55,8 @@ for (i in 1:81){
 ################### JUST PLAYING WITH MORTALITY PARAMETERS TO TRY AND IMPROVE FIT ############################
 ################### NEED TO THINK ABOUT WHETHER TO CHANGE THESE ##############################################
 ################### COULD FIT DEMOG MODEL WITHOUT TB TO GET THESE  ###########################################
-s81[,2] <- s81[,2]/2
-s1[,2] <- s1[,2]*0.5
+#s81[,2] <- s81[,2]/2
+#s1[,2] <- s1[,2]*0.5
 
 # HIV Incidence by age and year
 temp <- as.data.frame(read.table(paste("HIV/",cn,"_HIV_Inc_age.txt",sep=""),header=TRUE,fill=TRUE)) # Load HIV incidence data taken from AIM   
@@ -94,15 +94,48 @@ pop_ad <- cbind(c(2014,2015,2016),c(1,0,0))
 # BCG coverage - currently assume 90% at all times
 BCG_cov <- cbind(c(1972,1973,2050),c(0.9,0.9,0.9))
 
-# Case detection rate - generalised logistic function, don't think this quite matches TIME 
-k <- cbind(seq(1970,2050),(30 + ((120-30)/((1+exp(-0.5*(seq(1970,2050)-2004)))^(1/2))))/100)
+# Case detection rate by HIV (neg/pos)
+# generalised logistic function - NEED TO FIND A NEAT WAY TO DO THIS
+base=50
+target=90
+growth=0.3
+shape=1
+ybase=1990
+ytarget=2020
+y=mean(c(ybase,ytarget))
+  
+kneg <- cbind(seq(1970,2050),(base + ((target-base)/((1+exp(-growth*(seq(1970,2050)-y)))^(1/shape))))/100)
+kpos <- cbind(seq(1970,2050),(base + ((target-base)/((1+exp(-growth*(seq(1970,2050)-y)))^(1/shape))))/100)
 
-#k <- cbind(c(1970,1990,2050),c(0.30,0.30,1.20))
+# Relative detection smear neg
+rel_d <- cbind(seq(1970,2050),0.8)
 
 # DST coverage among new and previously treated cases
-dst_n <- cbind(seq(1970,2050),(0 + ((95-0)/((1+exp(-1*(seq(1970,2050)-1993)))^(1/2))))/100)
-dst_p <- cbind(seq(1970,2050),(0 + ((95-0)/((1+exp(-1*(seq(1970,2050)-1993)))^(1/2))))/100)
-            
+base=0
+target=95
+growth=1
+shape=2
+ybase=1975
+ytarget=2010
+y=mean(c(ybase,ytarget))
+
+dstneg_n <- cbind(seq(1970,2050),(base + ((target-base)/((1+exp(-growth*(seq(1970,2050)-y)))^(1/shape))))/100)
+dstneg_p <- cbind(seq(1970,2050),(base + ((target-base)/((1+exp(-growth*(seq(1970,2050)-y)))^(1/shape))))/100)
+dstpos_n <- cbind(seq(1970,2050),(base + ((target-base)/((1+exp(-growth*(seq(1970,2050)-y)))^(1/shape))))/100)
+dstpos_p <- cbind(seq(1970,2050),(base + ((target-base)/((1+exp(-growth*(seq(1970,2050)-y)))^(1/shape))))/100) 
+
+# Linkage to care
+l_s <- cbind(seq(1970,2050),0.83)
+l_m <- cbind(seq(1970,2050),0.7)
+
+# Treatment success by HIV (neg, pos no ART, pos on ART) and susceptibility
+tneg_s <- cbind(seq(1970,2050),0.76)
+tpos_s <- cbind(seq(1970,2050),0.76)
+tART_s <- cbind(seq(1970,2050),0.76)
+tneg_m <- cbind(seq(1970,2050),0.50)
+tpos_m <- cbind(seq(1970,2050),0.50)
+tART_m <- cbind(seq(1970,2050),0.50)
+                
 force <- list(birth_rate,
               s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15,s16,s17,s18,s19,s20,
               s21,s22,s23,s24,s25,s26,s27,s28,s29,s30,s31,s32,s33,s34,s35,s36,s37,s38,s39,s40,
@@ -113,30 +146,34 @@ force <- list(birth_rate,
               h41,h42,h43,h44,h45,h46,h47,h48,h49,h50,h51,h52,h53,h54,h55,h56,h57,h58,h59,h60,
               h61,h62,h63,h64,h65,h66,h67,h68,h69,h70,h71,h72,h73,h74,h75,h76,h77,h78,h79,h80,
               Ahigh,A500,A349,A249,A199,A99,A50,Athresh,
-              BCG_cov,pop_ad,k,dst_n,dst_p)
+              BCG_cov,pop_ad,
+              kneg,kpos,
+              rel_d,
+              dstneg_n,dstneg_p,dstpos_n,dstpos_p,
+              l_s,l_m,
+              tneg_s,tpos_s,tART_s,tneg_m,tpos_m,tART_m)
 
 # Set up TB parameters
 
 # Fitness of MDR, used to calculate parameter for superinfections
 # Both of these are passed into "parms" together with e, the MDR acquisition rate (we set this to zero to exclude MDR in equilibirum phase)
-fit_cost=0.7
+fit_cost=0.72
 g = fit_cost/(1+fit_cost) # superinfections 
 e = 0.01
 
 # proportion primary (a), proportion smear pos (sig) and mortality rates (muN and mu_I) take different values for 
 # adults (>15) (_a), 0-4 (_0), 5-9 (_5) and 10-14 (_10)
 
-parms <- c(beta = 18, 
-           a_a = 0.14, a0 = 0.26432, a5 = 0.14056, a10 = 0.056,  
-           p = 0.65, v = 0.001, 
+parms <- c(beta = 21, 
+           a_a = 0.115, a0 = 0.2171, a5 = 0.1155, a10 = 0.046,  
+           p = 0.56, v = 0.0015, 
            sig_a = 0.45, sig0 = 0.0684, sig5 = 0.0414, sig10 = 0.0846, rel_inf = 0.25, theta = 0.02, r = 0.25, 
-           mu_N = 0.25, mu_N0 = 0.426, mu_I = 0.35, mu_I0 = 0.59, fit_cost = fit_cost, e = e, g=g, l_s = 0.83, l_m = 0.7, d = 0.8, tau_s = 0.76, tau_m = 0.5,
+           mu_N = 0.18, mu_N0 = 0.3067, mu_I = 0.25, mu_I0 = 0.4260, fit_cost = fit_cost, e = e, g=g,
            eff_n = 0.61, eff_p = 0.45, 
-           muN_H = 0.45, muI_H = 0.6, RR1a = 2, RR2a = 1.288, RR1v = 3, RR2v = 3, RR1p = 0.5, RR2p = 1.1,
-           ART_TB1 = 0.3, ART_TB2 = 0.5, ART_TB3 = 0.65, ART_mort1 = 0.5, ART_mort2 = 0.6, ART_mort3 = 0.7,
-           #ART_TB1 = 0.3, ART_TB2 = 0.5, ART_TB3 = 0.65, ART_mort1 = 0, ART_mort2 = 0, ART_mort3 = 0,
-           BCG_eff = 0.39,
-           sig_H = 0.35,r_H=0.15)
+           muN_H = 0.4, muI_H = 0.5, RR1a = 3.2, RR2a = 1.42, RR1v = 3.2, RR2v = 1.42, RR1p = 0.6, RR2p = 1.1,
+           ART_TB1 = 0.16, ART_TB2 = 0.45, ART_TB3 = 0.55, ART_mort1 = 0.25, ART_mort2 = 0.6, ART_mort3 = 0.7,
+           BCG_eff = 0.7,
+           sig_H = 0.25,r_H=0.15,rel_inf_H=0.15)
 
 ##############################################################################################################################
 # Run the model 
@@ -232,10 +269,25 @@ colnames(R_out) <- c("Year","Prevalence","Incidence","Mortality","Model")
 Models_out <- rbind(TIME_out,R_out)
 Models_out <- melt(Models_out,id=c("Year","Model"))
 
+# Calculate % diff between models and add to df
+temp=100*(Models_out[Models_out$Model=="TIME",4]-Models_out[Models_out$Model=="R",4])/Models_out[Models_out$Model=="TIME",4]
+Models_out<-cbind(temp,Models_out)
+
 plot_models <- ggplot(Models_out[Models_out$Model!="Data",],aes(x=Year,y=value,colour=Model,linetype=variable))+
   geom_line()+
+  xlim(c(1970,2035))+
+  ylim(c(0,1100))
+
+plot_diff <- ggplot(Models_out[Models_out$Model=="TIME",],aes(x=Year,y=temp,linetype=variable))+
+  geom_line()+
   xlim(c(1970,2050))+
-  ylim(c(0,1000))
+  ylim(c(-20,20))
+
+
+head(Models_out)
+
+
+
 
 
 
