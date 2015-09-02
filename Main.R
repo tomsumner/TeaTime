@@ -7,7 +7,6 @@ setwd("C:/Users/TOM SUMMER/Documents/TIME_research/TeaTime")
 library(deSolve)
 library(reshape2)
 library(ggplot2)
-library(gdata)
 
 ## Function to set up logistic curves for care and control parameters ############################################
 ## "base" and "target" are the initial and final values
@@ -38,10 +37,10 @@ source("Data_load.R")
 ages <- c(seq(1,80),100) # upper end of age classes
 num_ages <- length(ages) # calculates the number of age classes
 
-# Create some additional forcing functions #######################################################################
-
-# Pop adjust - to turn off population adjustment for TB/HIV deaths from 2015 onwards
-pop_ad <- cbind(c(2014,2015,2016),c(1,0,0))
+# Create some additional forcing functions - time varying inputs used in the C code ##############################
+# These describe the care and control parameters in the model
+# They need to consist of x,y pairs where x is the year and y is the value in that year
+# They can be entered as numeric values or using the logcurve function to simulate a logistic curve
 
 # BCG coverage - currently assume 90% at all times
 BCG_cov <- cbind(c(1972,1973,2050),c(0.9,0.9,0.9))
@@ -72,6 +71,10 @@ tpos_m <- cbind(seq(1970,2050),0.50)
 tART_m <- cbind(seq(1970,2050),0.50)
            
 ## Now put together all the forcing fucntions in a list to be passed to the C code ###############################
+# s are mortality at age i       ]
+# h are HIV incidence at age i   ] see "Data_load.R" for source of these
+# A are ART inputs               ]
+
 force <- list(birth_rate,
               s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15,s16,s17,s18,s19,s20,
               s21,s22,s23,s24,s25,s26,s27,s28,s29,s30,s31,s32,s33,s34,s35,s36,s37,s38,s39,s40,
@@ -87,13 +90,23 @@ force <- list(birth_rate,
 
 # Set up TB parameters ###########################################################################################
 
-# Fitness of MDR, used to calculate parameter for superinfections
-# Both of these are passed into "parms" together with e, the MDR acquisition rate (we set this to zero to exclude MDR in equilibirum phase)
+# Fitness of MDR (fit_cost), used to calculate parameter for superinfections (g)
+# Both of these are passed into "parms" together with the MDR acquisition rate (e)
 fit_cost=0.72
 g = fit_cost/(1+fit_cost) # superinfections 
 e = 0.01
 
-# proportion primary (a), proportion smear pos (sig) and mortality rates (muN and mu_I) take different values for 
+# beta = contact rate; a = proportion developing primary TB; p = protection due to previous infection; v = reactivation rate; 
+# sig = proportion of cases developing smear positive TB; rel_inf = relative infectiousness of smear negative cases;
+# theta = rate of conversion from smear negative to smear positive; r = self cure rate; 
+# mu_N = mortality for smear negative cases; mu_I = mortality for smear positive cases; 
+# eff_n/p = relative efficacy of first line treatment in new/previously treated MDR cases; 
+
+# _H indicates values for HIV+ (mu_N, mu_I, sig, r and rel_inf)
+# other natural history parameters for HIV+ (a,v,p) are adjusted using the rate ratio parameters RR1a etc
+# ART modifies a,v,p, muN_H and muI_H by ART_TB1 etc 
+
+# proportion primary (a), proportion smear pos (sig) and mortality rates (muN and muI) take different values for 
 # adults (>15) (_a), 0-4 (_0), 5-9 (_5) and 10-14 (_10)
 
 parms <- c(beta = 21, 
@@ -107,11 +120,13 @@ parms <- c(beta = 21,
            BCG_eff = 0.7,
            sig_H = 0.25,r_H=0.15,rel_inf_H=0.15)
 
+
+ptm <- proc.time()
 # Run the model ##################################################################################################
 # Script runs model with the inputs defined above
 # Runs an equilibrium phase then from 1970 to 2050
-
-source("Run_model.R")
+for (irt in 1:100) source("Run_model.R")
+proc.time() - ptm
 
 # Generate plots for comparison against TIME and other data ######################################################
 source("Plots.R")
