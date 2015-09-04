@@ -646,38 +646,40 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     /* work out disease induced mortality rate if pre 2015 - if after 2015 just use 2015 value*/
     /* and adjust background mortality rate accordingly
     /* Calculate total population in the same loop */
-    double TB_deaths[81];
-    double TB_ART_deaths = 0;
+    double TB_deaths[81] = {0};
+    double TB_ART_deaths[81] = {0};
     double HIV_deaths[81] = {0};
     double ART_deaths[81] = {0};
-    double prop_dis_death[81];
+    double rate_dis_death[81];
     double m_b[81];
-    double tot_age[81];
+    double tot_age[81] = {0};
     double Tot_deaths = 0;
     double Tot_deaths_age[81];
     
     for (i=0; i<n_age; i++) {
       
-      TB_deaths[i] = (Nsn[i]+Nsp[i]+Nmn[i]+Nmp[i])*muN_age[i] + (Isn[i]+Isp[i]+Imn[i]+Imp[i])*muI_age[i];
+      TB_deaths[i] = TB_deaths[i] + (Nsn[i]+Nsp[i]+Nmn[i]+Nmp[i])*muN_age[i] + (Isn[i]+Isp[i]+Imn[i]+Imp[i])*muI_age[i];
       
-      tot_age[i] = S[i]+Lsn[i]+Lsp[i]+Lmn[i]+Lmp[i]+Nsn[i]+Nsp[i]+Nmn[i]+Nmp[i]+Isn[i]+Isp[i]+Imn[i]+Imp[i];
+      tot_age[i] = tot_age[i] + S[i]+Lsn[i]+Lsp[i]+Lmn[i]+Lmp[i]+Nsn[i]+Nsp[i]+Nmn[i]+Nmp[i]+Isn[i]+Isp[i]+Imn[i]+Imp[i];
       
       for(j=0; j<n_HIV; j++){
         
         TB_deaths[i] = TB_deaths[i] + (Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j])*muN_H + (Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j])*muI_H;
                                       
-        HIV_deaths[i] = HIV_deaths[i]+H_mort[j][i]*(S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+
-                        Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j]+Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j]); 
+        HIV_deaths[i] = HIV_deaths[i] + H_mort[j][i]*(S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+
+                                                      Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j]+
+                                                      Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j]);
                         
-        tot_age[i] = tot_age[i]+S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+Nsn_H[i][j]+Nsp_H[i][j]+
-                                          Nmn_H[i][j]+Nmp_H[i][j]+Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j];
+        tot_age[i] = tot_age[i] + S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+
+                                  Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j]+
+                                  Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j];
                           
         for (l=0; l<n_ART; l++){
           
           double temp = (Nsn_A[i][j][l]+Nsp_A[i][j][l]+Nmn_A[i][j][l]+Nmp_A[i][j][l])*muN_H_A[l] + 
                         (Isn_A[i][j][l]+Isp_A[i][j][l]+Imn_A[i][j][l]+Imp_A[i][j][l])*muI_H_A[l]; 
           
-          TB_ART_deaths = TB_ART_deaths + temp;
+          TB_ART_deaths[i] = TB_ART_deaths[i] + temp;
           
           TB_deaths[i] = TB_deaths[i] + temp;
                                         
@@ -691,14 +693,15 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
         }                               
       }
           
-      if (pop_ad>0) prop_dis_death[i] = (TB_deaths[i]+HIV_deaths[i]+ART_deaths[i])/tot_age[i];
-      m_b[i] = forc[i+1]-prop_dis_death[i];
+      if (pop_ad>0) rate_dis_death[i] = (TB_deaths[i]+HIV_deaths[i]+ART_deaths[i])/tot_age[i];
+      /*m_b[i] = forc[i+1]-prop_dis_death[i]; - THIS WAS WRONG */
+      m_b[i] = forc[i+1]-rate_dis_death[i]; 
     
       Tot_deaths_age[i] = m_b[i]*tot_age[i] + TB_deaths[i] + HIV_deaths[i] + ART_deaths[i];  
       Tot_deaths = Tot_deaths + Tot_deaths_age[i];
     } 
     double TB_deaths_tot = sumsum(TB_deaths,0,80);
-    double ART_deaths_tot = sumsum(ART_deaths,0,80) + TB_ART_deaths; 
+    double ART_deaths_tot = sumsum(ART_deaths,0,80) + sumsum(TB_ART_deaths,0,80); 
     
     /* Sum up populations over CD4 categories, with and without ART and calculate rates of ART initiation */
     double CD4_dist[7] = {0,0,0,0,0,0,0};     /* Not on ART by CD4 */
@@ -1205,6 +1208,10 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     yout[43] = TB_cases_ART;
     yout[44] = births;
     yout[45] = Tot_deaths;
+    yout[46] = ART_deaths_tot; 
+    for (i=0; i<n_age; i++) {
+      yout[47+i] = Tot_deaths_age[i];
+    }
     
 }
 

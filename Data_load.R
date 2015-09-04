@@ -47,6 +47,11 @@ for (i in 0:80){
 
 # ART coverage - based on AIM, use CD4 eligibility threshold and % of those in need on ART
 ART_data <- as.data.frame(read.table(paste("HIV/",cn,"_ART_data.txt",sep=""),header=TRUE)) # Load data
+
+#ART_data[,5] <- 0
+#ART_data[ART_data$Year>2011,2] <- 350
+#ART_data[ART_data$Year>2011,6] <- 2
+
 # Create forcing function of threshold category
 Athresh <- cbind(ART_data[,"Year"],ART_data[,"CD4_cat"])
 # Create forcing functions which account for threshold and coverage
@@ -59,4 +64,4 @@ A500 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>4
 Ahigh <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>500,1,0)/100)
 
 # Pop adjust - to turn off population adjustment for TB/HIV deaths from 2015 onwards
-pop_ad <- cbind(c(2014,2015,2016),c(1,0,0))
+pop_ad <- cbind(c(2014,2015,2016),c(1,1,1))

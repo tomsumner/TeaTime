@@ -85,6 +85,22 @@ TIME_pop <- cbind(TIME_births,TIME_pop[,2:19],TIME_deaths[,2])
 colnames(TIME_pop) <- colnames(UN_pop_age_t)
 TIME_pop_m <- melt(TIME_pop,id="Year")
 
+# demproj values
+temp <- as.data.frame(read.table(paste("Demog/",cn,"_dem_pop_age.txt",sep=""),header=TRUE,fill=TRUE)) 
+# Need to re-arrage to get in year vs age format
+dem_pop <- mat.or.vec(81,19)
+dem_pop[,1] <- seq(1970,2050)
+for (i in 1:81){
+  j <- (i-1)*19+2
+  dem_pop[i,2:19]=temp[j:(j+17),2]
+}
+TIME_births <- as.data.frame(read.table(paste("Demog/",cn,"_TIME_births.txt",sep=""),header=TRUE))
+TIME_deaths <- as.data.frame(read.table(paste("Demog/",cn,"_TIME_deaths.txt",sep=""),header=TRUE))
+dem_pop <- cbind(TIME_births,dem_pop[,2:19],TIME_deaths[,2])
+colnames(dem_pop) <- colnames(UN_pop_age_t)
+dem_pop_m <- melt(dem_pop,id="Year")
+
+
 # and plot
 plot_pop <- ggplot(temp_model_m,aes(x=Year,y=value))+
   geom_line(colour="red")+
@@ -92,6 +108,7 @@ plot_pop <- ggplot(temp_model_m,aes(x=Year,y=value))+
   #geom_line(data=temp_data_l,aes(x=Year,y=value),colour="black",linetype="dashed")+
   #geom_line(data=temp_data_h,aes(x=Year,y=value),colour="black",linetype="dashed")+
   geom_line(data=TIME_pop_m,aes(x=Year,y=value/1000),colour="green",linetype="dashed")+
+  geom_line(data=dem_pop_m,aes(x=Year,y=value/1000),colour="blue",linetype="dashed")+
   facet_wrap(~variable,scales="free")+
   ggtitle("Population, births and deaths")+
   xlim(c(1970,2050))
@@ -334,5 +351,58 @@ plot_TB_prev_ART <- ggplot(temp_model_m,aes(x=Year,y=value))+
   ggtitle("HIV+, ART TB prev (by age)")+
   xlim(c(1970,2050))
 
+## Deaths by age - compare R vs TIME vs demproj ##################################################################
 
+# sum up deaths over age groups and turn into long format
+deaths_age <- out[,30586:30666]
+
+model_temp <- mat.or.vec(81,18)
+model_temp[,1] <- out[,"time"]
+model_temp[,18] <- deaths_age[,81]
+
+# Then aggregate into 5 year bins used in TIME
+for (i in 1:16){
+  t1 <- (i)+(i-1)*4
+  t2 <- t1+4
+  model_temp[,i+1] <- rowSums(deaths_age[,t1:t2])
+}
+
+colnames(model_temp) <- c("Year",colnames(UN_pop_age_t)[3:19])
+temp_model_m <- melt(as.data.frame(model_temp),id="Year")
+
+# Load TIME values
+temp <- as.data.frame(read.table(paste("Demog/",cn,"_TIME_deaths_age.txt",sep=""),header=TRUE,fill=TRUE))   
+# Need to re-arrage to get in year vs age format
+TIME_deaths_age <- mat.or.vec(81,18)
+TIME_deaths_age[,1] <- seq(1970,2050)
+for (i in 1:81){
+  j <- (i-1)*19+2
+  TIME_deaths_age[i,2:18]=temp[j:(j+16),2]
+}
+TIME_deaths_age <- as.data.frame(TIME_deaths_age)
+colnames(TIME_deaths_age) <- colnames(UN_pop_age)
+deaths_TIME <- melt(TIME_deaths_age,id="Year")
+
+# load demproj values
+
+# Load TIME values
+temp <- as.data.frame(read.table(paste("Demog/",cn,"_dem_deaths_age.txt",sep=""),header=TRUE,fill=TRUE))   
+# Need to re-arrage to get in year vs age format
+dem_deaths_age <- mat.or.vec(81,18)
+dem_deaths_age[,1] <- seq(1970,2050)
+for (i in 1:81){
+  j <- (i-1)*19+2
+  dem_deaths_age[i,2:18]=temp[j:(j+16),2]
+}
+dem_deaths_age <- as.data.frame(dem_deaths_age)
+colnames(dem_deaths_age) <- colnames(UN_pop_age)
+deaths_dem <- melt(dem_deaths_age,id="Year")
+
+
+plot_age_deaths <- ggplot(temp_model_m,aes(x=Year,y=value))+
+  geom_line(colour="red")+
+  geom_line(data=deaths_TIME,aes(x=Year,y=value/1000),colour="black",linetype="dashed")+
+  geom_line(data=deaths_dem,aes(x=Year,y=value/1000),colour="green",linetype="dashed")+
+  facet_wrap(~variable,scales="free")+
+  xlim(c(1970,2050))
 

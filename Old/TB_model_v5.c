@@ -1,5 +1,7 @@
 /* TB model in C code to call from R */
 
+/* Version 6 - converted to single year age bins and aging done via events */
+
 /* To add: Update the way background mort and population adjustent is done
            Let ART mortality be an input (to allow different countries to be modelled)
            Turning off population scaling from 2015

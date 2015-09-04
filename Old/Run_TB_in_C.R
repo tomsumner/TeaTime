@@ -254,19 +254,15 @@ temp_model <- as.data.frame(cbind(seq(1970,2050),out[,"births"],tot,out[,"Total"
 colnames(temp_model) <- colnames(UN_pop_age_t)
 temp_model_m <- melt(temp_model,id="Year")
 
-# Load TIME population and births and deaths _NEED TO TURN THIS INTO READ FROM TEXT FILE - ITS MUCH QUICKER!
-# TIME population output
-setwd("C:/Users/TOM SUMMER/Filr/My Files/sync/TIME/TIME Research/Demographics_files")
-fname = paste(cn,".xlsx",sep="")
-temp <- read.xls(fname, sheet="TIME_age_population", verbose=FALSE, "1970",header=FALSE,stringsAsFactors=FALSE)
+# TIME values
+temp <- as.data.frame(read.table(paste("Demog/",cn,"_TIME_pop_age.txt",sep=""),header=TRUE,fill=TRUE)) 
+# Need to re-arrage to get in year vs age format
 TIME_pop <- mat.or.vec(81,19)
 TIME_pop[,1] <- seq(1970,2050)
 for (i in 1:81){
   j <- (i-1)*19+2
-  TIME_pop[i,2:19]=as.numeric(temp[j:(j+17),2])
+  TIME_pop[i,2:19]=temp[j:(j+17),2]
 }
-TIME_pop <- as.data.frame(TIME_pop)
-setwd("C:/Users/TOM SUMMER/Documents/TIME_research/TeaTime")
 TIME_births <- as.data.frame(read.table(paste("Demog/",cn,"_TIME_births.txt",sep=""),header=TRUE))
 TIME_deaths <- as.data.frame(read.table(paste("Demog/",cn,"_TIME_deaths.txt",sep=""),header=TRUE))
 TIME_pop <- cbind(TIME_births,TIME_pop[,2:19],TIME_deaths[,2])
@@ -403,7 +399,7 @@ plot_HIV_p <- ggplot(H_p_model_m,aes(x=Year,y=value))+
   xlim(c(1970,2050))
 
 ########  SAVE PLOTS TO A PDF FILE ##################################################################################
-pdf_name <- paste("C:/Users/TOM SUMMER/Filr/My Files/sync/TIME/TIME Research/",cn,"_s5_mort_lowered.pdf",sep="")
+pdf_name <- paste("C:/Users/TOM SUMMER/Filr/My Files/sync/TIME/TIME Research/",cn,"_TB.pdf",sep="")
 pdf(pdf_name,width=10,height=7)
 print(plot_pop)
 print(plot_pop_s)
