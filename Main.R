@@ -31,8 +31,8 @@ cn <- "SA"
 # with "shape=1" the curve is symmetric around the midpoint of "base_year" and "target_year"
 # "growth" determines the steepness of the curve
 
-# BCG coverage - currently assume 90% at all times
-BCG_cov <- cbind(c(1972,1973,2050),c(0.9,0.9,0.9))
+# BCG coverage - currently assume 100% at all times
+BCG_cov <- cbind(c(1972,1973,2050),c(1,1,1))
 
 # Case detection rate by HIV (neg/pos)
 kneg <- logcurve(50,90,1990,2020,0.3,1)
