@@ -19,7 +19,7 @@
 
 /* You need to define number of parameters and forcing functions passed to the model here */
 /* These must match number in intializer functions below */
-static double parms[41];
+static double parms[42];
 static double forc[188];
 
 /* ###### A TRICK TO KEEP UP WITH THE PARAMETERS AND FORCINGS ###### */
@@ -68,6 +68,8 @@ static double forc[188];
 #define sig_H parms[38]     /* proportion developing smear positive disease in HIV+ */
 #define r_H parms[39]       /* rate of self cure from TB in HIV+ */
 #define rel_inf_H parms[40] /* relative infectiousness of smear negative cases in HIV+ */
+
+#define HIV_run parms[41]   /* used to skip HIV equations in equilibrium run */
 
 /* Forcings are time dependant functions e.g. mortality rates */
 #define birth_rate forc[0] /* Birth rate */
@@ -283,7 +285,7 @@ double sumsum(double ar[], int i_start, int i_end)
 /* ###### FUNCTION TO INITIALIZE PARAMETERS PASSED FROM R - if the number of parameters is changed you must update N here ###### */
 void parmsc(void (* odeparms)(int *, double *))
 {
-    int N=41;
+    int N=42;
     odeparms(&N, parms);
 }
 
@@ -327,34 +329,34 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     /* _H = HIV+; _A = HIV+ on ART */
     
     /* These are the variables */
-    double S[81];   double S_H[81][7];   double S_A[81][7][3];      /* Susceptible */
-    double Lsn[81]; double Lsn_H[81][7]; double Lsn_A[81][7][3];    /* Latent, DS, new */
-    double Lsp[81]; double Lsp_H[81][7]; double Lsp_A[81][7][3];    /* Latent, DS, previous */
-    double Lmn[81]; double Lmn_H[81][7]; double Lmn_A[81][7][3];    /* Latent, DR, new */
-    double Lmp[81]; double Lmp_H[81][7]; double Lmp_A[81][7][3];    /* Latent, DR, previous */
-    double Nsn[81]; double Nsn_H[81][7]; double Nsn_A[81][7][3];    /* Smear negative, DS, new */
-    double Nsp[81]; double Nsp_H[81][7]; double Nsp_A[81][7][3];    /* Smear negative, DS, previous */
-    double Nmn[81]; double Nmn_H[81][7]; double Nmn_A[81][7][3];    /* Smear negative, DR, new */
-    double Nmp[81]; double Nmp_H[81][7]; double Nmp_A[81][7][3];    /* Smear negative, DR, previous */
-    double Isn[81]; double Isn_H[81][7]; double Isn_A[81][7][3];    /* Smear positive, DS, new */
-    double Isp[81]; double Isp_H[81][7]; double Isp_A[81][7][3];    /* Smear positive, DS, previous */
-    double Imn[81]; double Imn_H[81][7]; double Imn_A[81][7][3];    /* Smear positive, DR, new */
-    double Imp[81]; double Imp_H[81][7]; double Imp_A[81][7][3];    /* Smear positive, DR, previous */
+    double S[81]={0};   double S_H[81][7]={{0}};   double S_A[81][7][3]={{{0}}};      /* Susceptible */
+    double Lsn[81]={0}; double Lsn_H[81][7]={{0}}; double Lsn_A[81][7][3]={{{0}}};    /* Latent, DS, new */
+    double Lsp[81]={0}; double Lsp_H[81][7]={{0}}; double Lsp_A[81][7][3]={{{0}}};    /* Latent, DS, previous */
+    double Lmn[81]={0}; double Lmn_H[81][7]={{0}}; double Lmn_A[81][7][3]={{{0}}};    /* Latent, DR, new */
+    double Lmp[81]={0}; double Lmp_H[81][7]={{0}}; double Lmp_A[81][7][3]={{{0}}};    /* Latent, DR, previous */
+    double Nsn[81]={0}; double Nsn_H[81][7]={{0}}; double Nsn_A[81][7][3]={{{0}}};    /* Smear negative, DS, new */
+    double Nsp[81]={0}; double Nsp_H[81][7]={{0}}; double Nsp_A[81][7][3]={{{0}}};    /* Smear negative, DS, previous */
+    double Nmn[81]={0}; double Nmn_H[81][7]={{0}}; double Nmn_A[81][7][3]={{{0}}};    /* Smear negative, DR, new */
+    double Nmp[81]={0}; double Nmp_H[81][7]={{0}}; double Nmp_A[81][7][3]={{{0}}};    /* Smear negative, DR, previous */
+    double Isn[81]={0}; double Isn_H[81][7]={{0}}; double Isn_A[81][7][3]={{{0}}};    /* Smear positive, DS, new */
+    double Isp[81]={0}; double Isp_H[81][7]={{0}}; double Isp_A[81][7][3]={{{0}}};    /* Smear positive, DS, previous */
+    double Imn[81]={0}; double Imn_H[81][7]={{0}}; double Imn_A[81][7][3]={{{0}}};    /* Smear positive, DR, new */
+    double Imp[81]={0}; double Imp_H[81][7]={{0}}; double Imp_A[81][7][3]={{{0}}};    /* Smear positive, DR, previous */
 
     /* These are the rates of change (same names but prefixed with d) */
-    double dS[81];   double dS_H[81][7];   double dS_A[81][7][3];
-    double dLsn[81]; double dLsn_H[81][7]; double dLsn_A[81][7][3];
-    double dLsp[81]; double dLsp_H[81][7]; double dLsp_A[81][7][3];
-    double dLmn[81]; double dLmn_H[81][7]; double dLmn_A[81][7][3];
-    double dLmp[81]; double dLmp_H[81][7]; double dLmp_A[81][7][3];
-    double dNsn[81]; double dNsn_H[81][7]; double dNsn_A[81][7][3];
-    double dNsp[81]; double dNsp_H[81][7]; double dNsp_A[81][7][3];
-    double dNmn[81]; double dNmn_H[81][7]; double dNmn_A[81][7][3];
-    double dNmp[81]; double dNmp_H[81][7]; double dNmp_A[81][7][3];
-    double dIsn[81]; double dIsn_H[81][7]; double dIsn_A[81][7][3];
-    double dIsp[81]; double dIsp_H[81][7]; double dIsp_A[81][7][3];
-    double dImn[81]; double dImn_H[81][7]; double dImn_A[81][7][3];
-    double dImp[81]; double dImp_H[81][7]; double dImp_A[81][7][3];
+    double dS[81]={0};   double dS_H[81][7]={{0}};   double dS_A[81][7][3]={{{0}}};
+    double dLsn[81]={0}; double dLsn_H[81][7]={{0}}; double dLsn_A[81][7][3]={{{0}}};
+    double dLsp[81]={0}; double dLsp_H[81][7]={{0}}; double dLsp_A[81][7][3]={{{0}}};
+    double dLmn[81]={0}; double dLmn_H[81][7]={{0}}; double dLmn_A[81][7][3]={{{0}}};
+    double dLmp[81]={0}; double dLmp_H[81][7]={{0}}; double dLmp_A[81][7][3]={{{0}}};
+    double dNsn[81]={0}; double dNsn_H[81][7]={{0}}; double dNsn_A[81][7][3]={{{0}}};
+    double dNsp[81]={0}; double dNsp_H[81][7]={{0}}; double dNsp_A[81][7][3]={{{0}}};
+    double dNmn[81]={0}; double dNmn_H[81][7]={{0}}; double dNmn_A[81][7][3]={{{0}}};
+    double dNmp[81]={0}; double dNmp_H[81][7]={{0}}; double dNmp_A[81][7][3]={{{0}}};
+    double dIsn[81]={0}; double dIsn_H[81][7]={{0}}; double dIsn_A[81][7][3]={{{0}}};
+    double dIsp[81]={0}; double dIsp_H[81][7]={{0}}; double dIsp_A[81][7][3]={{{0}}};
+    double dImn[81]={0}; double dImn_H[81][7]={{0}}; double dImn_A[81][7][3]={{{0}}};
+    double dImp[81]={0}; double dImp_H[81][7]={{0}}; double dImp_A[81][7][3]={{{0}}};
 
     /* intergers to use as counters */ 
     int i,j,l,ij;
@@ -436,24 +438,24 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
 
     for (i=0; i<5; i++){
       a_age[i] = a0*bcg;
+      a_age[i+5] = a5*bcg;
+      a_age[i+10] = a10*bcg;
+      
       sig_age[i] = sig0;
+      sig_age[i+5] = sig5;
+      sig_age[i+10] = sig10;
+      
       v_age[i] = v*bcg;
+      v_age[i+5] = v*bcg;
+      v_age[i+10] = v*bcg;
+      
       muN_age[i] = mu_N0;
+      muN_age[i+5] = mu_N;
+      muN_age[i+10] = mu_N;
+      
       muI_age[i] = mu_I0;
-    }
-    for (i=5; i<10; i++){
-      a_age[i] = a5*bcg;
-      sig_age[i] = sig5;
-      v_age[i] = v*bcg;
-      muN_age[i] = mu_N;
-      muI_age[i] = mu_I;
-    }
-    for (i=10; i<15; i++){
-      a_age[i] = a10*bcg;
-      sig_age[i] = sig10;
-      v_age[i] = v*bcg;
-      muN_age[i] = mu_N;
-      muI_age[i] = mu_I;
+      muI_age[i+5] = mu_I;
+      muI_age[i+10] = mu_I;
     }
     for (i=15; i<81; i++){
       a_age[i] = a_a;
@@ -494,8 +496,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
         }
       }
     }
-    
-    
+  
     /* Set up parameters for HIV model - these are taken from AIM */
 
     double H_CD4[7][81] = {{0},{0},{0},{0},{0},{0},{0}}; /* Distribution of new HIV infections (age,CD4) - assume distribution of new child infections mirrors adults */
@@ -639,11 +640,12 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     double Total = Total_S+Total_L+Total_N+Total_I; /* Total */
     
     /* Mortality calculations and adjustments */
-    /* Background survival rates used in the demographic model include death due to disease */
-    /* Need to make an adjustment to these rates (based on levels of disease induced mortality) to avoid double counting */
+    /* HIV mortality rates include TB deaths 
+    /* Background mortality rates include HIV and TB deaths */
+    /* Need to make an adjustment to both HIV and background rates to avoid double counting */
     
-    /* Calculate deaths due to disease (TB and HIV) by age group */
-    /* work out disease induced mortality rate if pre 2015 - if after 2015 just use 2015 value*/
+    /* Calculate deaths due to disease (TB and HIV) by age, CD4 and ART */
+    /* work out disease induced mortality rate if pre 2015 - if after 2015 just use 2015 value */
     /* and adjust background mortality rate accordingly
     /* Calculate total population in the same loop */
     double TB_deaths[81] = {0};
@@ -651,14 +653,16 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     double HIV_deaths[81] = {0};
     double ART_deaths[81] = {0};
     double rate_dis_death[81];
+    double rate_AIDS_deaths[81];
     double m_b[81];
     double tot_age[81] = {0};
     double Tot_deaths = 0;
     double Tot_deaths_age[81];
+    double ART_back_deaths = 0;
     
     for (i=0; i<n_age; i++) {
       
-      TB_deaths[i] = TB_deaths[i] + (Nsn[i]+Nsp[i]+Nmn[i]+Nmp[i])*muN_age[i] + (Isn[i]+Isp[i]+Imn[i]+Imp[i])*muI_age[i];
+      TB_deaths[i] = (Nsn[i]+Nsp[i]+Nmn[i]+Nmp[i])*muN_age[i] + (Isn[i]+Isp[i]+Imn[i]+Imp[i])*muI_age[i];
       
       tot_age[i] = tot_age[i] + S[i]+Lsn[i]+Lsp[i]+Lmn[i]+Lmp[i]+Nsn[i]+Nsp[i]+Nmn[i]+Nmp[i]+Isn[i]+Isp[i]+Imn[i]+Imp[i];
       
@@ -692,16 +696,25 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                               
         }                               
       }
-          
+
       if (pop_ad>0) rate_dis_death[i] = (TB_deaths[i]+HIV_deaths[i]+ART_deaths[i])/tot_age[i];
-      /*m_b[i] = forc[i+1]-prop_dis_death[i]; - THIS WAS WRONG */
-      m_b[i] = forc[i+1]-rate_dis_death[i]; 
+      rate_AIDS_deaths[i] = (HIV_deaths[i]+ART_deaths[i])/tot_age[i];
+      m_b[i] = fmax(0,forc[i+1]-rate_dis_death[i]);
     
       Tot_deaths_age[i] = m_b[i]*tot_age[i] + TB_deaths[i] + HIV_deaths[i] + ART_deaths[i];  
       Tot_deaths = Tot_deaths + Tot_deaths_age[i];
+      
+      /* sum up background deaths on ART - used to calculate new people to put on ART */
+      for(j=0; j<n_HIV; j++){
+        for (l=0; l<n_ART; l++){
+          ART_back_deaths = ART_back_deaths + m_b[i]*(S_A[i][j][l]+Lsn_A[i][j][l]+Lsp_A[i][j][l]+Lmn_A[i][j][l]+Lmp_A[i][j][l]+Nsn_A[i][j][l]+Nsp_A[i][j][l]+
+                                               Nmn_A[i][j][l]+Nmp_A[i][j][l]+Isn_A[i][j][l]+Isp_A[i][j][l]+Imn_A[i][j][l]+Imp_A[i][j][l]);
+        }
+      }
+      
     } 
     double TB_deaths_tot = sumsum(TB_deaths,0,80);
-    double ART_deaths_tot = sumsum(ART_deaths,0,80) + sumsum(TB_ART_deaths,0,80); 
+    double ART_deaths_tot = sumsum(ART_deaths,0,80) + sumsum(TB_ART_deaths,0,80) + ART_back_deaths; 
     
     /* Sum up populations over CD4 categories, with and without ART and calculate rates of ART initiation */
     double CD4_dist[7] = {0,0,0,0,0,0,0};     /* Not on ART by CD4 */
@@ -873,6 +886,8 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     
         /* HIV+: Loop through CD4 categories */
     
+        if (HIV_run>0.0){   /* don't run these for equilibrium as no HIV - save time */
+    
         for (j=0; j<n_HIV; j++){      /* CD4 */
 
           dS_H[i][j] = - m_b[i]*S_H[i][j] - 
@@ -991,7 +1006,8 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                        
           TB_cases_pos = TB_cases_pos + TB_cases_pos_age[i][j];
        
-       /* HIV+ on ART: loop through time on ART, CD4 at initiation, age - NEED TO ADD IN IMPACT OF ART ON TB PARAMETERS */
+          if(ART_on>0.0){ /* don't run ART equations if no ART yet - save some time */
+       /* HIV+ on ART: loop through time on ART, CD4 at initiation, age */
           for (l=0; l<n_ART; l++){
         
             dS_A[i][j][l] = - m_b[i]*S_A[i][j][l] - (FS + FM)*S_A[i][j][l] +
@@ -1097,7 +1113,9 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
             TB_cases_ART = TB_cases_ART + TB_cases_ART_age[i][j][l];
         
           }  /* end loop on ART */
+          }
         }    /* end loop on HIV */
+        }    
     }        /* end loop on age */
 
     /* Put our calculated rates of change back into ydot */
@@ -1105,17 +1123,17 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     /* HIV+ */
     for (i=0; i<n_age; i++) ydot[i] = dS[i];             
     for (i=n_age; i<n_age*2; i++) ydot[i] = dLsn[i-n_age];      
-    for (i=n_age*2; i<n_age*3; i++) ydot[i] = dLsp[i-n_age*2];       /* Lsp: 34-50 */
-    for (i=n_age*3; i<n_age*4; i++) ydot[i] = dLmn[i-n_age*3];       /* Lmn: 51-67 */
-    for (i=n_age*4; i<n_age*5; i++) ydot[i] = dLmp[i-n_age*4];       /* Lmp: 68-84 */
-    for (i=n_age*5; i<n_age*6; i++) ydot[i] = dNsn[i-n_age*5];      /* Nsn: 85-101 */
+    for (i=n_age*2; i<n_age*3; i++) ydot[i] = dLsp[i-n_age*2];    /* Lsp: 34-50 */
+    for (i=n_age*3; i<n_age*4; i++) ydot[i] = dLmn[i-n_age*3];    /* Lmn: 51-67 */
+    for (i=n_age*4; i<n_age*5; i++) ydot[i] = dLmp[i-n_age*4];    /* Lmp: 68-84 */
+    for (i=n_age*5; i<n_age*6; i++) ydot[i] = dNsn[i-n_age*5];    /* Nsn: 85-101 */
     for (i=n_age*6; i<n_age*7; i++) ydot[i] = dNsp[i-n_age*6];    /* Nsp: 102-118 */
     for (i=n_age*7; i<n_age*8; i++) ydot[i] = dNmn[i-n_age*7];    /* Nmn: 119-135 */
     for (i=n_age*8; i<n_age*9; i++) ydot[i] = dNmp[i-n_age*8];    /* Nmp: 136-152 */ 
-    for (i=n_age*9; i<n_age*10; i++) ydot[i] = dIsn[i-n_age*9];    /* Isn: 153-169 */
-    for (i=n_age*10; i<n_age*11; i++) ydot[i] = dIsp[i-n_age*10];    /* Isp: 170-186 */
-    for (i=n_age*11; i<n_age*12; i++) ydot[i] = dImn[i-n_age*11];    /* Imn: 187-203 */
-    for (i=n_age*12; i<n_age*13; i++) ydot[i] = dImp[i-n_age*12];    /* Imp: 204-220 */
+    for (i=n_age*9; i<n_age*10; i++) ydot[i] = dIsn[i-n_age*9];   /* Isn: 153-169 */
+    for (i=n_age*10; i<n_age*11; i++) ydot[i] = dIsp[i-n_age*10]; /* Isp: 170-186 */
+    for (i=n_age*11; i<n_age*12; i++) ydot[i] = dImn[i-n_age*11]; /* Imn: 187-203 */
+    for (i=n_age*12; i<n_age*13; i++) ydot[i] = dImp[i-n_age*12]; /* Imp: 204-220 */
     
     /* HIV+ */
     ij = n_age*n_disease;                                     
@@ -1210,7 +1228,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     yout[45] = Tot_deaths;
     yout[46] = ART_deaths_tot; 
     for (i=0; i<n_age; i++) {
-      yout[47+i] = Tot_deaths_age[i];
+      yout[47+i] = rate_dis_death[i];
     }
     
 }

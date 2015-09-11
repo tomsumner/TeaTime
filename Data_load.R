@@ -1,26 +1,24 @@
 ### Loads all external data sources and where appropriate creates forcing functions
 
-## UN population data ###############################################################################################################
+## UN population data ###########################################################################################################
 
-# single year
-UN_pop_age <- as.data.frame(read.table(paste("Demog/",cn,"_pop_single.txt",sep=""),header=FALSE)) # Load UN Population data
+# single year age groups for 1970 - used as initial population
+UN_pop_start <- as.data.frame(read.table(paste("Demog/Initial_Pop_single_age.txt",sep=""),header=FALSE)) # Load UN Population data
 # Load number of births
-births <- as.data.frame(read.table(paste("Demog/",cn,"_births_number.txt",sep=""),header=TRUE))
-# Load number of deaths
-deaths <- as.data.frame(read.table(paste("Demog/",cn,"_deaths.txt",sep=""),header=TRUE))
 # add total, births and deaths to pop size data
-UN_pop_age_t <- cbind(births,UN_pop_age[,2:82],rowSums(UN_pop_age[,2:82]),deaths[,2])
-colnames(UN_pop_age_t) <- c("Year","births",colnames(UN_pop_age[2:82]),"Total","Deaths")
+UN_pop_start_t <- cbind(UN_pop_start[,1:83],rowSums(UN_pop_start[,2:82]))
+UN_pop_start_t <- UN_pop_start_t[UN_pop_start_t[,1]==cn,]
+colnames(UN_pop_start_t) <- c("Country","Year",colnames(UN_pop_start[3:83]),"Total")
 
-## Fertility and mortality ##########################################################################################################
+# UN indicators - Crude birth rate (CBR), births, deaths ########################################################################
+UN_ind <- as.data.frame(read.table("Demog/UN_indicators_all.txt",header=TRUE))
+UN_ind <- UN_ind[UN_ind$Country==cn,]
+# Convert CBR into forcing function to be used in C code
+birth_rate <- cbind(UN_ind$Year,UN_ind$CBR)
+# births and deaths will be used in plots later
 
-## Fertility
-# Uses crude birth rate (per 1000 population) from UN pop - values post 2010 based on medium fertility
-temp <- as.data.frame(read.table(paste("Demog/",cn,"_crude_birth.txt",sep=""),header=TRUE)) # Load crude birth rate
-# Convert into forcing function to be used in C code
-birth_rate <- cbind(temp[,1],temp[,2])
+# Mortality #####################################################################################################################
 
-## Mortality
 # Age specific mortality taken from demproj outputs
 mort_age <- as.data.frame(read.table(paste("Demog/",cn,"_mort_age.txt",sep=""),header=FALSE)) 
 # Convert into forcing functions to be used in C code
@@ -28,7 +26,7 @@ for (i in 1:81){
   assign(paste("s",i,sep=""), cbind(seq(1971,2050),mort_age[,i+1]))
 }
 
-## HIV and ART ######################################################################################################################
+## HIV and ART ##################################################################################################################
 
 # HIV Incidence by age and year - taken from AIM (rate per 1000)
 temp <- as.data.frame(read.table(paste("HIV/",cn,"_HIV_Inc_age.txt",sep=""),header=TRUE,fill=TRUE))
@@ -48,9 +46,7 @@ for (i in 0:80){
 # ART coverage - based on AIM, use CD4 eligibility threshold and % of those in need on ART
 ART_data <- as.data.frame(read.table(paste("HIV/",cn,"_ART_data.txt",sep=""),header=TRUE)) # Load data
 
-#ART_data[,5] <- 0
-#ART_data[ART_data$Year>2011,2] <- 350
-#ART_data[ART_data$Year>2011,6] <- 2
+#ART_data[,"Percent"] <- 0
 
 # Create forcing function of threshold category
 Athresh <- cbind(ART_data[,"Year"],ART_data[,"CD4_cat"])

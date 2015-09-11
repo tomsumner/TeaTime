@@ -9,6 +9,7 @@ num_ages <- length(ages) # calculates the number of age classes
 times <- seq(0,60, by=1)
 
 ## Now put together all the forcing fucntions in a list to be passed to the C code ###############################
+
 force <- list(birth_rate,
               s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15,s16,s17,s18,s19,s20,
               s21,s22,s23,s24,s25,s26,s27,s28,s29,s30,s31,s32,s33,s34,s35,s36,s37,s38,s39,s40,
@@ -26,7 +27,7 @@ force <- list(birth_rate,
 
 # Initial conditions - all susceptible
 temp <- c()
-for (i in 1:num_ages){temp[i]<-UN_pop_age[21,i+1]}
+for (i in 1:num_ages){temp[i]<-as.numeric(UN_pop_start_t[i+2])}
 xstart <- c(S=c(temp),
             Lsn=rep(0,num_ages),Lsp=rep(0,num_ages),Lmn=rep(0,num_ages),Lmp=rep(0,num_ages),
             Nsn=rep(0,num_ages),Nsp=rep(0,num_ages),Nmn=rep(0,num_ages),Nmp=rep(0,num_ages),
@@ -42,10 +43,12 @@ xstart <- c(S=c(temp),
 
 # For initialisation run turn off MDR by setting e = 0
 parms["e"]=0
+# For initialisation run no HIV so don't run those parameters
+parms["HIV_run"]=0
 
 # Run the model
 time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
-                                     parms = parms, dllname = "TB_model_v6",initforc = "forcc",
+                                     parms = parms, dllname = "TB_model_v7",initforc = "forcc",
                                      forcings=force, initfunc = "parmsc", nout = 128,
                                      outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                   "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
@@ -64,19 +67,21 @@ time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
 temp <- out_eq[dim(out_eq)[1],2:30538]
 
 for(i in 1:81){ 
-  temp[seq(i,30537,81)] <- temp[seq(i,30537,81)]/(sum(temp[seq(i,30537,81)])/UN_pop_age_t[UN_pop_age_t$Year==1970,i+2])
+  temp[seq(i,30537,81)] <- temp[seq(i,30537,81)]/(sum(temp[seq(i,30537,81)])/as.numeric(UN_pop_start_t[i+2]))
 }
 
 xstart <- temp
 
 # Reset e to allow MDR
 parms["e"]=e
+# Reset to model HIV
+parms["HIV_run"]=1
 
 # Set times to run for
 times <- seq(1970,2050 , by=0.5) # run with 6 month time step using a fixed time step solver - this is faster than adaptive methds but seems to give good accuracy
 # Run the model
 time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
-                                  parms = parms, dllname = "TB_model_v6",initforc = "forcc",
+                                  parms = parms, dllname = "TB_model_v7",initforc = "forcc",
                                   forcings=force, initfunc = "parmsc", nout = 128,
                                   outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
