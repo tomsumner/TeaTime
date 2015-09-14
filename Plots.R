@@ -29,6 +29,7 @@ diff_out<-cbind(R_out[,"Year"],temp)
 colnames(diff_out) <- c("Year",colnames(temp))
 diff_out_m <- melt(diff_out,id=c("Year"))
 
+
 plot_models <- ggplot(Models_out,aes(x=Year,y=value,colour=Model))+
   geom_line()+
   facet_wrap(~variable,scales="free_y")+
@@ -412,66 +413,66 @@ plot_TB_prev_ART <- ggplot(dat_to_plot,aes(x=Year,y=value,color=Model))+
 
 ## Deaths by age - compare R vs TIME vs demproj ##################################################################
 
-# sum up deaths over age groups and turn into long format
-deaths_age <- out[,30586:30666]
-
-model_temp <- mat.or.vec(81,18)
-model_temp[,1] <- out[,"time"]
-model_temp[,18] <- deaths_age[,81]
-
-# Then aggregate into 5 year bins used in TIME
-for (i in 1:16){
-  t1 <- (i)+(i-1)*4
-  t2 <- t1+4
-  model_temp[,i+1] <- rowSums(deaths_age[,t1:t2])
-}
-
-colnames(model_temp) <- c("Year",colnames(UN_pop_age_t)[3:19])
-temp_model_m <- melt(as.data.frame(model_temp),id="Year")
-temp_model_m <- cbind(temp_model_m,"R")
-colnames(temp_model_m) <- c(colnames(temp_model_m)[1:3],"Model")
-
-
-# Load TIME values
-temp <- as.data.frame(read.table(paste("Demog/",cn,"_TIME_deaths_age.txt",sep=""),header=TRUE,fill=TRUE))   
-# Need to re-arrage to get in year vs age format
-TIME_deaths_age <- mat.or.vec(81,18)
-TIME_deaths_age[,1] <- seq(1970,2050)
-for (i in 1:81){
-  j <- (i-1)*19+2
-  TIME_deaths_age[i,2:18]=temp[j:(j+16),2]/1000
-}
-TIME_deaths_age <- as.data.frame(TIME_deaths_age)
-colnames(TIME_deaths_age) <- colnames(UN_pop_age)
-deaths_TIME <- melt(TIME_deaths_age,id="Year")
-deaths_TIME <- cbind(deaths_TIME,"TIME")
-colnames(deaths_TIME) <- c(colnames(deaths_TIME)[1:3],"Model")
-
-# load demproj values
-
-# Load TIME values
-temp <- as.data.frame(read.table(paste("Demog/",cn,"_dem_deaths_age.txt",sep=""),header=TRUE,fill=TRUE))   
-# Need to re-arrage to get in year vs age format
-dem_deaths_age <- mat.or.vec(81,18)
-dem_deaths_age[,1] <- seq(1970,2050)
-for (i in 1:81){
-  j <- (i-1)*19+2
-  dem_deaths_age[i,2:18]=temp[j:(j+16),2]/1000
-}
-dem_deaths_age <- as.data.frame(dem_deaths_age)
-colnames(dem_deaths_age) <- colnames(UN_pop_age)
-deaths_dem <- melt(dem_deaths_age,id="Year")
-deaths_dem <- cbind(deaths_dem,"DemProj")
-colnames(deaths_dem) <- c(colnames(deaths_dem)[1:3],"Model")
-
-dat_to_plot <- rbind(temp_model_m,deaths_TIME,deaths_dem)
-
-plot_age_deaths <- ggplot(dat_to_plot,aes(x=Year,y=value,color=Model))+
-  geom_line()+
-  facet_wrap(~variable,scales="free")+
-  ggtitle("Deaths (by age)")+
-  ylab("Deaths (thousands)")+
-  xlim(c(1970,2050))
+# # sum up deaths over age groups and turn into long format
+# deaths_age <- out[,30586:30666]
+# 
+# model_temp <- mat.or.vec(81,18)
+# model_temp[,1] <- out[,"time"]
+# model_temp[,18] <- deaths_age[,81]
+# 
+# # Then aggregate into 5 year bins used in TIME
+# for (i in 1:16){
+#   t1 <- (i)+(i-1)*4
+#   t2 <- t1+4
+#   model_temp[,i+1] <- rowSums(deaths_age[,t1:t2])
+# }
+# 
+# colnames(model_temp) <- c("Year",colnames(UN_pop_age_t)[3:19])
+# temp_model_m <- melt(as.data.frame(model_temp),id="Year")
+# temp_model_m <- cbind(temp_model_m,"R")
+# colnames(temp_model_m) <- c(colnames(temp_model_m)[1:3],"Model")
+# 
+# 
+# # Load TIME values
+# temp <- as.data.frame(read.table(paste("Demog/",cn,"_TIME_deaths_age.txt",sep=""),header=TRUE,fill=TRUE))   
+# # Need to re-arrage to get in year vs age format
+# TIME_deaths_age <- mat.or.vec(81,18)
+# TIME_deaths_age[,1] <- seq(1970,2050)
+# for (i in 1:81){
+#   j <- (i-1)*19+2
+#   TIME_deaths_age[i,2:18]=temp[j:(j+16),2]/1000
+# }
+# TIME_deaths_age <- as.data.frame(TIME_deaths_age)
+# colnames(TIME_deaths_age) <- colnames(UN_pop_age)
+# deaths_TIME <- melt(TIME_deaths_age,id="Year")
+# deaths_TIME <- cbind(deaths_TIME,"TIME")
+# colnames(deaths_TIME) <- c(colnames(deaths_TIME)[1:3],"Model")
+# 
+# # load demproj values
+# 
+# # Load TIME values
+# temp <- as.data.frame(read.table(paste("Demog/",cn,"_dem_deaths_age.txt",sep=""),header=TRUE,fill=TRUE))   
+# # Need to re-arrage to get in year vs age format
+# dem_deaths_age <- mat.or.vec(81,18)
+# dem_deaths_age[,1] <- seq(1970,2050)
+# for (i in 1:81){
+#   j <- (i-1)*19+2
+#   dem_deaths_age[i,2:18]=temp[j:(j+16),2]/1000
+# }
+# dem_deaths_age <- as.data.frame(dem_deaths_age)
+# colnames(dem_deaths_age) <- colnames(UN_pop_age)
+# deaths_dem <- melt(dem_deaths_age,id="Year")
+# deaths_dem <- cbind(deaths_dem,"DemProj")
+# colnames(deaths_dem) <- c(colnames(deaths_dem)[1:3],"Model")
+# 
+# dat_to_plot <- rbind(temp_model_m,deaths_TIME,deaths_dem)
+# 
+# plot_age_deaths <- ggplot(dat_to_plot,aes(x=Year,y=value,color=Model))+
+#   geom_line()+
+#   facet_wrap(~variable,scales="free")+
+#   ggtitle("Deaths (by age)")+
+#   ylab("Deaths (thousands)")+
+#   xlim(c(1970,2050))
 
 ## Numbers on ART by age #########################################################################################
 # Load TIME values
@@ -532,12 +533,30 @@ disease_mort <- as.data.frame(cbind(out[,"time"],out[,30586:30666]))
 colnames(disease_mort) <- colnames(temp)
 disease_mort <- melt(disease_mort,id.vars="V1")
 
+# get model values
+hiv_mort <- as.data.frame(cbind(out[,"time"],out[,30667:30747]))
+colnames(hiv_mort) <- colnames(temp)
+hiv_mort <- melt(hiv_mort,id.vars="V1")
+
+# get model values
+disease_mort_test <- as.data.frame(cbind(out[,"time"],out[,30748:30828]))
+colnames(disease_mort_test) <- colnames(temp)
+disease_mort_test <- melt(disease_mort_test,id.vars="V1")
+
+# get model values
+hiv_mort_test <- as.data.frame(cbind(out[,"time"],out[,30829:30909]))
+colnames(hiv_mort_test) <- colnames(temp)
+hiv_mort_test <- melt(hiv_mort_test,id.vars="V1")
+
 # and plot
-plot_AIDS_mort <- ggplot(AIM_AIDS_mort,aes(x=V1,y=value))+
+plot_AIDS_mort <- ggplot(AIM_AIDS_mort[AIM_AIDS_mort$variable%in%c("V59","V69","V79"),],aes(x=V1,y=value))+
   geom_line(colour="red")+
-  geom_line(data=disease_mort,aes(x=V1,y=value),colour="green")+
+  geom_line(data=disease_mort[disease_mort$variable%in%c("V59","V69","V79"),],aes(x=V1,y=value),colour="green")+
+  geom_line(data=hiv_mort[hiv_mort$variable%in%c("V59","V69","V79"),],aes(x=V1,y=value),colour="blue")+
+  geom_line(data=hiv_mort_test[hiv_mort_test$variable%in%c("V59","V69","V79"),],aes(x=V1,y=value),colour="blue",linetype="dashed")+
+  geom_line(data=disease_mort_test[disease_mort_test$variable%in%c("V59","V69","V79"),],aes(x=V1,y=value),colour="green",linetype="dashed")+
   facet_wrap(~variable,scales="free")+
-  ggtitle("ART_numbers")+
+  ggtitle("AIDS_mort_rate")+
   xlim(c(1970,2050))
 
 

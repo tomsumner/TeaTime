@@ -49,7 +49,7 @@ parms["HIV_run"]=0
 # Run the model
 time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
                                      parms = parms, dllname = "TB_model_v7",initforc = "forcc",
-                                     forcings=force, initfunc = "parmsc", nout = 128,
+                                     forcings=force, initfunc = "parmsc", nout = 371,
                                      outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                   "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                                                   "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
@@ -78,11 +78,11 @@ parms["e"]=e
 parms["HIV_run"]=1
 
 # Set times to run for
-times <- seq(1970,2050 , by=0.5) # run with 6 month time step using a fixed time step solver - this is faster than adaptive methds but seems to give good accuracy
+times <- seq(1970,2050 , by=0.25) # run with 6 month time step using a fixed time step solver - this is faster than adaptive methds but seems to give good accuracy
 # Run the model
 time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
                                   parms = parms, dllname = "TB_model_v7",initforc = "forcc",
-                                  forcings=force, initfunc = "parmsc", nout = 128,
+                                  forcings=force, initfunc = "parmsc", nout = 371,
                                   outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                                                "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
@@ -94,4 +94,4 @@ time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
                                   method = rkMethod("rk4")))
 
 # Just keep every other output now we are running with 6 month time step
-out <- out[seq(1,length(times),2),]
+out <- out[seq(1,length(times),4),]
