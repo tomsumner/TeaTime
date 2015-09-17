@@ -21,7 +21,11 @@ force <- list(birth_rate,
               h61,h62,h63,h64,h65,h66,h67,h68,h69,h70,h71,h72,h73,h74,h75,h76,h77,h78,h79,h80,
               Ahigh,A500,A349,A249,A199,A99,A50,Athresh,
               BCG_cov,pop_ad,
-              kneg,kpos,rel_d,dstneg_n,dstneg_p,dstpos_n,dstpos_p,l_s,l_m,tneg_s,tpos_s,tART_s,tneg_m,tpos_m,tART_m)
+              kneg,kpos,rel_d,dstneg_n,dstneg_p,dstpos_n,dstpos_p,l_s,l_m,tneg_s,tpos_s,tART_s,tneg_m,tpos_m,tART_m,
+              mig0,mig1,mig2,mig3,mig4,mig5,mig6,mig7,mig8,mig9,mig10,mig11,mig12,mig13,mig14,mig15,mig16,mig17,mig18,mig19,mig20,
+              mig21,mig22,mig23,mig24,mig25,mig26,mig27,mig28,mig29,mig30,mig31,mig32,mig33,mig34,mig35,mig36,mig37,mig38,mig39,mig40,
+              mig41,mig42,mig43,mig44,mig45,mig46,mig47,mig48,mig49,mig50,mig51,mig52,mig53,mig54,mig55,mig56,mig57,mig58,mig59,mig60,
+              mig61,mig62,mig63,mig64,mig65,mig66,mig67,mig68,mig69,mig70,mig71,mig72,mig73,mig74,mig75,mig76,mig77,mig78,mig79,mig80)
 
 # EQUILIBRIUM RUN ################################################################################################
 
@@ -31,7 +35,7 @@ for (i in 1:num_ages){temp[i]<-as.numeric(UN_pop_start_t[i+2])}
 xstart <- c(S=c(temp),
             Lsn=rep(0,num_ages),Lsp=rep(0,num_ages),Lmn=rep(0,num_ages),Lmp=rep(0,num_ages),
             Nsn=rep(0,num_ages),Nsp=rep(0,num_ages),Nmn=rep(0,num_ages),Nmp=rep(0,num_ages),
-            Isn=c(rep(0,25),100,rep(0,55)),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
+            Isn=c(rep(0,25),0,rep(0,55)),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
             S_H=rep(0,num_ages*7),
             Lsn_H=rep(0,num_ages*7),Lsp_H=rep(0,num_ages*7),Lmn_H=rep(0,num_ages*7),Lmp_H=rep(0,num_ages*7),
             Nsn_H=rep(0,num_ages*7),Nsp_H=rep(0,num_ages*7),Nmn_H=rep(0,num_ages*7),Nmp_H=rep(0,num_ages*7),
@@ -49,7 +53,7 @@ parms["HIV_run"]=0
 # Run the model
 time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
                                      parms = parms, dllname = "TB_model_v7",initforc = "forcc",
-                                     forcings=force, initfunc = "parmsc", nout = 371,
+                                     forcings=force, initfunc = "parmsc", nout = 128,
                                      outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                   "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                                                   "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
@@ -78,11 +82,11 @@ parms["e"]=e
 parms["HIV_run"]=1
 
 # Set times to run for
-times <- seq(1970,2050 , by=0.25) # run with 6 month time step using a fixed time step solver - this is faster than adaptive methds but seems to give good accuracy
+times <- seq(1970,2050 , by=1) # run with 6 month time step using a fixed time step solver - this is faster than adaptive methds but seems to give good accuracy
 # Run the model
 time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
                                   parms = parms, dllname = "TB_model_v7",initforc = "forcc",
-                                  forcings=force, initfunc = "parmsc", nout = 371,
+                                  forcings=force, initfunc = "parmsc", nout = 128,
                                   outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                                                "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
@@ -94,4 +98,4 @@ time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
                                   method = rkMethod("rk4")))
 
 # Just keep every other output now we are running with 6 month time step
-out <- out[seq(1,length(times),4),]
+#out <- out[seq(1,length(times),4),]

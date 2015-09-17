@@ -8,7 +8,7 @@ source("Libraries_and_dll.R")
 
 ## Define the country ############################################################################################
 # Pick from "South_Africa", "Vietnam","Bangladesh" .... (Maybe set this up for 5 countries that have been fitted - China, India)
-cn <- "South_Africa"
+cn <- "Bangladesh"
 
 # Load external data sources and create additional forcing functions where necessary #############################
 source("Data_load.R")

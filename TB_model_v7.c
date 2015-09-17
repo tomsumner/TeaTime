@@ -20,7 +20,7 @@
 /* You need to define number of parameters and forcing functions passed to the model here */
 /* These must match number in intializer functions below */
 static double parms[42];
-static double forc[188];
+static double forc[269];
 
 /* ###### A TRICK TO KEEP UP WITH THE PARAMETERS AND FORCINGS ###### */
 
@@ -270,6 +270,88 @@ static double forc[188];
 #define tpos_m forc[186]
 #define tART_m forc[187]
 
+#define mig0 forc[188]  /* migration by age x */
+#define mig1 forc[189]
+#define mig2 forc[190]
+#define mig3 forc[191]
+#define mig4 forc[192]
+#define mig5 forc[193]
+#define mig6 forc[194]
+#define mig7 forc[195]
+#define mig8 forc[196]
+#define mig9 forc[197]
+#define mig10 forc[198]
+#define mig11 forc[199]
+#define mig12 forc[200]
+#define mig13 forc[201]
+#define mig14 forc[202]
+#define mig15 forc[203]
+#define mig16 forc[204]
+#define mig17 forc[205]
+#define mig18 forc[206]       
+#define mig19 forc[207] 
+#define mig20 forc[208] 
+#define mig21 forc[209] 
+#define mig22 forc[210]
+#define mig23 forc[211]
+#define mig24 forc[212]
+#define mig25 forc[213]
+#define mig26 forc[214]
+#define mig27 forc[215]
+#define mig28 forc[216]
+#define mig29 forc[217]
+#define mig30 forc[218]
+#define mig31 forc[219]
+#define mig32 forc[220]
+#define mig33 forc[221]
+#define mig34 forc[222]
+#define mig35 forc[223]
+#define mig36 forc[224]
+#define mig37 forc[225]
+#define mig38 forc[226]         
+#define mig39 forc[227] 
+#define mig40 forc[228] 
+#define mig41 forc[229] 
+#define mig42 forc[230]
+#define mig43 forc[231]
+#define mig44 forc[232]
+#define mig45 forc[233]
+#define mig46 forc[234]
+#define mig47 forc[245]
+#define mig48 forc[236]
+#define mig49 forc[237]
+#define mig50 forc[238]
+#define mig51 forc[239]
+#define mig52 forc[240]
+#define mig53 forc[241]
+#define mig54 forc[242]
+#define mig55 forc[243]
+#define mig56 forc[244]
+#define mig57 forc[245]
+#define mig58 forc[246]        
+#define mig59 forc[247] 
+#define mig60 forc[248] 
+#define mig61 forc[249] 
+#define mig62 forc[250]
+#define mig63 forc[251]
+#define mig64 forc[252]
+#define mig65 forc[253]
+#define mig66 forc[254]
+#define mig67 forc[255]
+#define mig68 forc[256]
+#define mig69 forc[257]
+#define mig70 forc[258]
+#define mig71 forc[259] 
+#define mig72 forc[260]
+#define mig73 forc[261]
+#define mig74 forc[262]
+#define mig75 forc[263]
+#define mig76 forc[264]
+#define mig77 forc[265]
+#define mig78 forc[266]
+#define mig79 forc[267]
+#define mig80 forc[268]
+
 /* ###### FUNCTION TO SUM ARRAY FROM ELEMENT i_start TO i_end ###### */
 double sumsum(double ar[], int i_start, int i_end)
 {
@@ -292,7 +374,7 @@ void parmsc(void (* odeparms)(int *, double *))
 /* ###### FUNCTION TO INITIALIZE FORCINGS PASSED FROM R - if the number of parameters is changed you must update N here ###### */
 void forcc(void (* odeforcs)(int *, double *))
 {
-    int N=188;
+    int N=269;
     odeforcs(&N, forc);
 }
 
@@ -316,6 +398,13 @@ void event(int *n, double *t, double *y)
   }
   /* Then add births into group 0 - only susceptibles get born */ 
   y[0] = birth_rate*sumsum(temp,0,30536)/1000;
+  
+  /* Finally add or subtract migrants - currently assume from susceptible groups */
+  for (i=0; i<80; i++){
+    y[i] = y[i] + forc[i+188]/5; 
+  }
+  y[80] = y[80] + mig80; 
+  
 }
 
 /* ###### DERIVATIVE FUNCTIONS - THIS IS THE MODEL ITSELF ###### */
@@ -1281,9 +1370,9 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     yout[45] = Tot_deaths;
     yout[46] = ART_deaths; 
     for (i=1; i<82; i++){
-      yout[46+i] = rate_dis_death[i-1];
+      yout[46+i] = Tot_deaths_age[i-1];
     }
-    for (i=1; i<82; i++){
+    /*for (i=1; i<82; i++){
       yout[46+81+i] = rate_AIDS_death[i-1];
     }
         for (i=1; i<82; i++){
@@ -1291,7 +1380,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     }
         for (i=1; i<82; i++){
       yout[46+81+81+81+i] = rate_AIDS_death_test[i-1];
-    }
+    }*/
 }
 
 
