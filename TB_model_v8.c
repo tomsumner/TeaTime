@@ -1,16 +1,10 @@
 /* TB model in C code to call from R */
 
-/* Version 6 - converted to single year age bins and aging done via events- this ensures individuals remain int he correct age cohorts */
+/* Version 8 - converted to single year age bins and aging done via events- this ensures individuals remain in the correct age cohorts */
+/*             matches TIME within reasonable bounds with the exception of ART                                                         */
+/*             this version updated to include true and false positive diagnosis - HIV- eqns done need to add parameters               */
 
-/* To add: Update the way background mort and population adjustent is done
-           Let ART mortality be an input (to allow different countries to be modelled)
-           Turning off population scaling from 2015
-           HIV testing and ART inititation
-           TB interventions
-           Recode equations to pull out new cases terms - so can adjust care flow more easily in future
-*/
-
-/* Can be compiled within R with system("R CMD SHLIB TB_model_v6.c") */
+/* Can be compiled within R with system("R CMD SHLIB TB_model_v8.c") */
 /* This creates a dynamic linked library (.dll) which can be loaded (dyn.load(TB_model_v4.dll)) into R and used as the model fucntion in a call to desolve */
 
 /* C libraries needed */
@@ -965,49 +959,68 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
       /* Latent, ds, naive */
       dLsn[i] = - m_b[i]*Lsn[i] + S_to_Lsn + Lmn_to_Lsn + r*(Isn[i] + Nsn[i]) - Lsn_to_Lmn - Lsn_to_Nsn - Lsn_to_Isn  - Lsn_to_Nmn - Lsn_to_Imn -
                 forc[i+82]*Lsn[i] + (Lsn[i]/tot_age[i])*(forc[i+188]/5);                   
+      
       /* Latent, ds, prev */
-      dLsp[i] = - m_b[i]*Lsp[i] + Lmp_to_Lsp + r*(Isp[i] + Nsp[i]) - Lsp_to_Lmp - Lsp_to_Nsp - Lsp_to_Isp  - Lsp_to_Nmp - Lsp_to_Imp + 
-                kneg*l_s*(1-e)*tneg_s*(Isn[i]+Isp[i]) + kneg*l_s*(1-e)*tneg_s*rel_d*(Nsn[i]+Nsp[i]) - /* Care */
+      dLsp[i] = - m_b[i]*Lsp[i] + Lmp_to_Lsp + r*(Isp[i] + Nsp[i]) - Lsp_to_Lmp - Lsp_to_Nsp - Lsp_to_Isp  - Lsp_to_Nmp - Lsp_to_Imp +     
+                kneg*(l_s*(1-e)*tneg_s*((dstneg_p*sp_m_neg)+(1-dstneg_p)) + l_m*tneg_m*dstneg_p*(1-sp_m_neg))*(se_I_neg*Isp[i] + se_N_neg*rel_d*Nsp[i]) + 
+                kneg*(l_s*(1-e)*tneg_s*((dstneg_n*sp_m_neg)+(1-dstneg_n)) + l_m*tneg_m*dstneg_n*(1-sp_m_neg))*(se_I_neg*Isn[i] + se_N_neg*rel_d*Nsn[i]) - /* Care */
                 forc[i+82]*Lsp[i] + (Lsp[i]/tot_age[i])*(forc[i+188]/5);         
+      
       /* Latent, mdr, naive */ 
       dLmn[i] = - m_b[i]*Lmn[i] + S_to_Lmn + Lsn_to_Lmn + r*(Imn[i] + Nmn[i]) - Lmn_to_Lsn - Lmn_to_Nsn - Lmn_to_Isn - Lmn_to_Nmn - Lmn_to_Imn  -                
                 forc[i+82]*Lmn[i] + (Lmn[i]/tot_age[i])*(forc[i+188]/5);              
+      
       /* Latent, mdr, prev */
       dLmp[i] = - m_b[i]*Lmp[i] + Lsp_to_Lmp + r*(Imp[i] + Nmp[i]) - Lmp_to_Lsp - Lmp_to_Nsp - Lmp_to_Isp - Lmp_to_Nmp - Lmp_to_Imp +
-                kneg*(l_m*dstneg_n*tneg_m + l_s*(1-dstneg_n)*tneg_s*eff_n)*(Imn[i]+rel_d*Nmn[i]) + kneg*(l_m*dstneg_p*tneg_m + l_s*(1-dstneg_p)*tneg_s*eff_p)*(Imp[i]+rel_d*Nmp[i]) - /* Care */
-                forc[i+82]*Lmp[i] + (Lmp[i]/tot_age[i])*(forc[i+188]/5);           
+                kneg*(dstneg_p*se_M_neg*l_m*tneg_m + l_s*tneg_s*eff_p*((1-dstneg_p)+dstneg_p*(1-se_M_neg)))*(se_I_neg*Imp[i] + se_N_neg*rel_d*Nmp[i]) +
+                kneg*(dstneg_n*se_M_neg*l_m*tneg_m + l_s*tneg_s*eff_n*((1-dstneg_n)+dstneg_n*(1-se_M_neg)))*(se_I_neg*Imn[i] + se_N_neg*rel_d*Nmn[i]) - /* Care */
+                forc[i+82]*Lmp[i] + (Lmp[i]/tot_age[i])*(forc[i+188]/5);  
+                
       /* Smear neg, ds, new */
       dNsn[i] = - m_b[i]*Nsn[i] + S_to_Nsn + Lsn_to_Nsn + Lmn_to_Nsn - (theta + r + muN_age[i])*Nsn[i] -
-                kneg*l_s*rel_d*Nsn[i] - /* care */
+                kneg*se_N_neg*rel_d*(l_s*(dstneg_n*sp_m_neg + (1-dstneg_n)) + dstneg_n*(1-sp_m_neg)*l_m)*Nsn[i] - /* care */ 
                 forc[i+82]*Nsn[i] + (Nsn[i]/tot_age[i])*(forc[i+188]/5);  
+      
       /* Smear neg, ds, prev */                             
       dNsp[i] = - m_b[i]*Nsp[i] + Lsp_to_Nsp + Lmp_to_Nsp - (theta + r + muN_age[i])*Nsp[i] -
-                (kneg*l_s*rel_d*(1-e)*tneg_s + kneg*l_s*rel_d*e)*Nsp[i] + kneg*l_s*rel_d*(1-e)*(1-tneg_s)*Nsn[i] - /* Care */
+                kneg*rel_d*se_N_neg*((1-e)*tneg_s*l_s*(sp_m_neg*dstneg_p + (1-dstneg_p)) + dstneg_p*(1-sp_m_neg)*l_m*tneg_m + l_s*e*(sp_m_neg*dstneg_m +(1-dstneg_m)))*Nsp[i] + 
+                kneg*rel_d*se_N_neg*(l_s*(1-e)*(1-tneg_s)*(dstneg_n*sp_m_neg + (1-dstneg_n)) + dstneg_n*(1-sp_m_neg)*(1-tneg_m)*l_m)*Nsn[i] - /* Care */
                 forc[i+82]*Nsp[i] + (Nsp[i]/tot_age[i])*(forc[i+188]/5);  
+
       /* Smear neg, mdr, new */
       dNmn[i] = - m_b[i]*Nmn[i] + S_to_Nmn + Lsn_to_Nmn + Lmn_to_Nmn - (theta + r + muN_age[i])*Nmn[i] -
-                kneg*(l_m*rel_d*dstneg_n + l_s*rel_d*(1-dstneg_n))*Nmn[i] - /* Care */
-                forc[i+82]*Nmn[i] + (Nmn[i]/tot_age[i])*(forc[i+188]/5);         
+                kneg*rel_d*se_N_neg*(l_m*dstneg_n*se_m_neg + l_s*((1-dstneg_n)+dstneg_n*(1-se_m_neg)))*Nmn[i] - /* Care */
+                forc[i+82]*Nmn[i] + (Nmn[i]/tot_age[i])*(forc[i+188]/5);   
+                   
       /* Smear neg, mdr, prev */
       dNmp[i] = - m_b[i]*Nmp[i] + Lsp_to_Nmp + Lmp_to_Nmp - (theta + r + muN_age[i])*Nmp[i] -
-                kneg*(l_m*rel_d*dstneg_p*tneg_m + l_s*rel_d*(1-dstneg_p)*tneg_s*eff_p)*Nmp[i] + kneg*l_s*rel_d*e*(Nsn[i]+Nsp[i]) + 
-                (kneg*l_m*rel_d*dstneg_n*(1-tneg_m) + kneg*l_s*rel_d*(1-dstneg_n)*(1-(tneg_s*eff_n)))*Nmn[i] - /* Care */
+                kneg*rel_d*se_N_neg*(dstneg_p*se_m_neg*l_m*tneg_m + l_s*tneg_s*eff_p*((1-dstneg_p)+dstneg_p(1-se_m_neg)))*Nmp[i] + 
+                kneg*l_s*rel_d*e*se_N_neg*((dstneg_n*sp_m_neg+(1-dstneg_n))*Nsn[i]+(dstneg_p*sp_m_neg+(1-dstneg_p))*Nsp[i]) + 
+                kneg*se_n_neg*rel_d*(dstneg_n*l_m*se_m_neg*(1-tneg_m) + l_s*(1-(tneg_s*eff_n))*((1-dstneg_n)+dstneg_n*(1-se_m_neg)))*Nmn[i] - /* Care */
                 forc[i+82]*Nmp[i] + (Nmp[i]/tot_age[i])*(forc[i+188]/5);  
+
       /* Smear pos, ds, new */
       dIsn[i] = - m_b[i]*Isn[i] + S_to_Isn + Lsn_to_Isn + Lmn_to_Isn + theta*Nsn[i] - (r + muI_age[i])*Isn[i] - 
-                kneg*l_s*Isn[i] - /* Care */
+                kneg*se_I_neg*((dstneg_n*sp_m + (1-dstneg_n))*l_s +(dstneg_n*(1-sp_m_neg)*l_m))*Isn[i] - /* Care */  
                 forc[i+82]*Isn[i] + (Isn[i]/tot_age[i])*(forc[i+188]/5);  
+      
       /* Smear pos, ds, prev */
-      dIsp[i] = - m_b[i]*Isp[i] + Lsp_to_Isp + Lmp_to_Isp + theta*Nsp[i] - (r + muI_age[i])*Isp[i] - 
-                (kneg*l_s*(1-e)*tneg_s + kneg*l_s*e)*Isp[i] + kneg*l_s*(1-e)*(1-tneg_s)*Isn[i] - /* Care */
-                forc[i+82]*Isp[i] + (Isp[i]/tot_age[i])*(forc[i+188]/5);  
+      dIsp[i] = - m_b[i]*Isp[i] + Lsp_to_Isp + Lmp_to_Isp + theta*Nsp[i] - (r + muI_age[i])*Isp[i] -   
+                kneg*se_I_neg*(l_s*(1-e)*tneg_s*(sp_m_neg*dstneg_p + (1-dstneg_p)) + dstneg_p*(1-sp_m_neg)*l_m*tneg_m + l_s*e*(sp_m_neg*dstneg_p + (1-dstneg_p)))*Isp[i] + 
+                kneg*se_I_neg*(l_s*(1-e)*(1-tneg_s)*(dstneg_n*sp_m_neg + (1-dstneg_n)) + (dstneg_n*(1-sp_m_neg)*l_m*(1-tneg_m)))*Isn[i] - /* Care */
+                forc[i+82]*Isp[i] + (Isp[i]/tot_age[i])*(forc[i+188]/5); 
+
       /* Smear pos, mdr, new */
       dImn[i] = - m_b[i]*Imn[i] + S_to_Imn + Lsn_to_Imn + Lmn_to_Imn + theta*Nmn[i] - (r + muI_age[i])*Imn[i] -
-                (kneg*l_m*dstneg_n + kneg*l_s*(1-dstneg_n))*Imn[i] - /* Care */ 
+                kneg*se_I_neg*(l_m*dstneg_n*se_m_neg + (1-dstneg_n)*l_s + dstneg*(1-se_m_neg)*l_s)*Imn[i] - /* Care */ 
                 forc[i+82]*Imn[i] + (Imn[i]/tot_age[i])*(forc[i+188]/5);  
+                
+                
       /* Smear pos, mdr, prev */
       dImp[i] = - m_b[i]*Imp[i] + Lsp_to_Imp + Lmp_to_Imp + theta*Nmp[i] - (r + muI_age[i])*Imp[i] -
-                kneg*(l_m*dstneg_p*tneg_m + l_s*(1-dstneg_p)*tneg_s*eff_p)*Imp[i] + (kneg*l_m*dstneg_n*(1-tneg_m) + kneg*l_s*(1-dstneg_n)*(1-(tneg_s*eff_n)))*Imn[i] + kneg*l_s*e*(Isn[i]+Isp[i]) -
+                kneg*se_I_neg*(l_m*dstneg_p*tneg_m*se_m_neg + l_s*tneg_s*eff_p*((1-dstneg_p)+dstneg_p*(1-se_m_neg)))*Imp[i] + 
+                kneg*se_I_neg*(se_m_neg*l_m*dstneg_n*(1-tneg_m) + l_s*(1-(tneg_s*eff_n))*((1-dstneg_n)+dstneg_n*(1-se_m_neg)))*Imn[i] + 
+                kneg*se_I_neg*l_s*e*((dstneg_n*sp_m_neg + (1-dstneg_n))*Isn[i]+(dstneg_p*sp_m_neg+ (1-dstneg_p))*Isp[i]) -
                 forc[i+82]*Imp[i] + (Imp[i]/tot_age[i])*(forc[i+188]/5);  
                         
       /* sum up new HIV- cases */           

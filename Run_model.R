@@ -6,7 +6,7 @@ ages <- c(seq(1,80),100) # upper end of age classes
 num_ages <- length(ages) # calculates the number of age classes
 
 # Times to run model for #########################################################################################
-times <- seq(0,60, by=1)
+times <- seq(0,100, by=1)
 
 ## Now put together all the forcing fucntions in a list to be passed to the C code ###############################
 
@@ -35,7 +35,7 @@ for (i in 1:num_ages){temp[i]<-as.numeric(UN_pop_start_t[i+2])}
 xstart <- c(S=c(temp),
             Lsn=rep(0,num_ages),Lsp=rep(0,num_ages),Lmn=rep(0,num_ages),Lmp=rep(0,num_ages),
             Nsn=rep(0,num_ages),Nsp=rep(0,num_ages),Nmn=rep(0,num_ages),Nmp=rep(0,num_ages),
-            Isn=c(rep(0,25),0,rep(0,55)),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
+            Isn=c(rep(0,25),0.1,rep(0,55)),Isp=rep(0,num_ages),Imn=rep(0,num_ages),Imp=rep(0,num_ages),
             S_H=rep(0,num_ages*7),
             Lsn_H=rep(0,num_ages*7),Lsp_H=rep(0,num_ages*7),Lmn_H=rep(0,num_ages*7),Lmp_H=rep(0,num_ages*7),
             Nsn_H=rep(0,num_ages*7),Nsp_H=rep(0,num_ages*7),Nmn_H=rep(0,num_ages*7),Nmp_H=rep(0,num_ages*7),
@@ -53,7 +53,7 @@ parms["HIV_run"]=0
 # Run the model
 time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
                                      parms = parms, dllname = "TB_model_v7",initforc = "forcc",
-                                     forcings=force, initfunc = "parmsc", nout = 128,
+                                     forcings=force, initfunc = "parmsc", nout = 209,
                                      outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                   "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                                                   "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
@@ -61,9 +61,9 @@ time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
                                                   "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on","TB_deaths",
                                                   "Cases_neg","Cases_pos","Cases_ART",
                                                   "births","deaths","ART_deaths"), 
-                                     events = list(func="event",time=seq(0,60)),
-                                     method = rkMethod("rk4")))
-
+                                     events = list(func="event",time=seq(0,100)),
+                                     method = rkMethod("rk45dp7",hmax=1)))
+                                     
 # PROJECTION RUN #################################################################################################
 
 # Adjust pop down to 1970 values (by age) and reassign initial conditions - model can now be run from 1970 with TB and HIV
@@ -82,11 +82,11 @@ parms["e"]=e
 parms["HIV_run"]=1
 
 # Set times to run for
-times <- seq(1970,2050 , by=1) # run with 6 month time step using a fixed time step solver - this is faster than adaptive methds but seems to give good accuracy
+times <- seq(1970,2050 , by=ss) # run with 6 month time step using a fixed time step solver - this is faster than adaptive methds but seems to give good accuracy
 # Run the model
 time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
                                   parms = parms, dllname = "TB_model_v7",initforc = "forcc",
-                                  forcings=force, initfunc = "parmsc", nout = 128,
+                                  forcings=force, initfunc = "parmsc", nout = 209,
                                   outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                                                "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
@@ -95,7 +95,7 @@ time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
                                                "Cases_neg","Cases_pos","Cases_ART",
                                                "births","deaths","ART_deaths"), 
                                   events = list(func="event",time=seq(1970,2050)),
-                                  method = rkMethod("rk4")))
-
+                                  method = rkMethod("rk45dp7",hmax=1)))
+                                  
 # Just keep every other output now we are running with 6 month time step
-#out <- out[seq(1,length(times),4),]
+#out <- out[seq(1,length(times),1/ss),]
