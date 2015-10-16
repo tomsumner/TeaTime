@@ -2,48 +2,6 @@
 
 #### NEED TO ADD WHO DATA TO THESE PLOTS #########################################################################
 
-# TB outputs #####################################################################################################
-
-# Load the TIME results (Incidence, Prevalence, Mortality)
-TIME_out <- as.data.frame(read.table(paste("TB/",cn,"/",cn,"_TIME_TB.txt",sep=""),header=TRUE,fill=TRUE))
-TIME_out <- cbind(TIME_out,"TIME")
-colnames(TIME_out) <- c("Year","Prevalence","Incidence","Mortality","Model")
-TIME_out <- TIME_out[TIME_out$Year<=2050,]
-
-# Arrange model output
-R_out <- as.data.frame(cbind(out[,"time"],
-                             100000*(out[,"Total_DS"]+out[,"Total_MDR"])/out[,"Total"],  # Prev
-                             100000*(out[,"Cases_neg"]+out[,"Cases_pos"]+out[,"Cases_ART"])/out[,"Total"], # Inc 
-                             100000*out[,"TB_deaths"]/out[,"Total"])) # Mort (all)
-R_out <- cbind(R_out,"R")
-colnames(R_out) <- c("Year","Prevalence","Incidence","Mortality","Model")
-R_out <- R_out[R_out$Year<=2050,]
-
-# combine and melt
-Models_out <- rbind(TIME_out,R_out)
-Models_out <- melt(Models_out,id=c("Year","Model"))
-
-# Calculate % diff between models and add to df
-temp=100*(TIME_out[,2:4]-R_out[,2:4])/TIME_out[,2:4]
-diff_out<-cbind(R_out[,"Year"],temp)
-colnames(diff_out) <- c("Year",colnames(temp))
-diff_out_m <- melt(diff_out,id=c("Year"))
-
-plot_models <- ggplot(Models_out,aes(x=Year,y=value,colour=Model))+
-  geom_line()+
-  facet_wrap(~variable,scales="free_y")+
-  xlim(c(1970,2050))+
-  ylab("Rate /100,000")+
-  scale_y_continuous(expand = c(0, 0))+
-  expand_limits(y = 0)
-
-plot_diff <- ggplot(diff_out_m,aes(x=Year,y=value))+
-  geom_line()+
-  facet_wrap(~variable,scales="free_y")+
-  xlim(c(1970,2035))+
-  ylab("% difference bewtween R and TIME")
-
-
 # POPULATION #####################################################################################################
 
 ## Load and manipulate UN numbers 
@@ -137,6 +95,55 @@ plot_pop_s <- ggplot(dat_to_plot,aes(x=Year,y=value,color=Model))+
   ggtitle("Age structure of population by 5 year age bins")+
   ylab("% of total population")+
   xlim(c(1970,2050))
+
+
+# TB outputs #####################################################################################################
+
+# Load the TIME results (Incidence, Prevalence, Mortality, True Pos Notif)
+TIME_out <- as.data.frame(read.table(paste("TB/",cn,"/",cn,"_TIME_TB.txt",sep=""),header=TRUE,fill=TRUE))
+TIME_out <- cbind(TIME_out,"TIME")
+colnames(TIME_out) <- c("Year","Prevalence","Incidence","Mortality","TP notifications","FP notifications","Model")
+TIME_out <- TIME_out[TIME_out$Year<=2050,]
+TIME_out[,"TP notifications"] <- 100000*TIME_out[,"TP notifications"]/(1000*TIME_pop[,"Total"])
+TIME_out[,"FP notifications"] <- 100000*TIME_out[,"FP notifications"]/(1000*TIME_pop[,"Total"])
+
+# Arrange model output
+R_out <- as.data.frame(cbind(out[,"time"],
+                             100000*(out[,"Total_DS"]+out[,"Total_MDR"])/out[,"Total"],  # Prev
+                             100000*(out[,"Cases_neg"]+out[,"Cases_pos"]+out[,"Cases_ART"])/out[,"Total"], # Inc 
+                             100000*out[,"TB_deaths"]/out[,"Total"], # Mort (all)
+                             100000*(out[,"DS_correct"]+out[,"DS_incorrect"]+out[,"MDR_correct"]+out[,"MDR_incorrect"])/out[,"Total"], # TP notifications
+                             100000*out[,"FP"]/out[,"Total"])) # FP notifcations
+R_out <- cbind(R_out,"R")
+colnames(R_out) <- c("Year","Prevalence","Incidence","Mortality","TP notifications","FP notifications","Model")
+R_out <- R_out[R_out$Year<=2050,]
+
+# combine and melt
+Models_out <- rbind(TIME_out,R_out)
+Models_out <- melt(Models_out,id=c("Year","Model"))
+
+# Calculate % diff between models and add to df
+temp=100*(TIME_out[,2:4]-R_out[,2:4])/TIME_out[,2:4]
+diff_out<-cbind(R_out[,"Year"],temp)
+colnames(diff_out) <- c("Year",colnames(temp))
+diff_out_m <- melt(diff_out,id=c("Year"))
+
+plot_models <- ggplot(Models_out,aes(x=Year,y=value,colour=Model))+
+  geom_line()+
+  facet_wrap(~variable,scales="free_y")+
+  xlim(c(1970,2050))+
+  ylab("Rate /100,000")+
+  scale_y_continuous(expand = c(0, 0))+
+  expand_limits(y = 0)
+
+plot_diff <- ggplot(diff_out_m,aes(x=Year,y=value))+
+  geom_line()+
+  facet_wrap(~variable,scales="free_y")+
+  xlim(c(1970,2035))+
+  ylab("% difference bewtween R and TIME")
+
+
+
 
 
 # HIV ############################################################################################################

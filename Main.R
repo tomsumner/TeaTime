@@ -45,11 +45,22 @@ kpos <- logcurve(50,100,1985,2005,0.8,2,ss)
 # Relative detection smear neg
 rel_d <- cbind(seq(1970,2050,by=ss),0.4)
 
+# Relative presentation healthy 
+health <- cbind(seq(1970,2050,by=ss),0.015)
+
 # DST coverage among new and previously treated cases 
 dstneg_n <- logcurve(0,39,1975,2010,1,2,ss)
 dstneg_p <- logcurve(0,39,1975,2010,1,2,ss)
 dstpos_n <- logcurve(0,39,1975,2010,1,2,ss)
 dstpos_p <- logcurve(0,39,1975,2010,1,2,ss)
+
+# Sens (se) and spec (sp) of algorithms for sm+ (I), sm- (N) and DST testing (m)
+se_I_neg <- logcurve(100,100,1970,2010,1,2,ss)
+se_N_neg <- logcurve(100,100,1970,2010,1,2,ss)
+se_m_neg <- logcurve(100,100,1970,2010,1,2,ss)
+sp_I_neg <- logcurve(95,95,1970,2010,1,2,ss)
+sp_N_neg <- logcurve(95,95,1970,2010,1,2,ss)
+sp_m_neg <- logcurve(100,100,1970,2010,1,2,ss)
 
 # Linkage to care
 l_s <- cbind(seq(1970,2050,by=ss),0.5)
