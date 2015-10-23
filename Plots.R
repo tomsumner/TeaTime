@@ -16,7 +16,7 @@ temp_data <- cbind(temp_data,"UNPP")
 colnames(temp_data) <- c(colnames(temp_data)[1:3],"Model")
 
 # sum up model outputs over age groups and turn into long format
-tot <- mapply(function(x,y) sum(out[x,seq(y+1,30538,81)]),rep(seq(1,81),each=81),seq(1,81))
+tot <- mapply(function(x,y) sum(out[x,seq(y+1,35236,81)]),rep(seq(1,81),each=81),seq(1,81))
 dim(tot) <- c(81,81)
 tot <- t(tot)
 
@@ -123,7 +123,7 @@ Models_out <- rbind(TIME_out,R_out)
 Models_out <- melt(Models_out,id=c("Year","Model"))
 
 # Calculate % diff between models and add to df
-temp=100*(TIME_out[,2:4]-R_out[,2:4])/TIME_out[,2:4]
+temp=100*(TIME_out[,2:6]-R_out[,2:6])/TIME_out[,2:6]
 diff_out<-cbind(R_out[,"Year"],temp)
 colnames(diff_out) <- c("Year",colnames(temp))
 diff_out_m <- melt(diff_out,id=c("Year"))
@@ -142,8 +142,21 @@ plot_diff <- ggplot(diff_out_m,aes(x=Year,y=value))+
   xlim(c(1970,2035))+
   ylab("% difference bewtween R and TIME")
 
+# Compare PPV estimates from TIME and R
 
+temp <- as.data.frame(cbind(out[,"time"],
+     (out[,"DS_correct"]+out[,"DS_incorrect"]+out[,"MDR_correct"]+out[,"MDR_incorrect"])/(out[,"DS_correct"]+out[,"DS_incorrect"]+out[,"MDR_correct"]+out[,"MDR_incorrect"]+out[,"FP"]),
+     (TIME_out[,5]/(TIME_out[,5]+TIME_out[,6]))))
+colnames(temp) <- c("Year","R","TIME")
+temp <- melt(temp,id.vars="Year")
 
+plot_PPV <- ggplot(temp,aes(x=Year,y=value,colour=variable))+
+  geom_line()+
+  geom_vline(xintercept=2015,linetype="dashed")+
+  geom_hline(yintercept=0.405498116,linetype="dashed")+
+  xlim(c(1970,2050))+
+  ylim(c(0,1))+
+  ylab("PPV")
 
 
 # HIV ############################################################################################################
@@ -166,7 +179,7 @@ colnames(HIV_TIME) <- c(colnames(HIV_TIME)[1:3],"Model")
 HIV_TIME$value <- HIV_TIME$value/1000
 
 # Sum up model outputs for HIV+ categories by age
-tot_HIV <- mapply(function(x,y) sum(out[x,seq(y+1054,30538,81)]),rep(seq(1,81),each=81),seq(1,81))
+tot_HIV <- mapply(function(x,y) sum(out[x,seq(y+1216,35236,81)]),rep(seq(1,81),each=81),seq(1,81))
 dim(tot_HIV) <- c(81,81)
 tot_HIV <- t(tot_HIV)
 

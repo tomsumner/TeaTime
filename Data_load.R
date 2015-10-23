@@ -71,5 +71,5 @@ for (i in 0:80){
 }
 
 # Pop adjust - to turn off population adjustment for TB/HIV deaths from 2015 onwards
-pop_ad <- cbind(seq(1970,2050,by=ss),c(rep(1,45/ss),rep(0,35/ss),0))
+pop_ad <- cbind(seq(1970,2050,by=ss),c(rep(1,45/ss),rep(1,35/ss),1))
 

@@ -26,7 +26,9 @@ force <- list(birth_rate,
               mig21,mig22,mig23,mig24,mig25,mig26,mig27,mig28,mig29,mig30,mig31,mig32,mig33,mig34,mig35,mig36,mig37,mig38,mig39,mig40,
               mig41,mig42,mig43,mig44,mig45,mig46,mig47,mig48,mig49,mig50,mig51,mig52,mig53,mig54,mig55,mig56,mig57,mig58,mig59,mig60,
               mig61,mig62,mig63,mig64,mig65,mig66,mig67,mig68,mig69,mig70,mig71,mig72,mig73,mig74,mig75,mig76,mig77,mig78,mig79,mig80,
-              se_I_neg,se_N_neg,se_m_neg,sp_I_neg,sp_N_neg,sp_m_neg,health)
+              se_I_neg,se_N_neg,se_m_neg,sp_I_neg,sp_N_neg,sp_m_neg,
+              se_I_pos,se_N_pos,se_m_pos,sp_I_pos,sp_N_pos,sp_m_pos,
+              health)
 
 # EQUILIBRIUM RUN ################################################################################################
 
