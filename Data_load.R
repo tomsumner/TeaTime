@@ -51,10 +51,11 @@ for (i in 0:80){
 ART_data <- as.data.frame(read.table(paste("HIV/",cn,"/",cn,"_ART_data.txt",sep=""),header=TRUE)) # Load data
 
 #ART_data[,"Percent"] <- 0
+#ART_data[,"Percent_child"] <- 0
 
 # Create forcing function of threshold category
 Athresh <- cbind(ART_data[,"Year"],ART_data[,"CD4_cat"])
-# Create forcing functions which account for threshold and coverage
+# Create forcing functions which account for threshold and coverage - adults
 A50 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>50,1,0)/100)
 A99 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>99,1,0)/100)
 A199 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>199,1,0)/100)
@@ -62,6 +63,15 @@ A249 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>2
 A349 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>349,1,0)/100)
 A500 <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>499,1,0)/100)
 Ahigh <- cbind(ART_data[,"Year"],ART_data[,"Percent"]*ifelse(ART_data[,"CD4_t"]>500,1,0)/100)
+
+# Create forcing functions which account for threshold and coverage - children
+A50_child <- cbind(ART_data[,"Year"],ART_data[,"Percent_child"]*ifelse(ART_data[,"CD4_t"]>50,1,0)/100)
+A99_child <- cbind(ART_data[,"Year"],ART_data[,"Percent_child"]*ifelse(ART_data[,"CD4_t"]>99,1,0)/100)
+A199_child <- cbind(ART_data[,"Year"],ART_data[,"Percent_child"]*ifelse(ART_data[,"CD4_t"]>199,1,0)/100)
+A249_child <- cbind(ART_data[,"Year"],ART_data[,"Percent_child"]*ifelse(ART_data[,"CD4_t"]>249,1,0)/100)
+A349_child <- cbind(ART_data[,"Year"],ART_data[,"Percent_child"]*ifelse(ART_data[,"CD4_t"]>349,1,0)/100)
+A500_child <- cbind(ART_data[,"Year"],ART_data[,"Percent_child"]*ifelse(ART_data[,"CD4_t"]>499,1,0)/100)
+Ahigh_child <- cbind(ART_data[,"Year"],ART_data[,"Percent_child"]*ifelse(ART_data[,"CD4_t"]>500,1,0)/100)
 
 # Migration data taken from DemProj - duplicate for single year age bins
 mig <- as.data.frame(read.table(paste("Demog/",cn,"/",cn,"_migrants_age.txt",sep=""),header=FALSE))
@@ -71,5 +81,5 @@ for (i in 0:80){
 }
 
 # Pop adjust - to turn off population adjustment for TB/HIV deaths from 2015 onwards
-pop_ad <- cbind(seq(1970,2050,by=ss),c(rep(1,45/ss),rep(1,35/ss),1))
+pop_ad <- cbind(seq(1970,2050,by=ss),c(rep(1,45/ss),rep(0,35/ss),0))
 

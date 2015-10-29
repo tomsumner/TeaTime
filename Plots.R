@@ -102,20 +102,24 @@ plot_pop_s <- ggplot(dat_to_plot,aes(x=Year,y=value,color=Model))+
 # Load the TIME results (Incidence, Prevalence, Mortality, True Pos Notif)
 TIME_out <- as.data.frame(read.table(paste("TB/",cn,"/",cn,"_TIME_TB.txt",sep=""),header=TRUE,fill=TRUE))
 TIME_out <- cbind(TIME_out,"TIME")
-colnames(TIME_out) <- c("Year","Prevalence","Incidence","Mortality","TP notifications","FP notifications","Model")
+colnames(TIME_out) <- c("Year","Prevalence","Incidence","Mortality","TP notifications","FP notifications","Notifications","Model")
 TIME_out <- TIME_out[TIME_out$Year<=2050,]
-TIME_out[,"TP notifications"] <- 100000*TIME_out[,"TP notifications"]/(1000*TIME_pop[,"Total"])
-TIME_out[,"FP notifications"] <- 100000*TIME_out[,"FP notifications"]/(1000*TIME_pop[,"Total"])
+
+# # Load the WHO estimates
+WHO_out <- as.data.frame(read.table(paste("TB/",cn,"/",cn,"_WHO_TB.txt",sep=""),header=TRUE,fill=TRUE))
+
 
 # Arrange model output
 R_out <- as.data.frame(cbind(out[,"time"],
                              100000*(out[,"Total_DS"]+out[,"Total_MDR"])/out[,"Total"],  # Prev
                              100000*(out[,"Cases_neg"]+out[,"Cases_pos"]+out[,"Cases_ART"])/out[,"Total"], # Inc 
                              100000*out[,"TB_deaths"]/out[,"Total"], # Mort (all)
-                             100000*(out[,"DS_correct"]+out[,"DS_incorrect"]+out[,"MDR_correct"]+out[,"MDR_incorrect"])/out[,"Total"], # TP notifications
-                             100000*out[,"FP"]/out[,"Total"])) # FP notifcations
+                             1000*(out[,"DS_correct"]+out[,"DS_incorrect"]+out[,"MDR_correct"]+out[,"MDR_incorrect"]), # TP notifications
+                             1000*out[,"FP"], # FP notifications
+                             1000*(out[,"DS_correct"]+out[,"DS_incorrect"]+out[,"MDR_correct"]+out[,"MDR_incorrect"]+out[,"FP"]))) # Total notifcations
+
 R_out <- cbind(R_out,"R")
-colnames(R_out) <- c("Year","Prevalence","Incidence","Mortality","TP notifications","FP notifications","Model")
+colnames(R_out) <- c("Year","Prevalence","Incidence","Mortality","TP notifications","FP notifications","Notifications","Model")
 R_out <- R_out[R_out$Year<=2050,]
 
 # combine and melt
@@ -128,11 +132,15 @@ diff_out<-cbind(R_out[,"Year"],temp)
 colnames(diff_out) <- c("Year",colnames(temp))
 diff_out_m <- melt(diff_out,id=c("Year"))
 
-plot_models <- ggplot(Models_out,aes(x=Year,y=value,colour=Model))+
-  geom_line()+
+plot_models <- ggplot(Models_out)+
+  geom_line(aes(x=Year,y=value,colour=Model))+
+  geom_line(data=WHO_out,aes(x=Year,y=Mid),colour="black",linetype="dashed")+
+  geom_line(data=WHO_out,aes(x=Year,y=Low),colour="black")+
+  geom_line(data=WHO_out,aes(x=Year,y=High),colour="black")+
+  geom_ribbon(data=WHO_out,aes(x=Year,ymin=Low,ymax=High),alpha=0.2)+
   facet_wrap(~variable,scales="free_y")+
   xlim(c(1970,2050))+
-  ylab("Rate /100,000")+
+  ylab("")+
   scale_y_continuous(expand = c(0, 0))+
   expand_limits(y = 0)
 
@@ -144,20 +152,19 @@ plot_diff <- ggplot(diff_out_m,aes(x=Year,y=value))+
 
 # Compare PPV estimates from TIME and R
 
-temp <- as.data.frame(cbind(out[,"time"],
-     (out[,"DS_correct"]+out[,"DS_incorrect"]+out[,"MDR_correct"]+out[,"MDR_incorrect"])/(out[,"DS_correct"]+out[,"DS_incorrect"]+out[,"MDR_correct"]+out[,"MDR_incorrect"]+out[,"FP"]),
-     (TIME_out[,5]/(TIME_out[,5]+TIME_out[,6]))))
-colnames(temp) <- c("Year","R","TIME")
-temp <- melt(temp,id.vars="Year")
-
-plot_PPV <- ggplot(temp,aes(x=Year,y=value,colour=variable))+
-  geom_line()+
-  geom_vline(xintercept=2015,linetype="dashed")+
-  geom_hline(yintercept=0.405498116,linetype="dashed")+
-  xlim(c(1970,2050))+
-  ylim(c(0,1))+
-  ylab("PPV")
-
+# temp <- as.data.frame(cbind(out[,"time"],
+#      (out[,"DS_correct"]+out[,"DS_incorrect"]+out[,"MDR_correct"]+out[,"MDR_incorrect"])/(out[,"DS_correct"]+out[,"DS_incorrect"]+out[,"MDR_correct"]+out[,"MDR_incorrect"]+out[,"FP"]),
+#      (TIME_out[,5]/(TIME_out[,5]+TIME_out[,6]))))
+# colnames(temp) <- c("Year","R","TIME")
+# temp <- melt(temp,id.vars="Year")
+# 
+# plot_PPV <- ggplot(temp,aes(x=Year,y=value,colour=variable))+
+#   geom_line()+
+#   geom_vline(xintercept=2015,linetype="dashed")+
+#   geom_hline(yintercept=0.405498116,linetype="dashed")+
+#   xlim(c(1970,2050))+
+#   ylim(c(0,1))+
+#   ylab("PPV")
 
 # HIV ############################################################################################################
 
@@ -249,7 +256,7 @@ colnames(ART_TIME) <- c(colnames(ART_TIME)[1:3],"Model")
 ART_TIME$value <- ART_TIME$value/1000
 
 # Sum up model outputs for HIV+ categories by age
-tot_ART <- mapply(function(x,y) sum(out[x,seq(y+8425,30538,81)]),rep(seq(1,81),each=81),seq(1,81))
+tot_ART <- mapply(function(x,y) sum(out[x,seq(y+9721,35236,81)]),rep(seq(1,81),each=81),seq(1,81))
 dim(tot_ART) <- c(81,81)
 tot_ART <- t(tot_ART)
 
@@ -313,11 +320,11 @@ TIME_ART <- as.data.frame(read.table(paste("HIV/",cn,"/",cn,"_TIME_on_ART.txt",s
 TIME_ART <- cbind(TIME_ART[,1],100*TIME_ART[,2:8]/(1000*TIME_pop[,"Total"]),"ART","TIME")
 colnames(TIME_ART) <- c("Year",colnames(TIME_ART[2:8]),"Type","Model")
 
-temp1 <- as.data.frame(cbind(out[,"time"],100*out[,30554:30560]/out[,"Total"]))
+temp1 <- as.data.frame(cbind(out[,"time"],100*out[,35252:35258]/out[,"Total"]))
 temp1 <- cbind(temp1,"No_ART","R")
 colnames(temp1) <- c("Year",colnames(temp1[,2:8]),"Type","Model")
 
-temp2 <- as.data.frame(cbind(seq(1970,2050),100*out[,30561:30567]/out[,"Total"]))
+temp2 <- as.data.frame(cbind(seq(1970,2050),100*out[,35259:35265]/out[,"Total"]))
 temp2 <- cbind(temp2,"ART","R")
 colnames(temp2) <- c("Year",colnames(temp1[,2:8]),"Type","Model")
 

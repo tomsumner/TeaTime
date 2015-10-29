@@ -28,7 +28,8 @@ force <- list(birth_rate,
               mig61,mig62,mig63,mig64,mig65,mig66,mig67,mig68,mig69,mig70,mig71,mig72,mig73,mig74,mig75,mig76,mig77,mig78,mig79,mig80,
               se_I_neg,se_N_neg,se_m_neg,sp_I_neg,sp_N_neg,sp_m_neg,
               se_I_pos,se_N_pos,se_m_pos,sp_I_pos,sp_N_pos,sp_m_pos,
-              health)
+              health,
+              Ahigh_child,A500_child,A349_child,A249_child,A199_child,A99_child,A50_child)
 
 # EQUILIBRIUM RUN ################################################################################################
 
@@ -58,19 +59,20 @@ parms["HIV_run"]=0
 
 # Run the model
 time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
-                                     parms = parms, dllname = "TB_model_v8",initforc = "forcc",
-                                     forcings=force, initfunc = "parmsc", nout = 53,
+                                     parms = parms, dllname = "TB_model_v9",initforc = "forcc",
+                                     forcings=force, initfunc = "parmsc", nout = 42,
                                      outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                   "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                                                   "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
                                                   "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
-                                                  "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on","TB_deaths",
+                                                  "TB_deaths",
                                                   "Cases_neg","Cases_pos","Cases_ART",
                                                   "births","deaths","ART_deaths","Total_PT",
                                                   "DS_correct","DS_incorrect","MDR_correct","MDR_incorrect","FP"), 
                                      events = list(func="event",time=seq(0,100)),
                                      method = rkMethod("rk45dp7",hmax=1)))
-                                     
+
+              
 # PROJECTION RUN #################################################################################################
 
 # Adjust pop down to 1970 values (by age) and reassign initial conditions - model can now be run from 1970 with TB and HIV
@@ -92,13 +94,13 @@ parms["HIV_run"]=1
 times <- seq(1970,2050 , by=ss) # run with 6 month time step using a fixed time step solver - this is faster than adaptive methds but seems to give good accuracy
 # Run the model
 time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
-                                  parms = parms, dllname = "TB_model_v8",initforc = "forcc",
-                                  forcings=force, initfunc = "parmsc", nout = 53,
+                                  parms = parms, dllname = "TB_model_v9",initforc = "forcc",
+                                  forcings=force, initfunc = "parmsc", nout = 42,
                                   outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                                                "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
                                                "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
-                                               "v1","v2","v3","v4","v5","v6","v7","ART_tot","ART_need","ART_new","ART_on","TB_deaths",
+                                               "TB_deaths",
                                                "Cases_neg","Cases_pos","Cases_ART",
                                                "births","deaths","ART_deaths","Total_PT",
                                                "DS_correct","DS_incorrect","MDR_correct","MDR_incorrect","FP"), 
