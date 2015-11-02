@@ -286,11 +286,34 @@ plot_pop_s <- ggplot(dat_to_plot,aes(x=Year,y=value,color=Model))+
 
 
 
+######### Checking new ART code
+
+# Number who should be on ART by age
+ART_on <- out[,35441:35521]
+
+# Number eligible for ART by age
+ART_el <- out[,35360:35440]
+
+# Number who need to start ART by age
+ART_new <- out[,35279:35359]
 
 
+## Add up adults and kids who should be on - are these the same as AIM?
+
+on_c <- rowSums(ART_on[,1:15])*1000
+on_a <- rowSums(ART_on[,16:81])*1000
+temp <- cbind(on_a,on_c)
 
 
+## Add up adults and kids who are eligible - are these the same as AIM?
 
+el_c <- rowSums(ART_el[,1:15])*1000
+el_a <- rowSums(ART_el[,16:81])*1000
+temp <- cbind(el_a,el_c)
+
+#### eligilbe has to be bigger than eligible or will break the model 
+
+temp <- ART_el-ART_new
 
 
 

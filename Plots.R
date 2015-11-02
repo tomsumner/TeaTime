@@ -127,7 +127,7 @@ Models_out <- rbind(TIME_out,R_out)
 Models_out <- melt(Models_out,id=c("Year","Model"))
 
 # Calculate % diff between models and add to df
-temp=100*(TIME_out[,2:6]-R_out[,2:6])/TIME_out[,2:6]
+temp=100*(TIME_out[,2:7]-R_out[,2:7])/TIME_out[,2:7]
 diff_out<-cbind(R_out[,"Year"],temp)
 colnames(diff_out) <- c("Year",colnames(temp))
 diff_out_m <- melt(diff_out,id=c("Year"))
@@ -401,7 +401,7 @@ plot_TB_prev_neg_diff <- ggplot(diff_plot,aes(x=Year,y=value))+
 ###### HIV+ no ART ######
   
 # sum up TB cases over age groups and turn into long format
-TB_noART <- mapply(function(x,y) sum(out[x,seq(y+3889,8425,81)]),rep(seq(1,81),each=81),seq(1,81))
+TB_noART <- mapply(function(x,y) sum(out[x,seq(y+4051,9721,81)]),rep(seq(1,81),each=81),seq(1,81))
 dim(TB_noART) <- c(81,81)
 TB_noART <- t(TB_noART)
 

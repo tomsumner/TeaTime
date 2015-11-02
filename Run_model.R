@@ -60,7 +60,7 @@ parms["HIV_run"]=0
 # Run the model
 time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
                                      parms = parms, dllname = "TB_model_v9",initforc = "forcc",
-                                     forcings=force, initfunc = "parmsc", nout = 42,
+                                     forcings=force, initfunc = "parmsc", nout = 285,
                                      outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                   "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                                                   "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
@@ -95,7 +95,7 @@ times <- seq(1970,2050 , by=ss) # run with 6 month time step using a fixed time 
 # Run the model
 time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
                                   parms = parms, dllname = "TB_model_v9",initforc = "forcc",
-                                  forcings=force, initfunc = "parmsc", nout = 42,
+                                  forcings=force, initfunc = "parmsc", nout = 285,
                                   outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                                                "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",

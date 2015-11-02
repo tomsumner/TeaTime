@@ -50,8 +50,8 @@ for (i in 0:80){
 # ART coverage - based on AIM, use CD4 eligibility threshold and % of those in need on ART
 ART_data <- as.data.frame(read.table(paste("HIV/",cn,"/",cn,"_ART_data.txt",sep=""),header=TRUE)) # Load data
 
-#ART_data[,"Percent"] <- 0
-#ART_data[,"Percent_child"] <- 0
+#ART_data[,"Percent"] <- 0.2
+#ART_data[,"Percent_child"] <- 0.2
 
 # Create forcing function of threshold category
 Athresh <- cbind(ART_data[,"Year"],ART_data[,"CD4_cat"])

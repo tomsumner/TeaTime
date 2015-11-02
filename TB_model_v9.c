@@ -29,8 +29,8 @@ static double forc[289];
 #define a0 parms[2]         /* proportion developing primary disease in 0-4 year olds */ 
 #define a5 parms[3]         /* proportion developing primary disease in 5-9 year olds */
 #define a10 parms[4]        /* proportion developing primary disease in 10-14 year olds */
-#define p parms[5]          /* protection against disease due to prior infection */
-#define v parms[6]          /* reactivation rate */
+#define v parms[5]          /* reactivation rate */
+#define p parms[6]          /* protection against disease due to prior infection */
 #define sig_a parms[7]      /* proportion developing smear positive disease in adults (>15) */
 #define sig0 parms[8]       /* proportion developing smear positive disease in 0-4 year olds */
 #define sig5 parms[9]       /* proportion developing smear positive disease in 5-9 year olds */
@@ -884,33 +884,33 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     /* Sum up populations over CD4 categories, with and without ART and calculate rates of ART initiation by age */
     
     double ART_prop[81][7] = {{0}};     /* Proportion of CD4 category who should start ART by age */
+    double temp1[81][7] = {{0}};
     double CD4_dist[81][7] = {{0}};     /* Not on ART by CD4 and age */
     double CD4_dist_ART[81][7] = {{0}}; /* On ART by CD4 and age*/
     double CD4_dist_all[7] = {0};       /* Not on ART by CD4 */
     double CD4_dist_ART_all[7] = {0};   /* On ART by CD4 */
     double CD4_deaths[81][7] = {{0}};   /* Deaths by CD4 (no ART) */
+    double ART_new[81] = {0};           /* Number of new people to put on ART by age */
+    double ART_el[81] = {0};            /* Number who are eligible but not on ART */
+    double ART_el_deaths[81] = {0};     /* Number eligible who will die */
+    double ART_on[81] = {0};            /* Number who should be on ART by age */
+    double Tot_ART[81] = {0};           /* Number currently on ART by age */
     
     for (i=0; i<n_age; i++){
 
-      double Tot_ART = 0;                       /* Total on ART */ 
-      double ART_on = 0;                        /* Number who should be on ART based on reported % */
-      double ART_new = 0;                       /* Number who need to start ART */
-      double ART_el = 0;                        /* Number who are eligible but not on ART */
-      double ART_el_deaths = 0;                 /* Number eligible who will die */
-    
       for (j=0; j<n_HIV; j++){
         
-        CD4_dist[i][j] = CD4_dist[i][j]+S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+
-                                        Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j]+ 
-                                        Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j]+
-                                        PTn_H[i][j]+PTp_H[i][j];
+        CD4_dist[i][j] = S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+
+                         Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j]+ 
+                         Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j]+
+                         PTn_H[i][j]+PTp_H[i][j];
                       
         CD4_dist_all[j] = CD4_dist_all[j] + CD4_dist[i][j];
         
-        CD4_deaths[i][j] = CD4_deaths[i][j]+H_mort[j][i]*(S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+
-                                                          Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j]+ 
-                                                          Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j]+
-                                                          PTn_H[i][j]+PTp_H[i][j]);
+        CD4_deaths[i][j] = H_mort[j][i]*(S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+
+                                         Nsn_H[i][j]+Nsp_H[i][j]+Nmn_H[i][j]+Nmp_H[i][j]+ 
+                                         Isn_H[i][j]+Isp_H[i][j]+Imn_H[i][j]+Imp_H[i][j]+
+                                         PTn_H[i][j]+PTp_H[i][j]);
                                                           
                                                           
         for (l=0; l<n_ART; l++){
@@ -924,32 +924,32 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
         
         CD4_dist_ART_all[j] = CD4_dist_ART_all[j] + CD4_dist_ART[i][j];
         
-        Tot_ART = Tot_ART + CD4_dist_ART[i][j];  /* sum up number currently on ART */
-        
-        /* Just need to tell it to use a different forcing function for child vs adult - these also need to be created in the Data_load script*/  
-        if (i<15) ART_on = ART_on + (CD4_dist[i][j] + CD4_dist_ART[i][j])*forc[j+282]; /* number who should be on ART - HIV+ population times coverage (by CD4) */
-        if (i>14) ART_on = ART_on + (CD4_dist[i][j] + CD4_dist_ART[i][j])*forc[j+163]; /* number who should be on ART - HIV+ population times coverage (by CD4) */
-        
+        Tot_ART[i] = Tot_ART[i] + CD4_dist_ART[i][j];  /* sum up number currently on ART */
+         
+        if (i<15) { /* Child */
+          ART_on[i] = ART_on[i] + (CD4_dist[i][j] + CD4_dist_ART[i][j])*forc[j+282]; /* number who should be on ART - HIV+ population times coverage (by CD4) */
+        }
+        if (i>14) { /* Adult */
+          ART_on[i] = ART_on[i] + (CD4_dist[i][j] + CD4_dist_ART[i][j])*forc[j+163]; /* number who should be on ART - HIV+ population times coverage (by CD4) */
+        }
       }
-      ART_new = fmax(0,ART_on - (Tot_ART - ART_deaths_age[i]));   /* number who need to start is number who should be on minus those already on plus those on ART who will die in current time */ 
+      ART_new[i] = fmax(0,ART_on[i] - (Tot_ART[i] - ART_deaths_age[i]));   /* number who need to start is number who should be on minus those already on plus those on ART who will die in current time */ 
         
       /* Then work out where these should go by CD4 - based on proportion of eligible population in CD4 group and proportion of deaths which occur in CD4 group */
       for (j=Athresh; j<n_HIV; j++) {
-        ART_el = ART_el + CD4_dist[i][j];
-        ART_el_deaths = ART_el_deaths + CD4_deaths[i][j];
+        ART_el[i] = ART_el[i] + CD4_dist[i][j];
+        ART_el_deaths[i] = ART_el_deaths[i] + CD4_deaths[i][j];
       }
-      if (ART_el > 0){
+      
+      /* check that number to be put on isn't greater than number eligbile */
+      ART_new[i] = fmin(ART_el[i],ART_new[i]);
+      
+      if (ART_el[i] > 0){
         for (j=Athresh; j<n_HIV; j++) {
-          double temp1 =0.0;
-          if (ART_el_deaths > 0){
-            temp1 = CD4_deaths[i][j]/ART_el_deaths;
-          }
           if (CD4_dist[i][j] > 0) {
             
-            
-             /* !!!!!!!!!!!! SEEMS TO BE A PROBLEM WITH THIS LINE !!!!!!!!!!!!!!!!!!!!!!*/
-            ART_prop[i][j] = (((CD4_dist[i][j]/ART_el)+(temp1))/2)*(ART_new/CD4_dist[i][j]); /* applies weighting and size of CD4 group to work out % of CD4 group that should move */
-           
+            ART_prop[i][j] = (((CD4_dist[i][j]/ART_el[i])+(CD4_deaths[i][j]/ART_el_deaths[i]))/2)*(ART_new[i]/CD4_dist[i][j]); /* applies weighting and size of CD4 group to work out % of CD4 group that should move */
+            /*ART_prop[i][j] = 0.2;*/
           }
         }
       }
@@ -1397,13 +1397,7 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                                       (v_age_A[i][j][l]*sig_H + FS*a_age_A[i][j][l]*sig_H*(1-p_A[j][l]))*Lsp_A[i][j][l] + FS*a_age_A[i][j][l]*sig_H*(1-p_A[j][l])*Lmp_A[i][j][l] +
                                       (v_age_A[i][j][l]*sig_H + FM*a_age_A[i][j][l]*sig_H*(1-p_A[j][l]))*Lmn_A[i][j][l] + FM*a_age_A[i][j][l]*sig_H*S_A[i][j][l] + FM*a_age_A[i][j][l]*(1-p_A[j][l])*sig_H*Lsn_A[i][j][l] +
                                       (v_age_A[i][j][l]*sig_H + FM*a_age_A[i][j][l]*sig_H*(1-p_A[j][l]))*Lmp_A[i][j][l] + FM*a_age_A[i][j][l]*sig_H*(1-p_A[j][l])*Lsp_A[i][j][l];
-                            
-                            
-                            
-                            
-                            
-                            
-                            
+
             TB_cases_ART = TB_cases_ART + TB_cases_ART_age[i][j][l];
         
             TB_cases_age[i] = TB_cases_age[i] + TB_cases_ART_age[i][j][l];
@@ -1537,6 +1531,29 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
                  
           FP = FP + health*kpos*(1-sp_I_pos*sp_N_pos)*l_s*(S_H[i][j]+Lsn_H[i][j]+Lsp_H[i][j]+Lmn_H[i][j]+Lmp_H[i][j]+PTn_H[i][j]+PTp_H[i][j]);
       
+          for (l=0; l<n_ART; l++){
+            
+            DS_correct = DS_correct + rel_d*kpos*se_N_pos*(dstpos_n*sp_m_pos + (1-dstpos_n))*l_s*Nsn_A[i][j][l] +
+                                      rel_d*kpos*se_N_pos*(dstpos_p*sp_m_pos + (1-dstpos_p))*l_s*Nsp_A[i][j][l] +                                         
+                                      kpos*se_I_pos*(dstpos_n*sp_m_pos + (1-dstpos_n))*l_s*Isn_A[i][j][l] +       
+                                      kpos*se_I_pos*(dstpos_p*sp_m_pos + (1-dstpos_p))*l_s*Isp_A[i][j][l];
+                 
+                 
+            DS_incorrect = DS_incorrect + rel_d*kpos*se_N_pos*(dstpos_n*(1-se_m_pos) + (1-dstpos_n))*l_s*Nmn_A[i][j][l] + 
+                                          rel_d*kpos*se_N_pos*(dstpos_p*(1-se_m_pos) + (1-dstpos_p))*l_s*Nmp_A[i][j][l] +                                        
+                                          kpos*se_I_pos*(dstpos_n*(1-se_m_pos) + (1-dstpos_n))*l_s*Imn_A[i][j][l] +       
+                                          kpos*se_I_pos*(dstpos_p*(1-se_m_pos) + (1-dstpos_p))*l_s*Imp_A[i][j][l];  
+                 
+            MDR_correct = MDR_correct + rel_d*kpos*se_N_pos*l_m*(dstpos_n*Nmn_A[i][j][l] + dstpos_p*Nmp_A[i][j][l]) + 
+                                        kpos*se_I_pos*l_m*(dstpos_n*Imn_A[i][j][l] + dstpos_p*Imp_A[i][j][l]);  
+                                      
+            MDR_incorrect = MDR_incorrect + rel_d*kpos*se_N_pos*(1-sp_m_pos)*l_m*(dstpos_n*Nsn_A[i][j][l] + dstpos_p*Nsp_A[i][j][l]) + 
+                                            kpos*se_I_pos*(1-sp_m_pos)*l_m*(dstpos_n*Isn_A[i][j][l] + dstpos_p*Isp_A[i][j][l]);  
+                 
+            FP = FP + health*kpos*(1-sp_I_pos*sp_N_pos)*l_s*(S_A[i][j][l]+Lsn_A[i][j][l]+Lsp_A[i][j][l]+Lmn_A[i][j][l]+Lmp_A[i][j][l]+PTn_A[i][j][l]+PTp_A[i][j][l]);  
+            
+          }
+      
       }                  
     }                          
               
@@ -1584,6 +1601,12 @@ void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     yout[39] = MDR_correct;
     yout[40] = MDR_incorrect;
     yout[41] = FP;
+    for(i=0; i<n_age; i++){
+      yout[42+i] = ART_new[i];
+      yout[42+81+i] = ART_el[i];
+      yout[42+(81*2)+i] = ART_on[i];
+    }
+
 }
 
 
