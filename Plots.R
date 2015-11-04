@@ -64,7 +64,7 @@ plot_pop <- ggplot(dat_to_plot,aes(x=Year,y=value,colour=Model))+
   facet_wrap(~variable,scales="free")+
   ggtitle("Population (by 5 year age bins), total births and total deaths")+
   xlim(c(1970,2050))+
-  ylab("Thousands")
+  ylab("Thousands")+theme_bw()
 
 
 # Compare population age structure (i.e % of total pop)
@@ -94,7 +94,7 @@ plot_pop_s <- ggplot(dat_to_plot,aes(x=Year,y=value,color=Model))+
   facet_wrap(~variable,scales="free")+
   ggtitle("Age structure of population by 5 year age bins")+
   ylab("% of total population")+
-  xlim(c(1970,2050))
+  xlim(c(1970,2050))+theme_bw()
 
 
 # TB outputs #####################################################################################################
@@ -142,7 +142,7 @@ plot_models <- ggplot(Models_out)+
   xlim(c(1970,2050))+
   ylab("")+
   scale_y_continuous(expand = c(0, 0))+
-  expand_limits(y = 0)
+  expand_limits(y = 0)+theme_bw()
 
 plot_diff <- ggplot(diff_out_m,aes(x=Year,y=value))+
   geom_line()+
@@ -238,16 +238,8 @@ plot_HIV_p <- ggplot(dat_to_plot,aes(x=Year,y=value,color=Model))+
   xlim(c(1970,2050))
 
 ## Numbers on ART by age #########################################################################################
-# Load TIME values
-temp <- as.data.frame(read.table(paste("HIV/",cn,"/",cn,"_ART_numbers_age.txt",sep=""),header=TRUE,fill=TRUE)) # Load HIV numbers (output in TIME)  
-# Need to re-arrage to get in year vs age format
-ART_number_age <- mat.or.vec(81,18)
-ART_number_age[,1] <- seq(1970,2050)
-for (i in 1:81){
-  j <- (i-1)*19+2
-  #HIV_number_age[i,2:18]=as.numeric(levels(temp[j:(j+16),2]))[temp[j:(j+16),2]]
-  ART_number_age[i,2:18]=temp[j:(j+16),2]
-}
+# TIME values already loaded to calculate % on ART
+
 ART_number_age <- as.data.frame(ART_number_age)
 colnames(ART_number_age) <- colnames(UN_pop_age)
 ART_TIME <- melt(ART_number_age,id="Year")

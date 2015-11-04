@@ -19,7 +19,6 @@ force <- list(birth_rate,
               h21,h22,h23,h24,h25,h26,h27,h28,h29,h30,h31,h32,h33,h34,h35,h36,h37,h38,h39,h40,
               h41,h42,h43,h44,h45,h46,h47,h48,h49,h50,h51,h52,h53,h54,h55,h56,h57,h58,h59,h60,
               h61,h62,h63,h64,h65,h66,h67,h68,h69,h70,h71,h72,h73,h74,h75,h76,h77,h78,h79,h80,
-              Ahigh,A500,A349,A249,A199,A99,A50,Athresh,
               BCG_cov,pop_ad,
               kneg,kpos,rel_d,dstneg_n,dstneg_p,dstpos_n,dstpos_p,l_s,l_m,tneg_s,tpos_s,tART_s,tneg_m,tpos_m,tART_m,
               mig0,mig1,mig2,mig3,mig4,mig5,mig6,mig7,mig8,mig9,mig10,mig11,mig12,mig13,mig14,mig15,mig16,mig17,mig18,mig19,mig20,
@@ -29,7 +28,11 @@ force <- list(birth_rate,
               se_I_neg,se_N_neg,se_m_neg,sp_I_neg,sp_N_neg,sp_m_neg,
               se_I_pos,se_N_pos,se_m_pos,sp_I_pos,sp_N_pos,sp_m_pos,
               health,
-              Ahigh_child,A500_child,A349_child,A249_child,A199_child,A99_child,A50_child)
+              A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15,A16,A17,A18,A19,A20,
+              A21,A22,A23,A24,A25,A26,A27,A28,A29,A30,A31,A32,A33,A34,A35,A36,A37,A38,A39,A40,
+              A41,A42,A43,A44,A45,A46,A47,A48,A49,A50,A51,A52,A53,A54,A55,A56,A57,A58,A59,A60,
+              A61,A62,A63,A64,A65,A66,A67,A68,A69,A70,A71,A72,A73,A74,A75,A76,A77,A78,A79,A80,
+              Athresh)
 
 # EQUILIBRIUM RUN ################################################################################################
 
@@ -59,7 +62,7 @@ parms["HIV_run"]=0
 
 # Run the model
 time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
-                                     parms = parms, dllname = "TB_model_v9",initforc = "forcc",
+                                     parms = parms, dllname = "TB_model_v10",initforc = "forcc",
                                      forcings=force, initfunc = "parmsc", nout = 285,
                                      outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                   "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
@@ -94,7 +97,7 @@ parms["HIV_run"]=1
 times <- seq(1970,2050 , by=ss) # run with 6 month time step using a fixed time step solver - this is faster than adaptive methds but seems to give good accuracy
 # Run the model
 time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
-                                  parms = parms, dllname = "TB_model_v9",initforc = "forcc",
+                                  parms = parms, dllname = "TB_model_v10",initforc = "forcc",
                                   forcings=force, initfunc = "parmsc", nout = 285,
                                   outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
