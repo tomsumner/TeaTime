@@ -148,7 +148,7 @@ plot_diff <- ggplot(diff_out_m,aes(x=Year,y=value))+
   geom_line()+
   facet_wrap(~variable,scales="free_y")+
   xlim(c(1970,2035))+
-  ylab("% difference bewtween R and TIME")
+  ylab("% difference bewtween R and TIME")+theme_bw()
 
 # Compare PPV estimates from TIME and R
 
@@ -212,7 +212,7 @@ plot_HIV <- ggplot(dat_to_plot,aes(x=Year,y=value,color=Model))+
   geom_line()+
   facet_wrap(~variable,scales="free")+
   ggtitle("HIV_numbers")+
-  xlim(c(1970,2050))
+  xlim(c(1970,2050))+theme_bw()
 
 ### Compare HIV prevalence by age group
 
@@ -235,7 +235,7 @@ plot_HIV_p <- ggplot(dat_to_plot,aes(x=Year,y=value,color=Model))+
   geom_line()+
   facet_wrap(~variable,scales="free")+
   ggtitle("HIV_prevalence (age)")+
-  xlim(c(1970,2050))
+  xlim(c(1970,2050))+theme_bw()
 
 ## Numbers on ART by age #########################################################################################
 # TIME values already loaded to calculate % on ART
@@ -274,7 +274,7 @@ plot_ART <- ggplot(dat_to_plot,aes(x=Year,y=value,color=Model))+
   geom_line()+
   facet_wrap(~variable,scales="free")+
   ggtitle("ART_numbers")+
-  xlim(c(1970,2050))
+  xlim(c(1970,2050))+theme_bw()
 
 # TIME
 A_p_TIME <- as.data.frame(cbind(ART_model[,1],100*ART_number_age[,2:18]/(1000*TIME_pop[,3:19])))
@@ -295,7 +295,7 @@ plot_ART_p <- ggplot(dat_to_plot,aes(x=Year,y=value,color=Model))+
   geom_line()+
   facet_wrap(~variable,scales="free")+
   ggtitle("ART_prevalence (age)")+
-  xlim(c(1970,2050))
+  xlim(c(1970,2050))+theme_bw()
 
 
 # CD4 distributions ##############################################################################################
@@ -326,7 +326,7 @@ temp_CD4 <- melt(temp_CD4,id=c("Year","Type","Model"))
 plot_CD4 <- ggplot(temp_CD4,aes(x=as.numeric(as.character(Year)),y=as.numeric(as.character(value)),colour=variable,linetype=Model))+
   geom_line() +
   facet_wrap(~Type)+
-  xlim(c(1990,2020))
+  xlim(c(1990,2020))+theme_bw()
 
 
 # TB prevalence by age and HIV ###################################################################################

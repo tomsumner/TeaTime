@@ -11,5 +11,5 @@ system("R CMD SHLIB TB_model_v10.c") # Compile
 dyn.load("TB_model_v10.dll") # Load
 
 # load logcurve function #########################################################################################
-source("logcurve.R")
+source("logcurve.R",local=TRUE)
 

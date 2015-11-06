@@ -227,7 +227,7 @@ legend("bottom",c("R","TIME","shifted R"),col=c("black","red","green"),lwd=2)
 
 
 ############################ 
-# CHECK POP IS IN EQ IN EQ RUN
+# CHECK POP IS IN EQ IN EQ RUN - run to 400 and see how different population age structure is at 100,200 and 300 years
 
 # POPULATION #####################################################################################################
 
@@ -243,11 +243,11 @@ temp_data <- cbind(temp_data,"UNPP")
 colnames(temp_data) <- c(colnames(temp_data)[1:3],"Model")
 
 # sum up model outputs over age groups and turn into long format
-tot <- mapply(function(x,y) sum(out_eq[x,seq(y+1,30538,81)]),rep(seq(1,101),each=81),seq(1,81))
-dim(tot) <- c(81,101)
+tot <- mapply(function(x,y) sum(out_eq[x,seq(y+1,30538,81)]),rep(seq(1,401),each=81),seq(1,81))
+dim(tot) <- c(81,401)
 tot <- t(tot)
 
-model_temp <- mat.or.vec(101,21)
+model_temp <- mat.or.vec(401,21)
 model_temp[,1] <- out_eq[,"time"]
 model_temp[,2] <- out_eq[,"births"]
 model_temp[,20] <- out_eq[,"Total"]
@@ -267,23 +267,52 @@ temp_model_m <- cbind(temp_model_m,"R")
 colnames(temp_model_m) <- c(colnames(temp_model_m)[1:3],"Model")
 
 # Calculate population age structure
-temp_model_s <- as.data.frame(cbind(seq(0,100),100*temp_model[,3:20]/temp_model[,20]))
+temp_model_s <- as.data.frame(cbind(seq(0,400),400*temp_model[,3:20]/temp_model[,20]))
 colnames(temp_model_s)<-c("Year","x4","X9","X14","X19","X24","X29","X34","X39","X44","X49","X54","X59","X64","X69","X74","X79","X100","Total")
 temp_model_s <- melt(temp_model_s,id="Year")
 temp_model_s <- cbind(temp_model_s,"R")
 colnames(temp_model_s) <- c(colnames(temp_model_s)[1:3],"Model")
 
-dat_to_plot <- rbind(temp_model_s,temp_model_noTB)
 
 # and plot
-plot_pop_s <- ggplot(dat_to_plot,aes(x=Year,y=value,color=Model))+
+plot_pop_s <- ggplot(temp_model_s,aes(x=Year,y=value,color=Model))+
   geom_line()+
   facet_wrap(~variable,scales="free")+
   ggtitle("Age structure of population by 5 year age bins")+
   ylab("% of total population")
 
 
+temp_model_s_100 <- temp_model_s[temp_model_s$Year==100,]
+temp_model_s_200 <- temp_model_s[temp_model_s$Year==350,]
+temp_model_s_400 <- temp_model_s[temp_model_s$Year==400,]
+temp_model_diff_12 <- 100*(temp_model_s_200$value-temp_model_s_100$value)/temp_model_s_200$value
+temp_model_diff_14 <- 100*(temp_model_s_400$value-temp_model_s_100$value)/temp_model_s_400$value
+temp_model_diff_24 <- 100*(temp_model_s_400$value-temp_model_s_200$value)/temp_model_s_400$value
 
+
+### Repeat equilibrium checks for TB 
+# Arrange model output
+R_out <- as.data.frame(cbind(out_eq[,"time"],
+                             100000*(out_eq[,"Total_DS"]+out_eq[,"Total_MDR"])/out_eq[,"Total"],  # Prev
+                             100000*(out_eq[,"Cases_neg"]+out_eq[,"Cases_pos"]+out_eq[,"Cases_ART"])/out_eq[,"Total"], # Inc 
+                             100000*out_eq[,"TB_deaths"]/out_eq[,"Total"])) # Mort (all)
+
+colnames(R_out) <- c("Year","Prevalence","Incidence","Mortality")
+R_out <- R_out[R_out$Year<=2050,]
+
+Models_out <- melt(R_out,id=c("Year"))
+
+plot_models <- ggplot(Models_out,aes(x=Year,y=value))+
+  geom_line()+
+  facet_wrap(~variable,scales="free_y")+
+  xlim(c(0,400))+
+  ylab("")+
+  scale_y_continuous(expand = c(0, 0))+
+  expand_limits(y = 0)+theme_bw()
+
+temp_prev_diff <- 100*(R_out[R_out$Year==400,2]-R_out[R_out$Year==100,2])/R_out[R_out$Year==400,2]
+temp_inc_diff <- 100*(R_out[R_out$Year==400,3]-R_out[R_out$Year==100,3])/R_out[R_out$Year==400,3]
+temp_mort_diff <- 100*(R_out[R_out$Year==400,4]-R_out[R_out$Year==100,4])/R_out[R_out$Year==400,4]
 
 
 ######### Checking new ART code

@@ -97,6 +97,7 @@ for (i in 0:80){
   assign(paste("A",i,sep=""),cbind(seq(1970,2050,by=ss),approx(seq(1970,2050),ART_percent[,temp[i+1]],seq(1970,2050,by=ss),rule=2)$y))
 }
 
+ART_data <- as.data.frame(read.table(paste("HIV/",cn,"/",cn,"_ART_data.txt",sep=""),header=TRUE,fill=TRUE))
 # ART eligibility threshold
 Athresh <- cbind(ART_data[,"Year"],ART_data[,"CD4_cat"])
 
