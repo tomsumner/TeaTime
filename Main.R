@@ -17,9 +17,6 @@ system("R CMD SHLIB TB_model_v10.c") # Compile
 ## Define Country (currently South_Africa, Vietnam, Bangladesh) ##################################################
 cn <- "South_Africa"
 
-## Step size to take in years - this is now 1 (as we use an adaptive solver), so could remove from code throughout
-ss <- 1
-
 # Load external data sources and create additional forcing functions where necessary #############################
 # This takes ~ 0.3 sec so don't want to do it on every iteration of the model - assumes we will ad no uncertianty to these external things (Demographics, HIV, ART) 
 source("Data_load.R",local=TRUE)
@@ -51,7 +48,7 @@ cl<-makeCluster(detectCores()-1)
 registerDoParallel(cl)
 
 ## The number of model iterations to do ##########################################################################
-iters<-1
+iters<-20
 
 # start time
 strt<-Sys.time()
@@ -59,15 +56,14 @@ strt<-Sys.time()
 ## The loop ######################################################################################################
 
 # It uses foreach instead of for and %dopar% to launch in parallel (use %do% to run sequentially on single core)
-# Outputs are stored in ls as a list by default (returns "out" and "params") 
+# Outputs are stored in ls as a list by default (returns "TB_out" and "params") 
 ls <- foreach(i=1:iters,.packages=c("deSolve"),.export=to_export)%dopar%{
 
-  ss=1 
   source("logcurve.R",local=TRUE)
   source(paste("Para_",cn,".R",sep=""),local=TRUE)
   dyn.load("TB_model_v10.dll") # Load
   source("Run_model.R",local=TRUE) 
-  list(parms,out)
+  list(parms_samp,TB_out)
 }
 
 #end time
@@ -85,17 +81,49 @@ stopCluster(cl)
 ## Need to consider what to include - natural history, care and control?
 ## Need to return all things being varied to ls
 
-## Need to consider what to calibrate to. As a first pass, incidence, prevalence, notifications, mortality? 
-## Probably only want to output these things from the model - and not all outputs, need to do this either in run_model or in a separate script 
+## As a first pass, try fitting to incidence, prevalence, notifications, mortality
 
-## Then can start by doing likelihood calculations and some sort of resampling approach outside of foreach
+## Load the WHO estimates
+WHO_out <- as.data.frame(read.table(paste("TB/",cn,"/",cn,"_WHO_TB.txt",sep=""),header=TRUE,fill=TRUE))
 
+# Make Notifications range +/- 20% of reported
+WHO_out[WHO_out$variable=="Notifications",4] <- WHO_out[WHO_out$variable=="Notifications",3]*0.8
+WHO_out[WHO_out$variable=="Notifications",5] <- WHO_out[WHO_out$variable=="Notifications",3]*1.2
+# Variance in WHO data asuming range is 95% CI of normal distribution 
+WHO_out <- cbind(WHO_out,((((log(WHO_out$High)-log(WHO_out$Low))/2)/1.96)^2))
+colnames(WHO_out)[6] <- "Var"
 
+TB_out <- c()
 
+## Calculate likelihood 
+L <- rep(0,iters)
+for (i in 1:iters){
+  
+  temp <- melt(ls[[i]][[2]],id.vars="Year")
+  temp <- temp[temp$Year>1989 & temp$Year<2014,]
+  L[i] <- prod(((2*pi*WHO_out$Var)^(-1/2))*exp(-(1/(2*WHO_out$Var))*((log(temp$value)-log(WHO_out$Mid))^2)))
+  
+  TB_out <- rbind(TB_out,cbind(ls[[i]][[2]],as.character(i)))
+  
+}
 
+# convert runs into plot-able format
+colnames(TB_out)[6] <-"Run"
+TB_out <- melt(TB_out,id=c("Year","Run"))
 
-
-
+# Plots all runs, best in red and WHO envelope in grey
+plot_models <- ggplot(TB_out)+
+  geom_line(aes(x=Year,y=value,colour=Run))+
+  geom_line(data=WHO_out,aes(x=Year,y=Mid),colour="black",linetype="dashed")+
+  geom_line(data=WHO_out,aes(x=Year,y=Low),colour="black")+
+  geom_line(data=WHO_out,aes(x=Year,y=High),colour="black")+
+  geom_ribbon(data=WHO_out,aes(x=Year,ymin=Low,ymax=High),alpha=0.2)+
+  geom_line(data=TB_out[TB_out$Run==which.max(L),],aes(x=Year,y=value),colour="red",size=1.5)+
+  facet_wrap(~variable,scales="free_y")+
+  xlim(c(1970,2050))+
+  ylab("")+
+  scale_y_continuous(expand = c(0, 0))+
+  expand_limits(y = 0)+theme_bw()
 
 
 

@@ -94,7 +94,7 @@ parms["e"]=e
 parms["HIV_run"]=1
 
 # Set times to run for
-times <- seq(1970,2050 , by=ss) # run with 6 month time step using a fixed time step solver - this is faster than adaptive methds but seems to give good accuracy
+times <- seq(1970,2050) # run with 6 month time step using a fixed time step solver - this is faster than adaptive methds but seems to give good accuracy
 # Run the model
 time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
                                   parms = parms, dllname = "TB_model_v10",initforc = "forcc",
@@ -112,3 +112,13 @@ time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
                                   
 # Just keep every other output now we are running with 6 month time step
 #out <- out[seq(1,length(times),1/ss),]
+
+# Arrange model outputs that we need to return to foreach
+TB_out <- as.data.frame(cbind(out[,"time"],
+                             100000*(out[,"Total_DS"]+out[,"Total_MDR"])/out[,"Total"],  # Prev
+                             100000*(out[,"Cases_neg"]+out[,"Cases_pos"]+out[,"Cases_ART"])/out[,"Total"], # Inc 
+                             100000*out[,"TB_deaths"]/out[,"Total"], # Mort (all)
+                             1000*(out[,"DS_correct"]+out[,"DS_incorrect"]+out[,"MDR_correct"]+out[,"MDR_incorrect"]+out[,"FP"]))) # Total notifcations
+colnames(TB_out) <- c("Year","Prevalence","Incidence","Mortality","Notifications")
+
+
