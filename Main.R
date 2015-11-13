@@ -48,7 +48,7 @@ cl<-makeCluster(detectCores()-1)
 registerDoParallel(cl)
 
 ## The number of model iterations to do ##########################################################################
-iters<-20
+iters<-500
 
 # start time
 strt<-Sys.time()
@@ -94,8 +94,9 @@ WHO_out <- cbind(WHO_out,((((log(WHO_out$High)-log(WHO_out$Low))/2)/1.96)^2))
 colnames(WHO_out)[6] <- "Var"
 
 TB_out <- c()
+pars_out <- c()
 
-## Calculate likelihood 
+## Calculate likelihood, combine outputs and parameters
 L <- rep(0,iters)
 for (i in 1:iters){
   
@@ -104,8 +105,14 @@ for (i in 1:iters){
   L[i] <- prod(((2*pi*WHO_out$Var)^(-1/2))*exp(-(1/(2*WHO_out$Var))*((log(temp$value)-log(WHO_out$Mid))^2)))
   
   TB_out <- rbind(TB_out,cbind(ls[[i]][[2]],as.character(i)))
-  
+  pars_out <- cbind(pars_out,ls[[i]][[1]])
 }
+
+## Resample runs based on likelihood
+N_resamp<-100000
+t<-sample(seq(1:iters),N_resamp,replace=TRUE,prob=L/sum(L))
+unique_t<-unique(t)
+
 
 # convert runs into plot-able format
 colnames(TB_out)[6] <-"Run"
@@ -113,7 +120,7 @@ TB_out <- melt(TB_out,id=c("Year","Run"))
 
 # Plots all runs, best in red and WHO envelope in grey
 plot_models <- ggplot(TB_out)+
-  geom_line(aes(x=Year,y=value,colour=Run))+
+  #geom_line(aes(x=Year,y=value,colour=Run))+
   geom_line(data=WHO_out,aes(x=Year,y=Mid),colour="black",linetype="dashed")+
   geom_line(data=WHO_out,aes(x=Year,y=Low),colour="black")+
   geom_line(data=WHO_out,aes(x=Year,y=High),colour="black")+
@@ -124,6 +131,9 @@ plot_models <- ggplot(TB_out)+
   ylab("")+
   scale_y_continuous(expand = c(0, 0))+
   expand_limits(y = 0)+theme_bw()
+
+
+
 
 
 
