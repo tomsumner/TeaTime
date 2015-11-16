@@ -11,52 +11,50 @@
 # "ss" determine show often to output values
 
 # BCG coverage - currently assume 100% at all times
-BCG_cov <- cbind(seq(0,2050,by=ss),1)
+BCG_cov <- cbind(seq(0,2050),1)
 
 # Case detection rate by HIV (neg/pos)
-kneg <- logcurve(50,100,1985,2005,0.8,2,ss)
-#kneg[kneg[,1]>2014,2] <- 0
-kpos <- logcurve(50,100,1985,2005,0.8,2,ss) 
-#kpos[kpos[,1]>2014,2] <- 0
+kneg <- logcurve(50,100,1985,2005,0.8,2)
+kpos <- logcurve(50,100,1985,2005,0.8,2) 
 
 # Relative detection smear neg
-rel_d <- cbind(seq(1970,2050,by=ss),0.4)
+rel_d <- cbind(seq(1970,2050),0.4)
 
 # Relative presentation healthy 
-health <- cbind(seq(1970,2050,by=ss),0.015)
+health <- cbind(seq(1970,2050),0.015)
 
 # DST coverage among new and previously treated cases 
-dstneg_n <- logcurve(0,1,1975,2010,1,2,ss)
-dstneg_p <- logcurve(0,45,1975,2010,1,2,ss)
-dstpos_n <- logcurve(0,1,1975,2010,1,2,ss)
-dstpos_p <- logcurve(0,45,1975,2010,1,2,ss)
+dstneg_n <- logcurve(0,1,1975,2010,1,2)
+dstneg_p <- logcurve(0,45,1975,2010,1,2)
+dstpos_n <- logcurve(0,1,1975,2010,1,2)
+dstpos_p <- logcurve(0,45,1975,2010,1,2)
 
 # Sens (se) and spec (sp) of algorithms for sm+ (I), sm- (N) and DST testing (m)
-se_I_neg <- logcurve(100,100,1970,2010,1,2,ss)
-se_N_neg <- logcurve(100,100,1970,2010,1,2,ss)
-se_m_neg <- logcurve(100,100,1970,2010,1,2,ss)
-sp_I_neg <- logcurve(95,95,1970,2010,1,2,ss)
-sp_N_neg <- logcurve(95,95,1970,2010,1,2,ss)
-sp_m_neg <- logcurve(95,95,1970,2010,1,2,ss)
+se_I_neg <- logcurve(100,100,1970,2010,1,2)
+se_N_neg <- logcurve(100,100,1970,2010,1,2)
+se_m_neg <- logcurve(100,100,1970,2010,1,2)
+sp_I_neg <- logcurve(95,95,1970,2010,1,2)
+sp_N_neg <- logcurve(95,95,1970,2010,1,2)
+sp_m_neg <- logcurve(95,95,1970,2010,1,2)
 
-se_I_pos <- logcurve(100,100,1970,2010,1,2,ss)
-se_N_pos <- logcurve(100,100,1970,2010,1,2,ss)
-se_m_pos <- logcurve(100,100,1970,2010,1,2,ss)
-sp_I_pos <- logcurve(95,95,1970,2010,1,2,ss)
-sp_N_pos <- logcurve(95,95,1970,2010,1,2,ss)
-sp_m_pos <- logcurve(95,95,1970,2010,1,2,ss)
+se_I_pos <- logcurve(100,100,1970,2010,1,2)
+se_N_pos <- logcurve(100,100,1970,2010,1,2)
+se_m_pos <- logcurve(100,100,1970,2010,1,2)
+sp_I_pos <- logcurve(95,95,1970,2010,1,2)
+sp_N_pos <- logcurve(95,95,1970,2010,1,2)
+sp_m_pos <- logcurve(95,95,1970,2010,1,2)
 
 # Linkage to care
-l_s <- cbind(seq(1970,2050,by=ss),0.8)
-l_m <- cbind(seq(1970,2050,by=ss),0.8)
+l_s <- cbind(seq(1970,2050),0.8)
+l_m <- cbind(seq(1970,2050),0.8)
 
 # Treatment success by HIV (neg, pos no ART, pos on ART) and susceptibility
-tneg_s <- cbind(seq(1970,2050,by=ss),0.91)
-tpos_s <- cbind(seq(1970,2050,by=ss),0.72)
-tART_s <- cbind(seq(1970,2050,by=ss),0.72)
-tneg_m <- cbind(seq(1970,2050,by=ss),0.72)
-tpos_m <- cbind(seq(1970,2050,by=ss),0.72)
-tART_m <- cbind(seq(1970,2050,by=ss),0.72)
+tneg_s <- cbind(seq(1970,2050),0.91)
+tpos_s <- cbind(seq(1970,2050),0.72)
+tART_s <- cbind(seq(1970,2050),0.72)
+tneg_m <- cbind(seq(1970,2050),0.72)
+tpos_m <- cbind(seq(1970,2050),0.72)
+tART_m <- cbind(seq(1970,2050),0.72)
 
 # Set up TB parameters ###########################################################################################
 
@@ -81,7 +79,8 @@ e = 0.014
 
 parms <- c(beta = 18, 
            a_a = 0.115, a0 = 0.2551, a5 = 0.1357, a10 = 0.0541,  
-           p = 0.65, v = 0.001, 
+           v = 0.001,
+           p = 0.65,  
            sig_a = 0.45, sig0 = 0.0804, sig5 = 0.0486, sig10 = 0.0994, rel_inf = 0.22, theta = 0.015, r = 0.2,
            mu_N = 0.18, mu_N0 = 0.4205, mu_I = 0.20, mu_I0 = 0.6007, fit_cost = fit_cost, e = e, g=g,
            eff_n = 0.61, eff_p = 0.45, 

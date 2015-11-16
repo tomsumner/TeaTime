@@ -110,10 +110,7 @@ time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
                                   events = list(func="event",time=seq(1970,2050)),
                                   method = rkMethod("rk45dp7",hmax=1)))
                                   
-# Just keep every other output now we are running with 6 month time step
-#out <- out[seq(1,length(times),1/ss),]
-
-# Arrange model outputs that we need to return to foreach
+# Arrange core TB model outputs (prevalence, incidence, mortality, notifications) - if running in loop, this is what is returned to list 
 TB_out <- as.data.frame(cbind(out[,"time"],
                              100000*(out[,"Total_DS"]+out[,"Total_MDR"])/out[,"Total"],  # Prev
                              100000*(out[,"Cases_neg"]+out[,"Cases_pos"]+out[,"Cases_ART"])/out[,"Total"], # Inc 

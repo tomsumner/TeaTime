@@ -87,9 +87,8 @@ for (i in 1:81){
 
 # Calculate % coverage
 ART_percent <- cbind(seq(1970,2050),ART_number_age[,2:18]/ART_need_age[,2:18])
-
+# Correct for "nan" if "need" is zero
 ART_percent[is.nan(ART_percent)] <- 0
-
 
 # Now duplicate 5 year age bin values to give values for single year bins and convert into forcing functions
 temp <- c(rep(c(2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17),each=5),18)
@@ -97,6 +96,7 @@ for (i in 0:80){
   assign(paste("A",i,sep=""),cbind(seq(1970,2050),approx(seq(1970,2050),ART_percent[,temp[i+1]],seq(1970,2050),rule=2)$y))
 }
 
+# We still need the ART eligibility threshold (in terms of model CD4 categories) - adapt the code to calculate this from numeric CD4 threshold
 ART_data <- as.data.frame(read.table(paste("HIV/",cn,"/",cn,"_ART_data.txt",sep=""),header=TRUE,fill=TRUE))
 # ART eligibility threshold
 Athresh <- cbind(ART_data[,"Year"],ART_data[,"CD4_cat"])
