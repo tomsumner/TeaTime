@@ -82,14 +82,17 @@ parms <- c(beta = 22,
            v = 0.001, 
            p = 0.65, 
            sig_a = 0.45, sig0 = 0.0804, sig5 = 0.0486, sig10 = 0.0994, rel_inf = 0.22, theta = 0.015, r = 0.2,
+           #sig_a = 1, sig0 = 0.0804, sig5 = 0.0486, sig10 = 0.0994, rel_inf = 0.22, theta = 0.015, r = 0.2,
            mu_N = 0.21, mu_N0 = 0.4205, mu_I = 0.3, mu_I0 = 0.6007, fit_cost = fit_cost, e = e, g=g,
            eff_n = 0.61, eff_p = 0.45, 
            muN_H = 0.42, muI_H = 0.6, RR1a = 2.6, RR2a = 1.36, RR1v = 2.6, RR2v = 1.36, RR1p = 0.8, RR2p = 1.3,
+           #muN_H = 0.42, muI_H = 0.6, RR1a = 2.6, RR2a = 1.36, RR1v = 2.6, RR2v = 1.36, RR1p = 1, RR2p = 1,
            ART_TB1 = 0.204, ART_TB2 = 0.554, ART_TB3 = 0.70, ART_mort1 = 0.232, ART_mort2 = 0.629, ART_mort3 = 0.795,
            #ART_TB1 = 0, ART_TB2 = 0, ART_TB3 = 0, ART_mort1 = 0, ART_mort2 = 0, ART_mort3 = 0,
+           #ART_TB1 = 1, ART_TB2 = 1, ART_TB3 = 1, ART_mort1 = 1, ART_mort2 = 1, ART_mort3 = 1,
            BCG_eff = 0.56,
            sig_H = 0.327,r_H=0.1,rel_inf_H=0.22,theta_H=0.0225)
-
+           #sig_H = 1,r_H=0.1,rel_inf_H=0.22,theta_H=0.0225)
 
 
 
