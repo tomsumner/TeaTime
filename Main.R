@@ -7,6 +7,13 @@ setwd("C:/Users/TOM SUMMER/Documents/TIME_research/TeaTime")
 ## Load packages, compile model and load DLL
 source("Libraries_and_dll.R")
 
+# Define number of disease states in model, number of age groups and number of HIV/ART states
+# These values are used in other functions (e.g. plotting and data load)
+n_dis <- 15
+n_age <- 81
+n_HIV <- 7
+n_ART <- 3
+
 ## Define Country (currently 1=South_Africa, 2=Vietnam, 3=Bangladesh) ##################################################
 cn <- 1
 ##

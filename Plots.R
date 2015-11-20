@@ -1,5 +1,9 @@
 ######## Some plots for testing things against spectrum and other data ###########################################
 
+# Calculate number of model states
+
+n_state <- n_dis*n_age*(1+n_HIV+n_HIV*n_ART)
+
 #### NEED TO ADD WHO DATA TO THESE PLOTS #########################################################################
 
 # POPULATION #####################################################################################################
@@ -16,7 +20,7 @@ temp_data <- cbind(temp_data,"UNPP")
 colnames(temp_data) <- c(colnames(temp_data)[1:3],"Model")
 
 # sum up model outputs over age groups and turn into long format
-tot <- mapply(function(x,y) sum(out[x,seq(y+1,35236,81)]),rep(seq(1,81),each=81),seq(1,81))
+tot <- mapply(function(x,y) sum(out[x,seq(y+1,n_state+1,81)]),rep(seq(1,81),each=81),seq(1,81))
 dim(tot) <- c(81,81)
 tot <- t(tot)
 
