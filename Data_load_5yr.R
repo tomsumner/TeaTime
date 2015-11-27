@@ -8,14 +8,14 @@
 UN_pop_start <- as.data.frame(read.table(paste("Demog/Initial_Pop_single_age.txt",sep=""),header=FALSE)) # Load UN Population data
 # Load number of births
 # add total to pop size data
-UN_pop_start_t1 <- cbind(UN_pop_start[,1:83],rowSums(UN_pop_start[,2:82]))
+UN_pop_start_t1 <- cbind(UN_pop_start[,1:83],rowSums(UN_pop_start[,3:83]))
 # Then pull out country of interest
 UN_pop_start_t1 <- UN_pop_start_t1[UN_pop_start_t1[,1]==cn,]
 # Then sum into 5 year age bins
 UN_pop_start_t<-mat.or.vec(1,19)
 for (i in 1:16){
   j <- (3*i)+2*(i-1)
-  UN_pop_start_t[i+2]=sum(UN_pop_start_t1[j:j+4])
+  UN_pop_start_t[i+2]=sum(UN_pop_start_t1[j:(j+4)])
 }
 UN_pop_start_t[1]<-as.character(droplevels(UN_pop_start_t1[,1]))
 UN_pop_start_t[2]<-UN_pop_start_t1[,2]
@@ -34,13 +34,14 @@ birth_rate <- cbind(seq(1970,2050),approx(UN_ind$Year,UN_ind$CBR,seq(1970,2050),
 ###### THIS NEEDS TO BE FIXED TO BE 5 YEAR MORTALITY RATES ################
 
 # Age specific mortality taken from demproj outputs
-mort_age <- as.data.frame(read.table(paste("Demog/",cn,"/",cn,"_mort_age.txt",sep=""),header=FALSE)) 
-
-mort_age[,82] <-mort_age[,82]/2 
-
+mort_age <- as.data.frame(read.table(paste("Demog/",cn,"/",cn,"_mort_5yr.txt",sep=""),header=FALSE)) 
+mort_age[,2:17] <- (1-mort_age[,2:17])/5
+mort_age[,18] <- mort_age[,17]/2
 # Convert into forcing functions to be used in C code
-for (i in 1:81){  
-  assign(paste("s",i,sep=""), cbind(seq(1970,2050),approx(mort_age[,1],mort_age[,i+1],seq(1970,2050),rule=2)$y))
+temp <- c(5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,100)
+for (i in 1:17){  
+  assign(paste("s",temp[i],sep=""), cbind(seq(1970,2050),approx(mort_age[,1],mort_age[,i+1],seq(1970,2050),rule=2)$y))
+  #assign(paste("s",temp[i],sep=""), cbind(seq(1970,2050),approx(mort_age[,1],rep(0,30),seq(1970,2050),rule=2)$y))
 }
 
 ## MIGRATION ####################################################################################################################
@@ -72,7 +73,7 @@ for (i in 1:81){
 # Now duplicate 5 year age bin values to give values for single year bins and convert into forcing functions
 temp <- c(0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80)
 for (i in 1:17){
-  assign(paste("h",temp[i],sep=""),cbind(seq(1970,2050),approx(HIV_Inc_age[,1],HIV_Inc_age[,i]/1000,seq(1970,2050),rule=2)$y))
+  assign(paste("h",temp[i],sep=""),cbind(seq(1970,2050),approx(HIV_Inc_age[,1],HIV_Inc_age[,i+1]/1000,seq(1970,2050),rule=2)$y))
 }
 
 ## ART ##########################################################################################################################

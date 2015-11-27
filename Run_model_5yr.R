@@ -49,7 +49,7 @@ parms["HIV_run"]=0
 
 # Run the model
 time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
-                                     parms = parms, dllname = "TB_model_v10",initforc = "forcc",
+                                     parms = parms, dllname = "TB_model_5yr_v10",initforc = "forcc",
                                      forcings=force, initfunc = "parmsc", nout = 42,
                                      outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                   "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
@@ -69,8 +69,8 @@ time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivsc",
 
 temp <- out_eq[dim(out_eq)[1],2:7396]
 
-for(i in 1:81){ 
-  temp[seq(i,7395,81)] <- temp[seq(i,7395,81)]/(sum(temp[seq(i,7395,81)])/as.numeric(UN_pop_start_t[i+2]))
+for(i in 1:17){ 
+  temp[seq(i,7395,17)] <- temp[seq(i,7395,17)]/(sum(temp[seq(i,7395,17)])/as.numeric(UN_pop_start_t[i+2]))
 }
 
 xstart <- temp
@@ -84,7 +84,7 @@ parms["HIV_run"]=1
 times <- seq(1970,2050) # run with 6 month time step using a fixed time step solver - this is faster than adaptive methds but seems to give good accuracy
 # Run the model
 time_run <-system.time(out <- ode(y=xstart, times, func = "derivsc",
-                                  parms = parms, dllname = "TB_model_v10",initforc = "forcc",
+                                  parms = parms, dllname = "TB_model_5yr_v10",initforc = "forcc",
                                   forcings=force, initfunc = "parmsc", nout = 42,
                                   outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
