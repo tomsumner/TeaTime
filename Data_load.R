@@ -1,5 +1,14 @@
 ### Loads all external data sources and where appropriate creates forcing functions
 
+# Used to pick the country from cn
+c_list <- c("South_Africa","Vietnam","Bangladesh")
+cn <- c_list[cn]
+
+# define number of TB, HIV and ART states
+n_HIV <- 7
+n_ART <- 3
+n_dis <- 15
+
 ## UN population data ###########################################################################################################
 
 # single year age groups for 1970 - used as initial population

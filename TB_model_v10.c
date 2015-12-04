@@ -495,7 +495,7 @@ void event(int *n, double *t, double *y)
 
 /* ###### DERIVATIVE FUNCTIONS - THIS IS THE MODEL ITSELF ###### */
 
-void derivsc(int *neq, double *t, double *y, double *ydot, double *yout, int *ip)
+void derivs1(int *neq, double *t, double *y, double *ydot, double *yout, int *ip)
 {
     if (ip[0] <2) error("nout should be at least 2");
     
