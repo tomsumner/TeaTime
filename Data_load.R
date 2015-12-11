@@ -20,7 +20,7 @@ UN_pop_start_t <- UN_pop_start_t[UN_pop_start_t[,1]==cn,]
 colnames(UN_pop_start_t) <- c("Country","Year",colnames(UN_pop_start[3:83]),"Total")
 
 ## UN indicators - Crude birth rate (CBR), births, deaths #######################################################################
-UN_ind <- as.data.frame(read.table("Demog/UN_indicators_all_test.txt",header=TRUE))
+UN_ind <- as.data.frame(read.table("Demog/UN_indicators_all.txt",header=TRUE))
 UN_ind <- UN_ind[UN_ind$Country==cn,]
 # Convert CBR into forcing function to be used in C code
 birth_rate <- cbind(seq(1970,2050),approx(UN_ind$Year,UN_ind$CBR,seq(1970,2050),rule=2)$y)

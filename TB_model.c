@@ -1,13 +1,9 @@
 /* TB model in C code to call from R */
 
-/* Version 10 - converted to single year age bins and aging done via events- this ensures individuals remain in the correct age cohorts */
-/*             matches TIME within reasonable bounds with the exception of ART                                                          */
-/*             this version updated to include true and false positive diagnosis                                                        */
-/*             and post PT compartment added - just for false positives at present - no other PT modelled yet                           */
-/*             ART coverage now age specific                                                                                            */   
+/* Version 10 - single year age bin model */                                                                                      
 
-/* Can be compiled within R with system("R CMD SHLIB TB_model_v10.c") */
-/* This creates a dynamic linked library (.dll) which can be loaded (dyn.load(TB_model_v10.dll)) into R and used as the model function in a call to desolve */
+/* Can be compiled within R with system("R CMD SHLIB TB_model.c") */
+/* This creates a dynamic linked library (.dll) which can be loaded (dyn.load(TB_model.dll)) into R and used as the model function (derivs1) in a call to desolve */
 
 /* C libraries needed */
 #include <R.h>
@@ -946,12 +942,10 @@ void derivs1(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
       
     } 
     double TB_deaths_tot = sumsum(TB_deaths,0,80);
-    double ART_deaths = sumsum(ART_deaths_age,0,80);
     
     /* Sum up populations over CD4 categories, with and without ART and calculate rates of ART initiation by age */
     
     double ART_prop[81][7] = {{0}};     /* Proportion of CD4 category who should start ART by age */
-    double temp1[81][7] = {{0}};
     double CD4_dist[81][7] = {{0}};     /* Not on ART by CD4 and age */
     double CD4_dist_ART[81][7] = {{0}}; /* On ART by CD4 and age*/
     double CD4_dist_all[7] = {0};       /* Not on ART by CD4 */
@@ -1692,7 +1686,7 @@ void derivs1(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     yout[35] = DS_correct;
     yout[36] = DS_incorrect;
     yout[37] = MDR_correct;
-    yout[48] = MDR_incorrect;
+    yout[38] = MDR_incorrect;
     yout[39] = FP;
 
 }

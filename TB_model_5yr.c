@@ -1,10 +1,9 @@
 /* TB model in C code to call from R */
 
-/* Version 10 - now matches TIME including ART (pretty good fit) */
-/* Testing conversion back to 5 year age bins to increase speed  */   
+/* Version 10 - 5 year age bin model */ 
 
-/* Can be compiled within R with system("R CMD SHLIB TB_model_v10.c") */
-/* This creates a dynamic linked library (.dll) which can be loaded (dyn.load(TB_model_v10.dll)) into R and used as the model function in a call to desolve */
+/* Can be compiled within R with system("R CMD SHLIB TB_model_5yr.c") */
+/* This creates a dynamic linked library (.dll) which can be loaded (dyn.load(TB_model_5yr.dll)) into R and used as the model (derivs5) function in a call to desolve */
 
 /* C libraries needed */
 #include <R.h>
@@ -685,12 +684,10 @@ void derivs5(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
       
     } 
     double TB_deaths_tot = sumsum(TB_deaths,0,16);
-    double ART_deaths = sumsum(ART_deaths_age,0,16);
     
     /* Sum up populations over CD4 categories, with and without ART and calculate rates of ART initiation by age */
     
     double ART_prop[17][7] = {{0}};     /* Proportion of CD4 category who should start ART by age */
-    double temp1[17][7] = {{0}};
     double CD4_dist[17][7] = {{0}};     /* Not on ART by CD4 and age */
     double CD4_dist_ART[17][7] = {{0}}; /* On ART by CD4 and age*/
     double CD4_dist_all[7] = {0};       /* Not on ART by CD4 */

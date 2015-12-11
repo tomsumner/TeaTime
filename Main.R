@@ -2,7 +2,7 @@
 ## Model can be run using 1 or 5 year age bins (5 year is faster but less accurate demographically)
 
 ## First set the working directory - input folders (Demog, HIV, TB) need to be subfolders of this directory
-setwd("C:/Users/TOM SUMMER/Documents/TIME_research/TeaTime")
+setwd("C:/Users/TOM SUMMER/Documents/TIME_research/TIME_R")
 
 ## Define Country (1=South_Africa, 2=Vietnam, 3=Bangladesh)
 cn <- 1
@@ -11,7 +11,7 @@ cn <- 1
 n_age <- 81
 
 ## Inidcate whether to generate plots or not (0=no; 1=yes)
-plotting <- 0
+plotting <- 1
 
 ##################################################################################################################################
 
@@ -30,7 +30,7 @@ if (n_age==81){
 
 ##################################################################################################################################
 
-## This section need to be rerun each time you want to generate model outputs
+## This section needs to be rerun each time you want to generate model outputs
 
 # Set up the forcing functions and parameters
 source(paste("Para_",cn,".R",sep=""))
@@ -39,8 +39,8 @@ source(paste("Para_",cn,".R",sep=""))
 if (n_age==17) system.time(source("Run_model_5yr.R"))
 if (n_age==81) system.time(source("Run_model.R"))
 
-## Generate plots
-if (plotting ==1){
+## Generate plots of demography and TB outputs (prev, inc, mort, notif) - resulting figures are plot_pop and plot_TB (_5yr)
+if (plotting==1){
   if (n_age==17) source("Plots_5yr.R") 
   if (n_age==81) source("Plots.R")
 }
