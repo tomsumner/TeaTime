@@ -26,9 +26,9 @@ tot <- t(tot)
 
 model_temp <- mat.or.vec(81,21)
 model_temp[,1] <- out[,"time"]
-model_temp[,2] <- out[,"births"]
+model_temp[,2] <- out[,"Births"]
 model_temp[,20] <- out[,"Total"]
-model_temp[,21] <- out[,"deaths"]
+model_temp[,21] <- out[,"Deaths"]
 model_temp[,19] <- tot[,81]
 
 # Then aggregate into 5 year bins used in TIME

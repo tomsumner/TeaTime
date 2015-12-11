@@ -50,14 +50,14 @@ parms["HIV_run"]=0
 # Run the model
 time_eq <- system.time(out_eq <- ode(y=xstart, times, func = "derivs5",
                                      parms = parms, dllname = "TB_model_5yr_v10",initforc = "forcc",
-                                     forcings=force, initfunc = "parmsc", nout = 42,
+                                     forcings=force, initfunc = "parmsc", nout = 40,
                                      outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                   "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                                                   "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
                                                   "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
                                                   "TB_deaths",
                                                   "Cases_neg","Cases_pos","Cases_ART",
-                                                  "births","deaths","ART_deaths","Total_PT",
+                                                  "Births","Deaths",
                                                   "DS_correct","DS_incorrect","MDR_correct","MDR_incorrect","FP"), 
                                      events = list(func="event",time=seq(0,100)),
                                      method = rkMethod("rk45dp7",hmax=1)))
@@ -85,14 +85,14 @@ times <- seq(1970,2050) # run with 6 month time step using a fixed time step sol
 # Run the model
 time_run <-system.time(out <- ode(y=xstart, times, func = "derivs5",
                                   parms = parms, dllname = "TB_model_5yr_v10",initforc = "forcc",
-                                  forcings=force, initfunc = "parmsc", nout = 42,
+                                  forcings=force, initfunc = "parmsc", nout = 40,
                                   outnames = c("Total","Total_S","Total_Ls","Total_Lm","Total_L","Total_Ns","Total_Nm",
                                                "Total_N","Total_Is","Total_Im","Total_I","Total_DS","Total_MDR","FS","FM",
                                                "CD4500","CD4350_500","CD4250_349","CD4200_249","CD4100_199","CD450_99","CD450",
                                                "ART500","ART350_500","ART250_349","ART200_249","ART100_199","ART50_99","ART50",
                                                "TB_deaths",
                                                "Cases_neg","Cases_pos","Cases_ART",
-                                               "births","deaths","ART_deaths","Total_PT",
+                                               "Births","Deaths",
                                                "DS_correct","DS_incorrect","MDR_correct","MDR_incorrect","FP"), 
                                   events = list(func="event",time=seq(1970,2050)),
                                   method = rkMethod("rk45dp7",hmax=1)))

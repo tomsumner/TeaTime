@@ -28,9 +28,9 @@ tot <- t(tot)
 
 model_temp <- mat.or.vec(81,21)
 model_temp[,1] <- out[,"time"]
-model_temp[,2] <- out[,"births"]
+model_temp[,2] <- out[,"Births"]
 model_temp[,20] <- out[,"Total"]
-model_temp[,21] <- out[,"deaths"]
+model_temp[,21] <- out[,"Deaths"]
 model_temp[,3:19] <- tot[,1:17]
 
 temp_model <- as.data.frame(model_temp)
@@ -78,20 +78,34 @@ TIME_out <- TIME_out[TIME_out$Year<=2050,]
 WHO_out <- as.data.frame(read.table(paste("TB/",cn,"/",cn,"_WHO_TB.txt",sep=""),header=TRUE,fill=TRUE))
 
 # Arrange model output - 5 year age bins
-R_out <- as.data.frame(cbind(out[,"time"],
-                             100000*(out[,"Total_DS"]+out[,"Total_MDR"])/out[,"Total"],  # Prev
-                             100000*(out[,"Cases_neg"]+out[,"Cases_pos"]+out[,"Cases_ART"])/out[,"Total"], # Inc 
-                             100000*out[,"TB_deaths"]/out[,"Total"], # Mort (all)
-                             1000*(out[,"DS_correct"]+out[,"DS_incorrect"]+out[,"MDR_correct"]+out[,"MDR_incorrect"]), # TP notifications
-                             1000*out[,"FP"], # FP notifications
-                             1000*(out[,"DS_correct"]+out[,"DS_incorrect"]+out[,"MDR_correct"]+out[,"MDR_incorrect"]+out[,"FP"]))) # Total notifcations
+R_out <- as.data.frame(cbind(out5[,"time"],
+                             100000*(out5[,"Total_DS"]+out5[,"Total_MDR"])/out5[,"Total"],  # Prev
+                             100000*(out5[,"Cases_neg"]+out5[,"Cases_pos"]+out5[,"Cases_ART"])/out5[,"Total"], # Inc 
+                             100000*out5[,"TB_deaths"]/out5[,"Total"], # Mort (all)
+                             1000*(out5[,"DS_correct"]+out5[,"DS_incorrect"]+out5[,"MDR_correct"]+out5[,"MDR_incorrect"]), # TP notifications
+                             1000*out5[,"FP"], # FP notifications
+                             1000*(out5[,"DS_correct"]+out5[,"DS_incorrect"]+out5[,"MDR_correct"]+out5[,"MDR_incorrect"]+out5[,"FP"]))) # Total notifcations
 
 R_out <- cbind(R_out,"R")
 colnames(R_out) <- c("Year","Prevalence","Incidence","Mortality","TP notifications","FP notifications","Notifications","Model")
 R_out <- R_out[R_out$Year<=2050,]
 
+
+# Arrange model output - 5 year age bins
+R_out1 <- as.data.frame(cbind(out1[,"time"],
+                             100000*(out1[,"Total_DS"]+out1[,"Total_MDR"])/out1[,"Total"],  # Prev
+                             100000*(out1[,"Cases_neg"]+out1[,"Cases_pos"]+out1[,"Cases_ART"])/out1[,"Total"], # Inc 
+                             100000*out1[,"TB_deaths"]/out1[,"Total"], # Mort (all)
+                             1000*(out1[,"DS_correct"]+out1[,"DS_incorrect"]+out1[,"MDR_correct"]+out1[,"MDR_incorrect"]), # TP notifications
+                             1000*out1[,"FP"], # FP notifications
+                             1000*(out1[,"DS_correct"]+out1[,"DS_incorrect"]+out1[,"MDR_correct"]+out1[,"MDR_incorrect"]+out1[,"FP"]))) # Total notifcations
+
+R_out1 <- cbind(R_out1,"R1")
+colnames(R_out1) <- c("Year","Prevalence","Incidence","Mortality","TP notifications","FP notifications","Notifications","Model")
+R_out1 <- R_out1[R_out1$Year<=2050,]
+
 # combine and melt
-Models_out <- rbind(TIME_out,R_out)
+Models_out <- rbind(TIME_out,R_out,R_out1)
 Models_out <- melt(Models_out,id=c("Year","Model"))
 
 # Calculate % diff between models and add to df

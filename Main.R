@@ -8,14 +8,17 @@ setwd("C:/Users/TOM SUMMER/Documents/TIME_research/TeaTime")
 cn <- 1
 
 ## Define number of age groups in the model (17=5 year age bins; 81=1 year age bins)
-n_age <- 17
+n_age <- 81
 
-## PLOTTING
+## Inidcate whether to generate plots or not (0=no; 1=yes)
+plotting <- 0
 
 ##################################################################################################################################
 
-## Load packages, compile model and load DLL
-## Load external data sources and create additional forcing functions where necessary
+## This section only needs to be run once, unless you change the age structure (n_age) or country (cn) above when it must be rerun 
+
+# Load packages, compile model and load DLL
+# Load external data sources and create additional forcing functions where necessary
 if (n_age==17) {
   source("Libraries_and_dll_5yr.R")
   source("Data_load_5yr.R")
@@ -25,19 +28,21 @@ if (n_age==81){
   source("Data_load.R")
 }
 
+##################################################################################################################################
+
+## This section need to be rerun each time you want to generate model outputs
+
 # Set up the forcing functions and parameters
 source(paste("Para_",cn,".R",sep=""))
 
 # Run the model (and time it) 
-strt<-Sys.time()
+if (n_age==17) system.time(source("Run_model_5yr.R"))
+if (n_age==81) system.time(source("Run_model.R"))
 
-if (n_age==17) source("Run_model_5yr.R") 
-if (n_age==81) source("Run_model.R")
-
-print(Sys.time()-strt)
-
-if (n_age==17) source("Plots_5yr.R") 
-if (n_age==81) source("Plots.R")
-
+## Generate plots
+if (plotting ==1){
+  if (n_age==17) source("Plots_5yr.R") 
+  if (n_age==81) source("Plots.R")
+}
 
 

@@ -1667,8 +1667,8 @@ void derivs1(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     yout[10] = Total_I;
     yout[11] = Total_DS;
     yout[12] = Total_MDR;
-    yout[13] = FS;
-    yout[14] = FM;
+    yout[13] = FS*100;
+    yout[14] = FM*100;
     yout[15] = CD4_dist_all[0];
     yout[16] = CD4_dist_all[1];
     yout[17] = CD4_dist_all[2];
@@ -1689,18 +1689,11 @@ void derivs1(int *neq, double *t, double *y, double *ydot, double *yout, int *ip
     yout[32] = TB_cases_ART;
     yout[33] = births;
     yout[34] = Tot_deaths;
-    yout[35] = ART_deaths; 
-    yout[36] = Total_PT;
-    yout[37] = DS_correct;
-    yout[38] = DS_incorrect;
-    yout[39] = MDR_correct;
-    yout[40] = MDR_incorrect;
-    yout[41] = FP;
-    for(i=0; i<n_age; i++){
-      yout[42+i] = ART_new[i];
-      yout[42+81+i] = ART_el[i];
-      yout[42+(81*2)+i] = ART_on[i];
-    }
+    yout[35] = DS_correct;
+    yout[36] = DS_incorrect;
+    yout[37] = MDR_correct;
+    yout[48] = MDR_incorrect;
+    yout[39] = FP;
 
 }
 
